@@ -1,0 +1,68 @@
+# Contributing
+
+Thanks for your interest. Bug reports, fixes, documentation and ideas are all
+welcome. This is a small project maintained in spare time, so reviews may take a
+while.
+
+## The one hard rule: no real key data
+
+Never put real bittings, real system files, or anything that identifies a real
+building, its residents or its keys in an issue, pull request, test, example,
+comment or commit message. The project is public, and so is its history.
+
+- Reproduce problems with `system.example.json` or invented values.
+- Test fixtures live in `tests/fixtures/`, use random or obviously fake
+  bittings, and carry a `_comment` starting with `FAKE`.
+- `.gitignore`, a pre-commit hook and CI all refuse to commit `.json` or `.csv`
+  files other than `system.example.json` and the fixtures. Please do not bypass
+  them (`--no-verify`, `git add -f`).
+
+## Before you start
+
+Open an issue first for anything bigger than a small fix, so we can agree on the
+approach. In particular, the solver's scoring weights, the counting algorithms
+and the output format are deliberately stable. Changes there need a stated
+reason and discussion first (see D6 in [docs/design.md](docs/design.md)).
+
+## Setup
+
+Python 3.11 or newer, standard library only (please do not add runtime
+dependencies).
+
+```bash
+pip install -e ".[test]"        # pytest is the only extra dependency
+git config core.hooksPath .githooks
+pytest
+```
+
+## Making changes
+
+- **One logical change per commit** and per pull request.
+- **Test everything.** A bug fix needs a regression test that fails without the
+  fix. A behavior change needs tests for the new behavior. The whole suite must
+  pass.
+- **Keep refactors separate** from behavior changes, as their own commits.
+- **Keep the randomness defaults.** Anything that produces real keys uses
+  `secrets` or `random.SystemRandom`; `--seed` exists only for reproducible
+  tests.
+- **Update the docs in the same change:** the README (format, limitations) and
+  the decision log in `docs/design.md` when you make a design decision.
+- **Match the surrounding code**: naming, comment density and idiom.
+- **Markdown:** do not wrap a line so that it starts with `+`, `-` or a number
+  and a period; it renders as a list. A test checks every Markdown file.
+
+## Commits and pull requests
+
+- Commit under your own name. If you would rather not publish your email, use
+  GitHub's noreply address (Settings, then Emails).
+- If an AI tool helped write the change, please say so, for example with a
+  `Co-Authored-By` trailer in the commit message. This project does the same.
+- Contributions are accepted under the project's [MIT license](LICENSE).
+- In the pull request, say what changed and why, and mention any behavior
+  change. CI must pass: the tests on every supported Python version, and the
+  data-file guard.
+
+## Reporting problems
+
+Use the [issue forms](../../issues/new/choose). For a security problem, follow
+[SECURITY.md](SECURITY.md) instead.

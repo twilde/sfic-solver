@@ -179,3 +179,15 @@ vulnerabilities (private), wrong results from the checker or solver (ordinary
 public issues, reproduced with made-up data), and the standing rule never to
 post real key data anywhere. It makes no response-time promise, and only the
 latest `main` is supported while the project is pre-1.0.
+
+## D19. Contribution rules
+
+`CONTRIBUTING.md` makes the privacy rule the first and only "hard" rule (no real
+key data in issues, pull requests, tests, examples or commit messages), then
+restates the working agreements already in CLAUDE.md for outside contributors:
+open an issue before large changes, keep scoring and algorithms stable, test
+every change, keep refactors separate, keep the randomness defaults, update the
+docs and this log. Contributors keep their own identity (with GitHub's noreply
+address suggested), contribute under the MIT license, and are asked to disclose
+AI assistance with a `Co-Authored-By` trailer, as this project does. The setup
+commands are duplicated from the README, and a test keeps the two in sync.

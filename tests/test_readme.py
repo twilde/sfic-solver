@@ -74,6 +74,7 @@ def test_minimum_python_is_stated_consistently():
     floor = re.search(r'^requires-python = ">=(\d+\.\d+)"$',
                       (ROOT / "pyproject.toml").read_text(), re.M).group(1)
     assert f"Python {floor} or newer" in (ROOT / "README.md").read_text()
+    assert f"Python {floor} or newer" in (ROOT / "CONTRIBUTING.md").read_text()
     matrix = re.search(r"^\s+python-version: \[(.*)\]$",
                        (ROOT / ".github/workflows/ci.yml").read_text(), re.M).group(1)
     versions = [tuple(map(int, v.strip(' "').split("."))) for v in matrix.split(",")]

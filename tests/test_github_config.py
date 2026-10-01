@@ -43,3 +43,19 @@ def test_security_policy_exists_and_is_consistent():
     assert "never post real key data" in text.lower()
     assert "@" not in text                     # no personal email address published
     assert "[SECURITY.md](SECURITY.md)" in (ROOT / "README.md").read_text()
+
+
+def bash_block_after(path, heading):
+    text = path.read_text()
+    section = text[text.index(heading):]
+    return re.search(r"```bash\n(.*?)```", section, re.S).group(1)
+
+
+def test_contributing_guide_exists_and_is_consistent():
+    text = (ROOT / "CONTRIBUTING.md").read_text()
+    assert "no real key data" in text.lower()
+    assert "SECURITY.md" in text
+    # the setup commands must match the README's Development section
+    assert bash_block_after(ROOT / "CONTRIBUTING.md", "## Setup") == \
+        bash_block_after(ROOT / "README.md", "## Development")
+    assert "[CONTRIBUTING.md](CONTRIBUTING.md)" in (ROOT / "README.md").read_text()
