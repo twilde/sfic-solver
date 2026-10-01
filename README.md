@@ -240,13 +240,14 @@ OK
 ## Privacy
 
 A real system file contains real bittings. **Never commit one.** `.gitignore`
-ignores every `*.json` except `system.example.json` and the fake fixtures under
-`tests/fixtures/`, and two guards enforce it:
+ignores every `*.json` and `*.csv` (system files and exports of your key matrix)
+except `system.example.json` and the fake fixtures under `tests/fixtures/`, and
+two guards enforce it:
 
 - a pre-commit hook (`git config core.hooksPath .githooks`) that rejects any
-  other staged `.json`;
-- a CI job that fails if any other `.json` is tracked or appears anywhere in
-  the history.
+  other staged `.json` or `.csv`;
+- a CI job that fails if any other `.json` or `.csv` is tracked or appears
+  anywhere in the history.
 
 Keep real files in a directory outside the repository.
 

@@ -18,6 +18,7 @@ _spec.loader.exec_module(guard)
     "system.example.json",
     "tests/fixtures/clean.json",
     "tests/fixtures/nested/other.json",
+    "tests/fixtures/matrix.csv",
     "README.md",
     "sfic_solver/check_system.py",
     "notes.jsonl",
@@ -35,6 +36,10 @@ def test_allowed(path):
     "subdir/system.example.json",       # only the root example is allowed
     "SYSTEM.JSON",
     "tests/fixturesX/a.json",
+    "export.csv",
+    "keys/matrix.CSV",
+    "system.example.csv",               # only the root example .json is allowed
+    "tests/matrix.csv",
 ])
 def test_stray(path):
     assert guard.find_stray([path]) == [path]
@@ -82,3 +87,20 @@ def test_fixtures_are_marked_fake():
         cfg = json.loads(path.read_text())
         assert str(cfg.get("_comment", "")).startswith("FAKE"), \
             f"{path.name}: fixtures must carry a _comment starting with FAKE"
+
+
+@pytest.mark.parametrize("path, ignored", [
+    ("system.json", True),
+    ("export.csv", True),
+    ("docs/matrix.csv", True),
+    ("system.example.json", False),
+    ("tests/fixtures/clean.json", False),
+    ("tests/fixtures/matrix.csv", False),
+    ("subdir/system.example.json", True),
+])
+def test_gitignore_matches_the_guard(path, ignored):
+    probe = subprocess.run(["git", "check-ignore", "-q", "--no-index", path],
+                           cwd=ROOT, capture_output=True)
+    if probe.returncode not in (0, 1):
+        pytest.skip("git not available")
+    assert (probe.returncode == 0) == ignored, path

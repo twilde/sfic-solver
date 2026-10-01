@@ -93,7 +93,7 @@ except `/system.example.json` and `/tests/fixtures/**/*.json`;
 `scripts/check_no_stray_data.py` runs as a pre-commit hook (staged files) and in
 CI (tracked files and all history). Fixtures must carry a `_comment` starting
 with `FAKE` (a test enforces it). Tests that need other configs build them in a
-temporary directory.
+temporary directory. `.csv` is covered the same way (D12).
 
 ## D10. Usage errors exit 2 in every tool
 
@@ -112,3 +112,11 @@ tested for (non-)operation of the new cores, and their bittings are whatever
 they were. Control keys are still never tested for operation (separate control
 pinning). The solver already drew control keys from parity- and MACS-valid
 candidates, so only the checker changed.
+
+## D12. The data-file guard also covers .csv
+
+Exports of the key matrix (a planned input format) hold the same real data as a
+system file, so `*.csv` is ignored and rejected exactly like `*.json`: allowed
+only under `tests/fixtures/` (the single exception for JSON is the root
+`system.example.json`). `.gitignore` and `scripts/check_no_stray_data.py` must
+agree; `test_gitignore_matches_the_guard` checks them against each other.

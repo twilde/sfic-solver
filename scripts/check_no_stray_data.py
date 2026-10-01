@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Fail if any .json file other than the allowed ones is staged or tracked.
+"""Fail if any data file (.json or .csv) other than the allowed ones is committed.
 
-Real system files contain real bittings and must never be committed. The only
-allowed JSON files are system.example.json (repo root) and fixtures under
-tests/fixtures/, which must use obviously fake bittings.
+Real system files and exports (such as a key matrix) contain real bittings and
+must never be committed. The only allowed data files are system.example.json
+(repo root) and fixtures under tests/fixtures/, which must use obviously fake
+bittings.
 
 Usage:
     scripts/check_no_stray_data.py --staged     # files staged for commit (pre-commit hook)
@@ -11,18 +12,19 @@ Usage:
     scripts/check_no_stray_data.py --history    # every path ever committed on HEAD (CI)
     scripts/check_no_stray_data.py PATH...      # explicit paths
 
-Exits with status 1 if a disallowed .json file is found.
+Exits with status 1 if a disallowed data file is found.
 """
 import subprocess
 import sys
 
+DATA_EXTENSIONS = (".json", ".csv")
 ALLOWED_EXACT = {"system.example.json"}
 ALLOWED_PREFIX = "tests/fixtures/"
 
 
 def is_stray(path):
     path = path.replace("\\", "/")
-    if not path.lower().endswith(".json"):
+    if not path.lower().endswith(DATA_EXTENSIONS):
         return False
     if path in ALLOWED_EXACT:
         return False
@@ -53,8 +55,8 @@ def main(argv=None):
 
     stray = find_stray(paths)
     if stray:
-        print("Refusing: .json files other than system.example.json and tests/fixtures/ "
-              "may hold real key data:", file=sys.stderr)
+        print("Refusing: .json and .csv files other than system.example.json and "
+              "tests/fixtures/ may hold real key data:", file=sys.stderr)
         for p in stray:
             print(f"  {p}", file=sys.stderr)
         print("Unstage them (git restore --staged <file>); keep real system files outside "

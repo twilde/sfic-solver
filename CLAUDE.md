@@ -23,7 +23,7 @@ Treat everything committed as if strangers will read it. The repo may go public.
   decoded unit keys, or anything identifying the building, residents, trustees
   or vendors. This applies to files, tests, docs, examples and commit messages.
 - Real system files live outside this repo. Do not go looking for them. If you
-  find any `.json` other than `system.example.json` and files under
+  find any `.json` or `.csv` other than `system.example.json` and files under
   `tests/fixtures/`, stop and ask before reading it.
 - Example and fixture data must be random or obviously fake, with generic names.
 - `.gitignore`, the pre-commit hook and CI all enforce the data-file rule.
