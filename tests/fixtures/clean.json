@@ -1,0 +1,30 @@
+{
+  "_comment": "FAKE bittings for tests only. A clean system: check_system must exit 0.",
+  "pattern": "EOEOEOE",
+  "max_step": 5,
+  "min_diff": 5,
+  "unit_prefix": "unit:",
+  "unit_count": 5,
+  "keys": {
+    "general_master": "0123456",
+    "key_a": "2345678",
+    "key_b": "4567898",
+    "key_c": "6789876",
+    "unit_master": "8765432",
+    "unit:101": "6543210",
+    "unit:102": "0123210",
+    "unit:103": "2345432"
+  },
+  "retired_keys": {
+    "old_master": "4321012"
+  },
+  "control_keys": {
+    "control_common": "8901234"
+  },
+  "cores": [
+    {"name": "Area A", "change": "key_a", "masters": ["general_master"]},
+    {"name": "Area B", "change": "key_b", "masters": ["general_master"]},
+    {"name": "Area C", "change": "key_c", "masters": []},
+    {"name": "Unit doors", "change": "unit:*", "masters": ["unit_master"]}
+  ]
+}

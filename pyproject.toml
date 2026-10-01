@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sfic-solver"
+version = "0.1.0"
+description = "Plan and check a master-keyed SFIC (small format interchangeable core) key system"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []          # standard library only
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+sfic-gen-bittings = "sfic_solver.gen_bittings:main"
+sfic-check-bittings = "sfic_solver.check_bittings:main"
+sfic-check-system = "sfic_solver.check_system:main"
+sfic-solve-system = "sfic_solver.solve_system:main"
+
+[tool.setuptools]
+packages = ["sfic_solver"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
