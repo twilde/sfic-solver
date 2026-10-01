@@ -30,24 +30,35 @@ def test_readme_example_checks_clean(write_cfg):
     assert proc.returncode == 0, proc.stdout
 
 
+def markdown_files():
+    return sorted(p for p in ROOT.rglob("*.md") if ".git" not in p.parts)
+
+
 def test_no_accidental_lists_from_wrapped_prose():
     """A wrapped line that starts like a list item ("+ x", "97.") renders as a list.
 
     Genuine list items follow a blank line or another list line; a marker right
-    after ordinary prose means a sentence was wrapped at the wrong place.
+    after ordinary prose means a sentence was wrapped at the wrong place. Checked
+    for every Markdown file in the repo.
     """
     marker = re.compile(r"^\s*(\+|-|\*|\d+[.)])(\s|$)")
-    in_fence, prev = False, ""
     offenders = []
-    for number, line in enumerate((ROOT / "README.md").read_text().splitlines(), 1):
-        if line.startswith("```"):
-            in_fence = not in_fence
-        elif not in_fence:
-            prose_before = prev.strip() and not marker.match(prev) and not prev.startswith(" ")
-            if marker.match(line) and prose_before:
-                offenders.append(f"README.md:{number}: {line!r}")
-        prev = line
+    for path in markdown_files():
+        in_fence, prev = False, ""
+        for number, line in enumerate(path.read_text().splitlines(), 1):
+            if line.startswith("```"):
+                in_fence = not in_fence
+            elif not in_fence:
+                prose_before = prev.strip() and not marker.match(prev) and not prev.startswith(" ")
+                if marker.match(line) and prose_before:
+                    offenders.append(f"{path.relative_to(ROOT)}:{number}: {line!r}")
+            prev = line
     assert not offenders, "\n".join(offenders)
+
+
+def test_markdown_files_are_found():
+    names = {p.name for p in markdown_files()}
+    assert {"README.md", "CLAUDE.md", "TODO.md", "design.md"} <= names
 
 
 def test_license_is_mit_and_declared_consistently():
