@@ -297,11 +297,17 @@ The tools will grow from "which keys operate which cores" to "which pins make
 the cores behave that way", for SFIC A2 first and other pinning systems as data.
 The reasoning is long and has open questions, so it lives in
 [docs/designs/core-pinning.md](designs/core-pinning.md) (status: draft) rather
-than here. The decisions it records so far, none yet built: control keys are part
-of every core's pinning, not an extra; a simulated lock built from pins alone is
-the test oracle; A2 is a data record, not code; the work opts in per system file
-so that existing files keep their meaning; and the parity pattern is to be
-demoted from a rule every key obeys to a promise about keys we cannot see, because
-the real constraint is that two cuts in one chamber of one core must not differ
-by exactly one. Pinnability as a hard rule in the solver, and the residual-risk
-population, are flagged there for agreement before they are built.
+than here. The decisions it records so far, none yet built: every core has
+exactly one control key, which is part of its pinning, not an extra; within one
+core, master and change keys are indistinguishable and all are just operating
+keys; a chamber's pinning is forced, one pin per gap, so a shared cut means one
+pin fewer; a simulated lock built from pins alone is the test oracle; A2 is a
+data record, not code; MACS stays a system parameter; and the work opts in per
+system file so that existing files keep their meaning. The real constraint on
+bittings is that two operating cuts in one chamber of one core must not differ
+by exactly one (and a control cut of 0 cannot share a chamber with an operating
+cut of 9), which is weaker than parity. Whether to rely on that weaker rule is
+the owner's choice, because published A2 practice (a 2-step progression) is
+narrower; the `pattern` field stays for those who want it. Pinnability as a hard
+rule in the solver, and the residual-risk population, are flagged there for
+agreement before they are built.

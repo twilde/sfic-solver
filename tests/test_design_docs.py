@@ -26,3 +26,24 @@ def test_design_document_has_a_title_and_a_status(path):
 def test_design_document_is_indexed_in_the_log(path):
     log = (ROOT / "docs" / "design.md").read_text()
     assert f"(designs/{path.name})" in log
+
+
+def test_core_pinning_example_chart_is_valid_a2_pinning():
+    """The chart in the design document must add up, like the README's example."""
+    text = (ROOT / "docs" / "designs" / "core-pinning.md").read_text()
+    chart = re.search(r"```\n(System = .*?)```", text, re.S).group(1)
+    header, _, body = chart.partition("\n\n")
+    control = re.search(r"^Control Key = (\d+)$", header, re.M).group(1)
+    rows = {}
+    for line in body.strip().splitlines():
+        label, *cells = line.split()
+        rows.setdefault(label, []).append([None if c == "--" else int(c) for c in cells])
+    assert len(rows["T/D"]) == len(rows["Control"]) == len(rows["Bottom"]) == 1
+    for chamber, cut in enumerate(control):
+        bottom = rows["Bottom"][0][chamber]
+        others = [row[chamber] for label, layer in rows.items() if label != "Bottom"
+                  for row in layer if row[chamber] is not None]
+        assert 0 <= bottom <= 9
+        assert all(2 <= pin <= 19 for pin in others), f"chamber {chamber + 1}"
+        assert bottom + sum(others) == 23, f"chamber {chamber + 1}"
+        assert 23 - rows["T/D"][0][chamber] == int(cut) + 10, f"chamber {chamber + 1}: control line"
