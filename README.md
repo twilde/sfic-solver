@@ -135,13 +135,13 @@ This is `system.example.json` (random placeholder bittings, generic names):
 }
 ```
 
-Reading the `cores` list: the "Area A cores" are pinned `area_a` + `master_sub`
-+ `master_top`, so those three keys operate them, plus any false keys. The
-sub-master cores are operated by `master_sub` and `master_top`, and so on: a
-master operates every core where it appears as a master. `"unit:*"` creates one
-core per `unit:` key (three here), each with `unit_master` above it. Only 3 of
-the 100 units are decoded, so the report also estimates the risk from the other
-97.
+Reading the `cores` list: the "Area A cores" are pinned with `area_a`, then
+`master_sub`, then `master_top`, so those three keys operate them, plus any
+false keys. The sub-master cores are operated by `master_sub` and `master_top`,
+and so on: a master operates every core where it appears as a master.
+`"unit:*"` creates one core per `unit:` key (three here), each with
+`unit_master` above it. Only 3 of the 100 units are decoded, so the report also
+estimates the risk from the other 97.
 
 Checking it (output abridged):
 
