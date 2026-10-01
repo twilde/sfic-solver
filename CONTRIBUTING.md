@@ -6,9 +6,10 @@ while.
 
 ## The one hard rule: no real key data
 
-Never put real bittings, real system files, or anything that identifies a real
-building, its residents or its keys in an issue, pull request, test, example,
-comment or commit message. The project is public, and so is its history.
+Never put real bittings, real system files, real pinning charts (the pin sizes
+give the bittings away), or anything that identifies a real building, its
+residents or its keys in an issue, pull request, test, example, comment or
+commit message. The project is public, and so is its history.
 
 - Reproduce problems with `system.example.json` or invented values.
 - Test fixtures live in `tests/fixtures/`, use random or obviously fake

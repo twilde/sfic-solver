@@ -24,6 +24,10 @@ Treat everything committed as if strangers will read it. The repo is public.
 - Never commit, and never ask the user to paste, real key data: real bittings,
   decoded unit keys, or anything identifying the building, residents, trustees
   or vendors. This applies to files, tests, docs, examples and commit messages.
+- Pinning charts are real key data too: the pin sizes in each chamber give the
+  bittings away. They follow every rule above, in any format, including a chart
+  re-typed or "anonymised" from a real one. Tests may only use charts that are
+  computed from fake bittings.
 - Real system files live outside this repo. Do not go looking for them. If you
   find any `.json` or `.csv` other than `system.example.json` and files under
   `tests/fixtures/`, stop and ask before reading it.

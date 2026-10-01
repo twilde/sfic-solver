@@ -258,7 +258,8 @@ two guards enforce it:
 - a CI job that fails if any other `.json` or `.csv` is tracked or appears
   anywhere in the history.
 
-Keep real files in a directory outside the repository.
+Keep real files in a directory outside the repository. A pinning chart counts as
+real key data in any format, because the pin sizes give the bittings away.
 
 Issues and pull requests are public too: never paste real bittings, real system
 files, or anything that identifies a real building. Reproduce problems with
