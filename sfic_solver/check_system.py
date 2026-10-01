@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Whole-scheme check for master-keyed 7-pin bittings.
+"""Whole-scheme check for master-keyed bittings (7 pins unless the file says otherwise).
 
 Reads a JSON description of the system and reports:
   * per-key problems (parity and adjacent-cut limit for keys and control keys;
@@ -13,9 +13,11 @@ Usage:
     ./check_system.py system.json
 
 Config (see system.example.json):
-    pattern        7 chars of E/O (optional; enables parity checks)
+    pins           number of pins (default: the length of pattern, else 7)
+    pattern        one E/O per pin (optional; enables parity checks)
     max_step       max adjacent-cut difference (default 5)
-    min_diff       flag key pairs differing in fewer positions (default 5);
+    min_diff       flag key pairs differing in fewer positions (default 5, or
+                   the pin count if smaller);
                    pairs involving unit keys are skipped unless
                    close_check_units is true (cross-operation is the real test)
     unit_prefix    key-name prefix for unit keys (default "unit:")

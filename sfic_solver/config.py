@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Tuple
 from . import model
 
 SECTIONS = ("keys", "retired_keys", "control_keys")
-TOP_LEVEL_FIELDS = {"pattern", "max_step", "min_diff", "unit_prefix", "unit_count",
+TOP_LEVEL_FIELDS = {"pins", "pattern", "max_step", "min_diff", "unit_prefix", "unit_count",
                     "close_check_units", "cores", *SECTIONS}
 CORE_FIELDS = {"name", "change", "masters"}
 
@@ -74,9 +74,14 @@ def parse_config(raw, allow_null=False):
     warnings = [f"unknown top-level field {name!r} is ignored (misspelled?)"
                 for name in raw if name not in TOP_LEVEL_FIELDS and not name.startswith("_")]
 
-    pins = model.DEFAULT_PINS
-
     pattern = raw.get("pattern")
+    if "pins" in raw:
+        pins = _whole_number(raw, "pins", None, 1)
+    elif pattern and isinstance(pattern, str):
+        pins = len(pattern)
+    else:
+        pins = model.DEFAULT_PINS
+
     if pattern:
         if not isinstance(pattern, str):
             raise ConfigError(f"pattern must be a string of {pins} E/O characters, "
@@ -91,7 +96,10 @@ def parse_config(raw, allow_null=False):
         pattern = None
 
     max_step = _whole_number(raw, "max_step", 5, 1)
-    min_diff = _whole_number(raw, "min_diff", 5, 0)
+    min_diff = _whole_number(raw, "min_diff", model.default_min_diff(pins), 0)
+    if min_diff > pins:
+        raise ConfigError(f"min_diff is {min_diff} but keys have only {pins} pins, so no two "
+                          f"keys could differ in that many positions")
     unit_prefix = raw.get("unit_prefix", "unit:")
     if not isinstance(unit_prefix, str) or not unit_prefix:
         raise ConfigError(f"unit_prefix must be a non-empty string, got {unit_prefix!r}")

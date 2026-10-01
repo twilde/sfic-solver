@@ -26,7 +26,7 @@ def test_count_valid_known_value():
     assert model.count_valid("OOEOEOE", 5, 7) == 28_384
 
 
-@pytest.mark.parametrize("pins", [3, 4])
+@pytest.mark.parametrize("pins", [1, 2, 3, 4, 5])
 def test_count_valid_matches_brute_force(pins):
     rng = random.Random(1)
     for _ in range(30):

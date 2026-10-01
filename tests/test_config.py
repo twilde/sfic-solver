@@ -66,11 +66,13 @@ def test_duplicate_name_within_one_section(tmp_path):
 
 @pytest.mark.parametrize("bad", ["EOE", "EOEOEOEO", "EOEOEOX", "1010101", 7])
 def test_bad_pattern(clean_cfg, write_cfg, bad):
-    fails(clean_cfg, lambda c: c.update(pattern=bad), "pattern must be", write_cfg=write_cfg)
+    fails(clean_cfg, lambda c: c.update(pins=7, pattern=bad), "pattern must be",
+          write_cfg=write_cfg)
 
 
 def test_pattern_error_reports_length(clean_cfg, write_cfg):
-    fails(clean_cfg, lambda c: c.update(pattern="EOE"), "(3 characters)", write_cfg=write_cfg)
+    fails(clean_cfg, lambda c: c.update(pins=7, pattern="EOE"), "(3 characters)",
+          write_cfg=write_cfg)
 
 
 def test_lowercase_pattern_is_accepted(clean_cfg):

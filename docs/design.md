@@ -210,3 +210,30 @@ given. `Config.pins` carries the value to the tools, and `model.DEFAULT_PINS`
 which also removes the "never `from .model import PINS`" trap from D3. This
 commit changes no behavior (the count is still always 7); making it
 configurable comes next.
+
+## D22. Pin count: `pins`, else the pattern's length, else 7
+
+A system file may set `pins` (a whole number, at least 1). If it does not, the
+count is the length of `pattern`, and if there is no pattern either it is 7, so
+every existing file means what it did. If `pins` and `pattern` disagree the
+usual pattern error is reported ("pattern must be 5 characters"). Bittings are
+checked against the resulting count, and the error says what count was
+expected. The count is deliberately not inferred from the bittings: `null`
+bittings carry no length, and a typo in one bitting should be an error, not a
+new pin count.
+
+The command-line tools follow the same order. `gen_bittings` always has a
+pattern, so its pin count is the pattern's length (any length of at least 1).
+`check_bittings` takes `--pins`, else the length of `--pattern`, else 7.
+
+`min_diff` has a pin-count-aware default of `min(5, pins)` (`gen_bittings`:
+`min(3, pins)`), and an explicit value above `pins` is an error (a usage error
+on the command line), because no two keys could ever satisfy it. Without this a
+5-pin file that never mentions `min_diff` would be valid at 7 pins and
+impossible at 4.
+
+Scope: this covers the pin count only. Cut depths stay 0-9, and the parity
+pattern, `max_step` and `min_diff` stay the only keyway rules; configurable cut
+depth ranges and per-pin allowed-cut sets remain a TODO. The counting maths
+needed no change beyond D21, and the existing brute-force tests now also cover
+1, 2 and 5 pins. Scoring weights and algorithms are unchanged (D6).

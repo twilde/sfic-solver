@@ -130,7 +130,7 @@ def test_unit_keys_skip_closeness_unless_requested(clean_cfg, write_cfg):
 
 
 def test_min_diff_is_configurable(clean_cfg, write_cfg):
-    clean_cfg["min_diff"] = 8
+    clean_cfg["min_diff"] = 7
     proc = check(write_cfg, clean_cfg)
     assert proc.returncode == 1 and "CLOSE" in proc.stdout
 

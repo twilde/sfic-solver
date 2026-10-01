@@ -6,6 +6,12 @@ read from the length of the bittings and option lists it is given.
 """
 
 DEFAULT_PINS = 7
+DEFAULT_MIN_DIFF = 5
+
+
+def default_min_diff(pins):
+    """The closeness default, capped so that it can be met at all (fewer than 5 pins)."""
+    return min(DEFAULT_MIN_DIFF, pins)
 
 
 def is_bitting(text, pins):
