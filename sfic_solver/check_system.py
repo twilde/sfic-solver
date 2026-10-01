@@ -2,7 +2,8 @@
 """Whole-scheme check for master-keyed 7-pin bittings.
 
 Reads a JSON description of the system and reports:
-  * per-key problems (parity, adjacent-cut limit, duplicates)
+  * per-key problems (parity and adjacent-cut limit for keys and control keys;
+    duplicates across all keys)
   * pairs of keys that are too close
   * for each core type, how many keys operate it (intended + false keys)
   * known keys that would operate a core they are NOT meant to operate
@@ -50,7 +51,7 @@ def main(argv=None):
     problems = 0
 
     print("== Key checks ==")
-    for name, cuts in keys.items():
+    for name, cuts in {**keys, **control}.items():     # retired keys are exempt
         if pattern:
             bad = parity_bad(cuts, pattern)
             if bad:

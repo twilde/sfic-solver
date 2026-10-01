@@ -91,6 +91,27 @@ def test_flags_macs_violation(clean_cfg, write_cfg):
     assert "MACS      key_c: adjacent cuts too far apart" in proc.stdout
 
 
+def test_control_keys_must_follow_parity(clean_cfg, write_cfg):
+    clean_cfg["control_keys"]["control_common"] = "1101030"
+    proc = check(write_cfg, clean_cfg)
+    assert proc.returncode == 1
+    assert "PARITY    control_common: wrong parity at pin(s) [1]" in proc.stdout
+
+
+def test_control_keys_must_follow_macs(clean_cfg, write_cfg):
+    clean_cfg["control_keys"]["control_common"] = "0901030"
+    proc = check(write_cfg, clean_cfg)
+    assert proc.returncode == 1
+    assert "MACS      control_common: adjacent cuts too far apart" in proc.stdout
+
+
+def test_retired_keys_are_exempt_from_parity_and_macs(clean_cfg, write_cfg):
+    # Old keys are what they are; only their operation of new cores matters.
+    clean_cfg["retired_keys"]["old_master"] = "1900000"
+    proc = check(write_cfg, clean_cfg)
+    assert "PARITY" not in proc.stdout and "MACS" not in proc.stdout
+
+
 def test_flags_close_non_unit_keys(clean_cfg, write_cfg):
     clean_cfg["keys"]["key_c"] = "4567896"      # differs from key_b in one position
     proc = check(write_cfg, clean_cfg)

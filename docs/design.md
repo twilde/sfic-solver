@@ -102,3 +102,13 @@ message on stderr and exit status 2 (argparse's convention), in all four tools.
 `gen_bittings` previously let a bad pattern or `--avoid` bitting escape as a
 traceback with status 1; `check_bittings` already behaved this way. Status 1
 keeps meaning "the check flagged something" or "the config file is invalid".
+
+## D11. Parity and MACS apply to keys and control keys, not retired keys
+
+The per-key check covers `keys` and `control_keys`. A control key that broke the
+parity pattern could need a pin size the system does not have, so it is held to
+the same rules as operating keys. Retired keys are exempt: they exist only to be
+tested for (non-)operation of the new cores, and their bittings are whatever
+they were. Control keys are still never tested for operation (separate control
+pinning). The solver already drew control keys from parity- and MACS-valid
+candidates, so only the checker changed.

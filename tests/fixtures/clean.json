@@ -19,7 +19,7 @@
     "old_master": "4321012"
   },
   "control_keys": {
-    "control_common": "8901234"
+    "control_common": "0101030"
   },
   "cores": [
     {"name": "Area A", "change": "key_a", "masters": ["general_master"]},

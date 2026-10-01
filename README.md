@@ -225,8 +225,10 @@ OK
   the authority.
 - It is a **planning aid**, not a substitute for the keying software or an
   experienced locksmith.
-- Parity and MACS checks are applied to `keys`; closeness and duplicates to all
-  sections. Control keys are never tested for operation.
+- Parity and MACS are checked for `keys` and `control_keys` (a control key that
+  broke parity could need a pin size that does not exist), but not for
+  `retired_keys`. Closeness and duplicates cover all sections. Control keys are
+  never tested for operation.
 - Closeness counts differing positions only. It does not model the physical
   similarity of cuts.
 - **Residual-risk numbers assume undecoded unit keys are random valid
