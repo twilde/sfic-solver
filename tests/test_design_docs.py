@@ -31,13 +31,16 @@ def test_design_document_is_indexed_in_the_log(path):
 def example_charts():
     """The charts in the core pinning document: (header keys, control, rows by label)."""
     text = (ROOT / "docs" / "designs" / "core-pinning.md").read_text()
-    block = re.search(r"```\n(System = .*?)```", text, re.S).group(1)
+    block = re.search(r"```\n(Key System = .*?)```", text, re.S).group(1)
     charts = []
     for chart in re.split(r"\n-{10,}\n", block):
         header, _, body = chart.strip().partition("\n\n")
         fields = dict(re.findall(r"^(.+?) = (.+)$", header, re.M))
+        assert header.splitlines()[:5] == [
+            f"{label} = {fields[label]}"
+            for label in ("Key System", "System", "Core", "Date", "Control Key")]
         control = fields["Control Key"]
-        reserved = {"System", "Key System", "Core", "Control Key"}
+        reserved = {"Key System", "System", "Core", "Date", "Control Key"}
         keys = [v for k, v in fields.items() if k not in reserved]
         rows = []
         for line in body.strip().splitlines():
@@ -47,9 +50,20 @@ def example_charts():
     return charts
 
 
-def test_core_pinning_document_has_two_example_charts():
-    assert [c[0]["Core"] for c in example_charts()] == ["Area A cores", "Standalone cores"]
-    assert all(c[0]["System"] == "A2" for c in example_charts())
+def test_core_pinning_document_has_example_charts():
+    charts = example_charts()
+    assert [c[0]["Core"] for c in charts] == [
+        "Area A cores", "Unit cores (unit:101)", "Standalone cores"]
+    assert all(c[0]["System"] == "A2" for c in charts)
+    assert all(re.fullmatch(r"\d{4}-\d\d-\d\d", c[0]["Date"]) for c in charts)
+
+
+def test_core_pinning_unit_charts_name_their_unit_in_the_core_line():
+    unit_charts = [c for c in example_charts() if any(k.startswith("unit:") for k in c[0])]
+    assert unit_charts
+    for fields, *_ in unit_charts:
+        unit = next(k for k in fields if k.startswith("unit:"))
+        assert f"({unit})" in fields["Core"]
 
 
 def test_core_pinning_example_charts_are_the_pins_for_their_keys():

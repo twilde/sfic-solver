@@ -13,8 +13,9 @@
   system records in docs/designs/core-pinning.md.
 - Core pinning (docs/designs/core-pinning.md): agree the open questions, then
   follow the plan in that document.
-- Extend the data-file guard to chart formats (spreadsheet, PDF) before the chart
-  tooling lands, since a pinning chart is real key data (CLAUDE.md).
+- Extend the data-file guard to chart formats, since a pinning chart is real key
+  data (CLAUDE.md): `.txt` before the conformance script, `.pdf` before PDF
+  output, each in its own commit (docs/designs/core-pinning.md).
 - Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
   drawing of each core's pin stacks inside the chart output, and optional PDF
   output of all the charts as one document.

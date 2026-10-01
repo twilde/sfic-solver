@@ -8,9 +8,9 @@ cores behave that way, for a given SFIC pinning system, starting with A2. It
 also proposes a simulated lock to test the result against, and, as a
 consequence, letting the physical pinning rules rather than the parity pattern
 decide which bittings can be built. It is written before any code, to be
-discussed and changed, and has been revised twice with the maintainer's answers to
-its questions. Decisions that survive discussion will be
-summarised in the log ([D25 in design.md](../design.md)).
+discussed and changed, and has been revised three times with the maintainer's
+answers to its questions. Decisions that survive discussion will be summarised in
+the log ([D25 in design.md](../design.md)).
 
 ## Why do this
 
@@ -24,8 +24,8 @@ actually built. Somebody has to put pins in the cores, and the pinning has rules
 of its own that the key-level model does not see. The parity pattern is the
 clearest symptom. It guarantees that a pinning rule is met without anyone having
 to check it, but it is a policy and not a property of the lock, and it costs a
-great deal of the key space (about a hundredfold, as shown below). Another symptom is
-that control keys are only checked for closeness and duplicates, yet an SFIC core
+great deal of the key space (about a hundredfold, as shown below). Another
+symptom is that control keys are only checked for closeness and duplicates, yet an SFIC core
 with no valid control key can be neither installed nor removed, so a system whose
 control bittings cannot be pinned is not a system at all.
 
@@ -182,44 +182,66 @@ or nine of the ten depths at each position instead of the five that parity leave
 
 ## What the retired keys tell us
 
-A rekey starts from a building whose original master and control keys are known,
-held as `retired_keys`. The tools already use them to make sure that the new cores
-refuse them. They also hold information, because the old cores were physically
-pinned, every unit core included, and a core can only be pinned if no two of its
-keys differ by exactly one in any chamber. So if a retired master sat above every
-unit key, as the old unit master did, every unit key, decoded or not, avoids that
-master's cut plus or minus one at every position. That needs no guess about how
-the unit keys were chosen. It rests only on the old cores having been pinned as
-the old hierarchy says, which is a fact about the building and not about its
-history. The old control key adds a weaker constraint of the same kind.
+A rekey starts from a building whose original keys are known. In this one the old
+system had a single master and a single control, which together covered the units
+and the common areas, and they are held as `retired_keys`. The tools already use
+them to make sure that the new cores refuse them. They also hold information,
+because the old cores were physically pinned, and a core can only be pinned if no
+two of its keys differ by exactly one in any chamber. So every unit key that sat
+in an old core with the old master, decoded or not, avoids that master's cut plus
+or minus one at every position. That needs no guess about how the unit keys were
+chosen. It rests only on the old cores having been pinned as the old hierarchy
+says, which is a fact about the building and not about its history. The old
+control key adds a weaker constraint of the same kind: it excludes a unit cut of 9
+wherever the old control's cut is 0.
+
+Other buildings will have had other histories, such as several masters, an area
+master above a unit master, or separate controls for units and common areas, so
+the description of the old pinning is generic and not built around this one. A
+system file may carry a `retired_cores` list in the same shape as `cores`: a
+name, the keys that were the change keys (names, or wildcards such as `unit:*` so
+that undecoded unit keys are covered), the retired keys pinned above them as
+`masters`, and the retired `control` key. This building needs one entry, and a
+richer history is simply more entries. A sketch, with invented names:
+
+```json
+"retired_cores": [
+  {"name": "Original cores", "change": ["unit:*"], "masters": ["old_master"], "control": "old_control"}
+]
+```
+
+The exact shape is settled when step 4 is built; what this document commits to is
+that the description is generic and mirrors `cores`, so that nobody has to learn a
+second notation.
 
 It can be put to three uses, in the order they would be built. The first is a
-check of the rules themselves against real data: every decoded unit key must be
-compatible with the retired master, including at odd gaps. A failure means either
-that the assumption about which retired keys sat in which cores is wrong or that
-the rules are too strict, and it is reported as a warning for that reason.
+check of the rules themselves against real data: every decoded key in a retired
+core must be compatible with the retired keys pinned with it, including at odd
+gaps. A failure means either that the description of the old cores is wrong or
+that the rules are too strict, and it is reported as a warning for that reason.
 
 The second is a better population for the residual-risk estimate. Today it assumes
-every undecoded unit key is uniform among all valid bittings. The retired keys
-let it say instead: uniform among valid bittings that also avoid the retired
-master's neighbours. Each retired master removes at most two of the ten depths at
-each position, so the population stays large, but it is now exactly described, and
-the counting that already works from per-position sets of cuts adapts to it. The
-estimate gains a second figure beside the chance of cross-operation: the chance
-that an undecoded unit key cannot be pinned under a candidate master at all.
+every undecoded unit key is uniform among all valid bittings. The retired cores
+let it say instead: uniform among valid bittings that also avoid the neighbours of
+the retired keys pinned with them. Each retired key removes at most two of the ten
+depths at each position, so the population stays large, but it is now exactly
+described, and the counting that already works from per-position sets of cuts
+adapts to it. The estimate gains a second figure beside the chance of
+cross-operation: the chance that an undecoded unit key cannot be pinned under a
+candidate master at all.
 
 The third is guidance for the solver. At a position where the new master's cut
-equals the retired master's, every unit key is compatible, at no risk; at any
-other, the exact chance of a clash can be worked out per candidate cut. The
-closeness rule limits how many positions can match (at most two, with seven pins
-and the default `min_diff` of 5), and matching positions make it likelier that the
-retired master operates the new unit cores, so this is a trade the scoring has to
-weigh. That is a change to the solver's scoring, so it will be agreed before it is
-built (D6).
+equals a retired master's, every unit key is compatible, at no risk; at any other,
+the exact chance of a clash can be worked out per candidate cut. The closeness
+rule limits how many positions can match (at most two, with seven pins and the
+default `min_diff` of 5), and matching positions make it likelier that the retired
+master operates the new unit cores, so this is a trade the scoring has to weigh.
+That is a change to the solver's scoring, so it will be agreed before it is built
+(D6).
 
 Evidence from the decoded keys themselves, such as every one of them sharing a
 parity at some position, could be shown as information. It is weaker than the
-retired keys, since by chance alone a few keys will often agree, and the tools
+retired cores, since by chance alone a few keys will often agree, and the tools
 would not rely on it.
 
 ## Control keys are part of the core
@@ -352,13 +374,21 @@ manufacturer's software remains the authority.
 The maintainer's real charts are single-core charts, and the tools should print
 charts in the same layout, so that output can be compared with a chart by eye or
 with a diff. A chart is a header, a blank line, and then one row per layer of pins
-from the top of the stack down, one column per chamber. In a real chart the first
-header line is `System = A2`, naming the pinning system. The tools' charts keep
-that line and add, above the control key, the name of the key system (from a new
-optional field of the system file, added when it is needed) and the name of the
-core, which the system file already has. The labels `Key System` and `Core` here
-are provisional. Then come `Control Key = <bitting>` and one `name = bitting` line
-for every operating key of the core.
+from the top of the stack down, one column per chamber. A real chart's header
+names the pinning system (`System = A2`), the control key, and every operating key
+of the core as `name = bitting`. The tools' charts add three lines of metadata
+around that. The first line is the name of the key system, from a new optional
+field of the system file, so a chart says which building it belongs to. After
+`System = A2` come the name of the core, which the system file already has, and
+the date the chart was made, in ISO form, which defaults to today and can be set
+on the command line so that tests and diffs are reproducible. The labels are
+provisional.
+
+A unit core's chart carries the name of its unit key in the `Core` line, as in
+`Core = Unit cores (unit:101)`, because a chart for a unit is only useful if it
+says which door the core goes in. That is also a reminder of why charts are
+sensitive: a chart names the units, gives the bittings and, through the pin sizes,
+gives them again.
 
 Every core's chart repeats the whole header. Cores may share a page, separated by
 a horizontal line of dashes with at least one blank line on either side, and the
@@ -371,12 +401,13 @@ the core needs, and Bottom. Master pins fill from the bottom, so the rows neares
 Bottom are filled first and a chamber with fewer pins shows `--` in the higher
 rows, as the real charts do. The example below is computed from the fake example
 system's keys, so its numbers are consistent. The first core has three operating
-keys, the second only one:
+keys, the second is a unit core with the unit control, and the third has one key:
 
 ```
-System = A2
 Key System = Example building
+System = A2
 Core = Area A cores
+Date = 2026-10-01
 Control Key = 9743854
 area_a = 5721276
 master_sub = 7305496
@@ -390,9 +421,25 @@ Bottom   5  3  0  1  2  3  4
 
 ----------------------------------------
 
-System = A2
 Key System = Example building
+System = A2
+Core = Unit cores (unit:101)
+Date = 2026-10-01
+Control Key = 3785412
+unit:101 = 3101658
+unit_master = 7587672
+
+T/D     10  6  5  8  9 12 11
+Control  6 12 10  8  8  4  4
+Master   4  4  8  6 --  2  6
+Bottom   3  1  0  1  6  5  2
+
+----------------------------------------
+
+Key System = Example building
+System = A2
 Core = Standalone cores
+Date = 2026-10-01
 Control Key = 9743854
 area_d = 1161012
 
@@ -402,10 +449,26 @@ Bottom   1  1  6  1  0  1  2
 ```
 
 The reader for the conformance script accepts one chart or several separated by
-lines of dashes, and reads the header by its labels (`System`, `Key System`,
-`Core`, `Control Key`, and any other `name = bitting` line as an operating key).
-Those labels are therefore reserved, and a system file that names a key `Core`
-would have to be refused.
+lines of dashes, and reads the header by its labels (`Key System`, `System`,
+`Core`, `Date`, `Control Key`, and any other `name = bitting` line as an operating
+key). Those labels are therefore reserved, and when a pinning system is set a
+system file that names a key `Core` would have to be refused.
+
+## Charts are key data
+
+A chart is as sensitive as the bittings it is built from, which is the rule in
+CLAUDE.md, and more so once it names units and carries a date. So the chart
+command writes to standard output unless it is given a file, and it is up to the
+owner where that file goes. What the repository can do is refuse to commit one,
+and the data-file guard grows with the features. Today it refuses `.json` and
+`.csv`. Charts are plain text first and PDF later, so the guard learns to refuse
+`.txt` in its own commit, ahead of the conformance script, which reads text charts,
+and `.pdf` in its own commit, ahead of the PDF output. Spreadsheets are not
+planned, and the guard is extended as formats appear and not by trying to list
+every format now. Neither extension is a problem for CI today, since no `.txt` or
+`.pdf` file has ever been committed. Fake fixtures under `tests/fixtures/` stay
+allowed, and must be marked as fake in whatever way the format allows (for text, a
+first line saying so).
 
 ## What changes in the tools
 
@@ -413,21 +476,20 @@ The new code is mostly new modules beside the existing ones: the pinning system
 record and its registry, the pinner (cuts for one core in, pins out, or a
 specific reason it cannot be built), the simulated lock, and a chart renderer.
 The config loader gains the `pinning` field, a `control` entry on each core
-(naming one key from `control_keys`), an optional name for the system, and a way
-to say which retired keys were pinned into the unit cores (the shape of that is
-settled when it is built, probably a list of retired key names), and validates
-them like the rest. The checker, when a pinning system is set, adds two things to its report:
-which cores cannot be pinned and why (the chamber and the gap), and any key that
-operates a core's control shear line. A new command, in the same style as the
-others (`sfic-pin-system`, with a root script), prints the pinning chart for every
-core in the layout above.
+(naming one key from `control_keys`), an optional name for the system, and the
+`retired_cores` list described above, and validates them like the rest. The
+checker, when a pinning system is set, adds to its report which cores cannot be
+pinned and why (the chamber and the gap), any key that operates a core's control
+shear line, and the retired-core consistency check. A new command, in the same
+style as the others (`sfic-pin-system`, with a root script), prints the pinning
+chart for every core in the layout above.
 
 Two of the changes are not additive and need agreement. The first is that
 pinnability becomes a hard rule for the solver alongside cross-operation and
 duplicates (D6): a master that cannot be pinned over a known unit key is as bad
 as one that operates the wrong core. The second is that the residual-risk estimate
 assumes undecoded unit keys are uniform among valid bittings, and with a relational
-validity rule the population has to be stated: it comes from the retired keys, as
+validity rule the population has to be stated: it comes from the retired cores, as
 described above, or from a declared pattern where the owner knows one holds.
 Neither changes any weight or algorithm for files that do not opt in, and each
 will be raised for agreement before it is built.
@@ -443,15 +505,21 @@ the checker, so the rules are verified before anything depends on them.
 | --- | --- | --- |
 | 1 | Refactor: bundle pin count, depth count, MACS and the optional parity pattern into one key-space rules object, in place of the loose parameters passed around today | None |
 | 2 | Library: the pinning system record with A2, the pinner with control pins, the simulated lock, and property tests | None for existing files (library only) |
-| 3 | The local conformance script: read single-core charts (one or several to a file) and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
-| 4 | Config and checker: the `pinning` field, `control` on each core, pinnability, control cross-operation and the retired-key consistency check in the report | Only for files that opt in |
-| 5 | The generator and solver work with or without a pattern; the residual-risk population comes from the retired keys, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
-| 6 | The chart command and README updates | New command |
-| 7 | An ASCII drawing of each core's pin stacks in the chart output, and optional PDF output of all charts as one document, each with its own design document | New output only |
+| 3 | First the data-file guard learns `.txt`, in its own commit. Then the local conformance script: read single-core charts (one or several to a file) and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
+| 4 | Config and checker: the `pinning` field, `control` on each core, `retired_cores`, pinnability, control cross-operation and the retired-core consistency check in the report | Only for files that opt in |
+| 5 | The generator and solver work with or without a pattern; the residual-risk population comes from the retired cores, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
+| 6 | The chart command (with the key system name, the date and the unit names) and README updates | New command |
+| 7 | An ASCII drawing of each core's pin stacks in the chart output, and optional PDF output of all charts as one document, each with its own design document; the guard learns `.pdf` first | New output only |
 
 A visualizer beyond the ASCII drawing is possible later, on the same simulated lock.
 The PDF output is a design question in its own right, since writing PDFs without a
 dependency is not trivial.
+
+Accepting this document means accepting the model and rules above, the opt-in
+design, the generic description of retired cores, and the order of steps 1 to 4,
+which add no behavior for files that do not opt in. Step 5 changes the solver's
+scoring and the residual-risk estimate, and will be raised for agreement when its
+turn comes (D6); steps 6 and 7 are output only.
 
 ## Alternatives considered
 
@@ -465,28 +533,34 @@ solver or integer programme to find stacks. The A2 pinning turns out to be force
 (one legal stack per chamber, or none), so the problem does not need a solver, and
 a dependency would break the standard-library-only rule (D2).
 
-A third is to keep this in a separate repository. The pinner needs the same
+A fourth, which was the first design, is to keep parity as the assumption that
+completes the check for undecoded unit keys. It fails for this building, where
+nothing can be said about how the unit keys were cut, which is why the retired
+cores took its place.
+
+A fifth is to keep this in a separate repository. The pinner needs the same
 bittings, hierarchy, counting and checks as the existing tools, so splitting would
 mean copying them.
 
-## Open questions
+## Details to settle while building
 
-The rules themselves are settled. What remains is about the building's history,
-the chart format and the edges of the work.
+The rules and the shape of the work are settled. These are the details left to
+decide as the code is written, with the default each will take unless the
+review says otherwise.
 
-Which retired keys were pinned into the unit cores: only the old unit master, or
-the higher masters above it as well? And did the old unit cores all use one
-control key? The retired-key evidence depends on exactly that, and so does the
-shape of the config field that names them.
+The chart header labels (`Key System`, `Core`, `Date`), the dashed separator and
+the position of the metadata are provisional, and will be adjusted by looking at
+real output; the reader is written to accept the labels in any order, so changing
+the output does not break it. The date is the day the chart is made, overridable.
+The unit key's name goes in the `Core` line.
 
-Does a real chart carry anything in its header besides the lines described above,
-such as a date? Should unit cores carry the unit key's name in their `Core` line?
-The header labels and the dashed separator are provisional and will be iterated
-once there is output to look at.
+The `retired_cores` list mirrors `cores`. Its names may refer to retired keys,
+which `cores` may not, and its `change` entries may use wildcards so that
+undecoded unit keys count. Whether it needs fields beyond that is found out by
+writing step 4.
 
-Should the data-file guard grow to cover chart formats (a spreadsheet or PDF
-export, say), beyond `.json` and `.csv`, which it covers today? That is a guard
-change in its own commit, before step 3.
+Fake text charts in `tests/fixtures/` begin with a line saying they are fake, and
+the conformance reader skips it.
 
 ## Sources
 
