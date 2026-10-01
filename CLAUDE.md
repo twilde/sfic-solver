@@ -52,8 +52,9 @@ first and explaining why.
 - **Commit and push when a piece of work is complete.** The user reviews on
   GitHub, not in the Claude interface, so push finished work. Do not push
   half-done work.
-- **Commit identity and attribution.** Commit as the user (the configured git
-  identity). Always end commit messages with a `Co-Authored-By: <Claude model>
+- **Commit identity and attribution.** Commit as the user, using their GitHub
+  noreply address (set in this repo's local git config), never a personal
+  email: commit emails are public and permanent. Always end commit messages with a `Co-Authored-By: <Claude model>
   <noreply@anthropic.com>` trailer, so AI involvement is transparent. Do the
   same for pull request descriptions as instructed by the session.
 - **Keep docs current.** README limitations, file-format notes and TODO.md
