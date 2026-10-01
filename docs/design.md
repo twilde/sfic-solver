@@ -120,3 +120,13 @@ system file, so `*.csv` is ignored and rejected exactly like `*.json`: allowed
 only under `tests/fixtures/` (the single exception for JSON is the root
 `system.example.json`). `.gitignore` and `scripts/check_no_stray_data.py` must
 agree; `test_gitignore_matches_the_guard` checks them against each other.
+
+## D13. MIT license
+
+The project is MIT licensed (copyright holder: the author). It is a small,
+dependency-free planning tool, so a short permissive license fits. Apache 2.0
+was the alternative; its explicit patent grant and contribution terms matter
+most with many outside contributors or corporate users, which is not expected.
+`LICENSE` carries the text and `pyproject.toml` the SPDX identifier. Part of the
+code was written with AI assistance; commits record that with a Co-Authored-By
+trailer.

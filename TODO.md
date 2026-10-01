@@ -2,7 +2,6 @@
 
 ## Before making the repo public
 
-- [ ] Choose and add a license. (None for now: private, all rights reserved by default.)
 - [ ] Review git history for anything identifying or sensitive.
 
 ## Ideas for later

@@ -48,3 +48,11 @@ def test_no_accidental_lists_from_wrapped_prose():
                 offenders.append(f"README.md:{number}: {line!r}")
         prev = line
     assert not offenders, "\n".join(offenders)
+
+
+def test_license_is_mit_and_declared_consistently():
+    text = (ROOT / "LICENSE").read_text()
+    assert text.startswith("MIT License")
+    assert "Copyright (c) 2026 Tim Wilde" in text
+    assert re.search(r'^license = "MIT"$', (ROOT / "pyproject.toml").read_text(), re.M)
+    assert "[MIT](LICENSE)" in (ROOT / "README.md").read_text()
