@@ -1,8 +1,27 @@
 # Design notes
 
-A running log of decisions, newest last. Each entry says what was decided and
-why, so later changes can tell what is deliberate. Add an entry in the same
-commit as the decision.
+Two kinds of document explain why this project is built the way it is.
+
+This file is the **decision log**, a running record with the newest entry last.
+Each entry says what was decided and why, in a paragraph a later reader can
+follow without the code open, so that a change can tell what is deliberate and
+what is accident. Add an entry in the same commit as the decision.
+
+Bigger pieces of work get their own **feature design document** in
+`docs/designs/` (see D24). A feature document is written as an essay rather than
+a list of choices. It starts with the problem and why it matters, builds up the
+model a reader needs, walks through the alternatives that were weighed, says
+what was chosen and why, lays out how the work will be split into commits, and
+is honest about what is still unknown. The log then carries one short entry for
+the feature that summarises the outcome and links to the document, so the log
+remains a complete index of decisions even when the reasoning lives elsewhere.
+
+Both are written as prose, not fragments: say why, and keep tables and lists
+for material that really is list-shaped (formats, ranges, a plan of commits).
+
+## Feature design documents
+
+None yet.
 
 ## D1. Package layout, with root scripts kept as entry points
 
@@ -244,3 +263,28 @@ The version is `sfic_solver.__version__`; `pyproject.toml` declares it dynamic
 and reads it from there, so it cannot drift between the two. A test checks the
 format and that `pyproject.toml` holds no second copy. Release tags (`vX.Y.Z`)
 must match it.
+
+## D24. Narrative design documents for features, beside the log
+
+The log suits decisions that fit in a paragraph, but larger work has strained
+it. The pin-count change needed D21 and D22, written a commit apart, to tell one
+story, and a feature that changes what the tools model needs room for things a
+log entry cannot hold: the problem, the physical or mathematical model, the
+alternatives, the plan, and the questions nobody can answer yet.
+
+So a feature gets a design document in `docs/designs/`, one file per feature
+named for it (`core-pinning.md`), when it changes what the tools model, will
+land as several commits, or has open questions that should be discussed before
+any code is written. The document is written as an essay, carries a status line
+(Draft, Accepted, Implemented or Superseded), is agreed with the maintainer
+before the work starts, and is revised as the design evolves. When the feature
+ships it stays, as the account of why things are the way they are. The log keeps
+one short entry per feature, pointing at the document; decisions that fit in a
+paragraph stay in the log alone.
+
+Alternatives considered: splitting the log into one file per decision (the ADR
+style) would make it harder to read as a story and would break every reference
+to `docs/design.md` (CLAUDE.md, CONTRIBUTING.md, the pull request template);
+writing every feature into the log would make it unreadable. Existing entries are
+unchanged: they already read as short narratives, and rewriting history helps
+nobody.

@@ -278,7 +278,10 @@ flags them, and confirm the solver leaves known keys untouched and produces a
 system that passes the checker. Test fixtures use obviously fake bittings.
 
 To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md). Open items are in
-[TODO.md](TODO.md). To report a security problem, see [SECURITY.md](SECURITY.md).
+[TODO.md](TODO.md). Why things are built the way they are is in the decision
+log, [docs/design.md](docs/design.md), and the feature design documents it links
+to in [docs/designs/](docs/designs/). To report a security problem, see
+[SECURITY.md](SECURITY.md).
 
 ## License
 

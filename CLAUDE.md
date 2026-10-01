@@ -1,7 +1,9 @@
 # CLAUDE.md
 
 Guidance for AI assistants (and humans) working in this repo. Read README.md
-for what the tools do and docs/design.md for why they are built the way they are.
+for what the tools do, docs/design.md for the decision log, and docs/designs/
+for the larger feature designs that explain why the tools are built the way they
+are.
 
 ## Project
 
@@ -46,9 +48,13 @@ first and explaining why.
   significant, make it its own commit, separate from the deeper work built on
   top of it, so each is easy to read.
 - **Ask questions.** If you are not sure what the user wants, ask.
-- **Write design decisions down** in `docs/design.md` (and do a deeper design
-  pass first when the change warrants one). Update it in the same commit as the
-  decision.
+- **Write design decisions down.** A small decision goes in the log,
+  `docs/design.md`, in the same commit as the decision. A larger feature (one
+  that changes what the tools model, will take several commits, or has open
+  questions) gets a narrative design document in `docs/designs/` first, written
+  as an essay (problem, model, alternatives, decision, plan, open questions) and
+  agreed with the user before any code, plus a short log entry pointing to it.
+  See D24.
 - **Commit and push when a piece of work is complete.** The user reviews on
   GitHub, not in the Claude interface, so push finished work. Do not push
   half-done work.

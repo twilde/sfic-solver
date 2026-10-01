@@ -24,6 +24,12 @@ approach. In particular, the solver's scoring weights, the counting algorithms
 and the output format are deliberately stable. Changes there need a stated
 reason and discussion first (see D6 in [docs/design.md](docs/design.md)).
 
+A larger feature, meaning one that changes what the tools model, needs several
+commits, or has open questions, starts with a short design document in
+`docs/designs/` that we agree on before any code is written. The existing ones
+show the style: an essay about the problem, the model, the alternatives and the
+plan, not a list of bullet points.
+
 ## Setup
 
 Python 3.11 or newer, standard library only (please do not add runtime
@@ -45,8 +51,9 @@ pytest
 - **Keep the randomness defaults.** Anything that produces real keys uses
   `secrets` or `random.SystemRandom`; `--seed` exists only for reproducible
   tests.
-- **Update the docs in the same change:** the README (format, limitations) and
-  the decision log in `docs/design.md` when you make a design decision.
+- **Update the docs in the same change:** the README (format, limitations), the
+  decision log in `docs/design.md` when you make a design decision, and the
+  feature's design document in `docs/designs/` if it has one.
 - **Match the surrounding code**: naming, comment density and idiom.
 - **Markdown:** do not wrap a line so that it starts with `+`, `-` or a number
   and a period; it renders as a list. A test checks every Markdown file.
