@@ -191,3 +191,11 @@ docs and this log. Contributors keep their own identity (with GitHub's noreply
 address suggested), contribute under the MIT license, and are asked to disclose
 AI assistance with a `Co-Authored-By` trailer, as this project does. The setup
 commands are duplicated from the README, and a test keeps the two in sync.
+
+## D20. Pull request template
+
+Pull requests are public, so the template repeats the "never include real key
+data" warning and starts its checklist with a "no real data" box, alongside the
+agreements from CONTRIBUTING.md (one logical change, tests, docs, no new
+dependencies, randomness defaults). It also prompts for behavior changes and AI
+assistance, since both are things the maintainer wants to see explicitly.

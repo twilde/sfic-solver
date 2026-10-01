@@ -59,3 +59,10 @@ def test_contributing_guide_exists_and_is_consistent():
     assert bash_block_after(ROOT / "CONTRIBUTING.md", "## Setup") == \
         bash_block_after(ROOT / "README.md", "## Development")
     assert "[CONTRIBUTING.md](CONTRIBUTING.md)" in (ROOT / "README.md").read_text()
+
+
+def test_pull_request_template_warns_and_has_the_checkbox():
+    text = (ROOT / ".github" / "pull_request_template.md").read_text()
+    assert "Never include real key data" in text
+    assert re.search(r"^- \[ \] I have not included real bittings", text, re.M)
+    assert "pytest" in text and "Co-Authored-By" in text
