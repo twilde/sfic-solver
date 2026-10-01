@@ -28,22 +28,44 @@ def test_design_document_is_indexed_in_the_log(path):
     assert f"(designs/{path.name})" in log
 
 
-def test_core_pinning_example_chart_is_valid_a2_pinning():
-    """The chart in the design document must add up, like the README's example."""
+def example_charts():
+    """The charts in the core pinning document: (header keys, control, rows by label)."""
     text = (ROOT / "docs" / "designs" / "core-pinning.md").read_text()
-    chart = re.search(r"```\n(System = .*?)```", text, re.S).group(1)
-    header, _, body = chart.partition("\n\n")
-    control = re.search(r"^Control Key = (\d+)$", header, re.M).group(1)
-    rows = {}
-    for line in body.strip().splitlines():
-        label, *cells = line.split()
-        rows.setdefault(label, []).append([None if c == "--" else int(c) for c in cells])
-    assert len(rows["T/D"]) == len(rows["Control"]) == len(rows["Bottom"]) == 1
-    for chamber, cut in enumerate(control):
-        bottom = rows["Bottom"][0][chamber]
-        others = [row[chamber] for label, layer in rows.items() if label != "Bottom"
-                  for row in layer if row[chamber] is not None]
-        assert 0 <= bottom <= 9
-        assert all(2 <= pin <= 19 for pin in others), f"chamber {chamber + 1}"
-        assert bottom + sum(others) == 23, f"chamber {chamber + 1}"
-        assert 23 - rows["T/D"][0][chamber] == int(cut) + 10, f"chamber {chamber + 1}: control line"
+    block = re.search(r"```\n(System = .*?)```", text, re.S).group(1)
+    charts = []
+    for chart in re.split(r"\n-{10,}\n", block):
+        header, _, body = chart.strip().partition("\n\n")
+        fields = dict(re.findall(r"^(.+?) = (.+)$", header, re.M))
+        control = fields["Control Key"]
+        reserved = {"System", "Key System", "Core", "Control Key"}
+        keys = [v for k, v in fields.items() if k not in reserved]
+        rows = []
+        for line in body.strip().splitlines():
+            label, *cells = line.split()
+            rows.append((label, [None if c == "--" else int(c) for c in cells]))
+        charts.append((fields, keys, control, rows))
+    return charts
+
+
+def test_core_pinning_document_has_two_example_charts():
+    assert [c[0]["Core"] for c in example_charts()] == ["Area A cores", "Standalone cores"]
+    assert all(c[0]["System"] == "A2" for c in example_charts())
+
+
+def test_core_pinning_example_charts_are_the_pins_for_their_keys():
+    """Recompute every chamber from the header's keys: the chart must say the same."""
+    for fields, keys, control, rows in example_charts():
+        labels = [label for label, _ in rows]
+        assert labels[:2] == ["T/D", "Control"] and labels[-1] == "Bottom"
+        assert set(labels[2:-1]) <= {"Master"}
+        for chamber in range(len(control)):
+            heights = sorted({int(k[chamber]) for k in keys})
+            line = int(control[chamber]) + 10
+            expected = [heights[0]] + [b - a for a, b in zip(heights, heights[1:])]
+            expected += [line - heights[-1], 23 - line]
+            column = [cells[chamber] for _, cells in rows]
+            filled = [c for c in column if c is not None]
+            assert filled == expected[::-1], f"{fields['Core']}, chamber {chamber + 1}"
+            assert sum(filled) == 23
+            masters = column[2:-1]       # top to bottom: empties must come first
+            assert masters == sorted(masters, key=lambda c: c is not None)

@@ -306,8 +306,10 @@ data record, not code; MACS stays a system parameter; and the work opts in per
 system file so that existing files keep their meaning. The real constraint on
 bittings is that two operating cuts in one chamber of one core must not differ
 by exactly one (and a control cut of 0 cannot share a chamber with an operating
-cut of 9), which is weaker than parity. Whether to rely on that weaker rule is
-the owner's choice, because published A2 practice (a 2-step progression) is
-narrower; the `pattern` field stays for those who want it. Pinnability as a hard
-rule in the solver, and the residual-risk population, are flagged there for
-agreement before they are built.
+cut of 9), which is weaker than parity; the maintainer has seen real odd-sized
+master pins, so that rule is the default and the `pattern` field stays only for
+owners who want the conservative style. The retired keys of a rekey are evidence
+about unit keys nobody has decoded, since the old cores had to be pinnable, and
+they replace parity as the assumption that completes the residual-risk estimate.
+Pinnability as a hard rule in the solver, and the new residual-risk population,
+are flagged there for agreement before they are built.

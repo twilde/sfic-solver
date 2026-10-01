@@ -8,8 +8,8 @@ cores behave that way, for a given SFIC pinning system, starting with A2. It
 also proposes a simulated lock to test the result against, and, as a
 consequence, letting the physical pinning rules rather than the parity pattern
 decide which bittings can be built. It is written before any code, to be
-discussed and changed, and has been revised once with the maintainer's answers to
-its first round of questions. Decisions that survive discussion will be
+discussed and changed, and has been revised twice with the maintainer's answers to
+its questions. Decisions that survive discussion will be
 summarised in the log ([D25 in design.md](../design.md)).
 
 ## Why do this
@@ -134,21 +134,23 @@ equal or at least 2 apart, and the gap rule is met for every core without lookin
 at any. So parity is a sufficient condition for the gap rule, and not the rule
 itself.
 
-It is also, in effect, what keying practice calls a 2-step progression, and here
-the published description says something the pins alone do not. The Locksmith
-Ledger notes that a 6-pin A2 master key system "will generate 4096 change keys".
-That is 4 to the sixth power: with the master at cut 1, the change cuts at each
-position are 3, 5, 7 and 9. The gap rule alone allows 3 through 9, seven cuts at
-each position and 117,649 change keys for the same master. So the published
-practice is narrower than the pins require. What the pins allow we can derive,
-since pins of every size from 2 to 19 exist. What we cannot derive from the
-hardware is whether the keying software, or the locksmith doing the work, will
-accept cuts outside the progression, and the charts cannot tell us either, since
-charts built under a progression contain only even gaps. The design therefore
-makes the choice the owner's: the existing `pattern` field stays, and still means
-what it means today (every key follows it), so declaring one asks for the
-conservative, progression-style behavior and leaving it out asks for the
-hardware rule alone. Pinnability is checked in both cases.
+It is also, in effect, what keying practice calls a 2-step progression, and the
+published description says something the pins alone do not. The Locksmith Ledger
+notes that a 6-pin A2 master key system "will generate 4096 change keys". That is
+4 to the sixth power: with the master at cut 1, the change cuts at each position
+are 3, 5, 7 and 9. The gap rule alone allows 3 through 9, seven cuts at each
+position and 117,649 change keys for the same master. So the published practice
+is narrower than the pins require. The maintainer has seen a real system with
+odd-sized master pins and cannot see why the article holds back; it may simply be
+conservative, or following an even-and-odd convention of its own. Either way the
+pins say what is possible, so the design takes the hardware rule as the default.
+Two keys in one chamber of one core are fine if their cuts are equal (the pin
+between them is simply omitted, which is why a gap of 0 is allowed) or differ by
+2 or more, and are not fine if they differ by exactly 1, because no pin that short
+exists. The same holds for a control pin. The existing `pattern` field stays for
+owners who want the conservative style, and still means what it means today
+(every key follows it): declaring one adds it to the gap rule, and leaving it out
+leaves the gap rule alone. Pinnability is checked in both cases.
 
 The hardware rule rules out far less. In a prototype of the model (not
 committed), the number of cuttable 7-position bittings with a maximum adjacent
@@ -167,16 +169,58 @@ easy: they are drawn from the compatible keys, a set far larger than parity
 allows. If the unit keys already exist, the master has to be found to fit them.
 With many unrelated keys the chance that a random master fits them all collapses
 (a fifth per key, so a vanishing fraction for a hundred), and even a master found
-to fit the decoded ones may clash with a unit key not yet decoded. Parity is what
-makes that safe in an existing building whose unit keys were cut under a parity
-rule: if every undecoded key is known to follow the pattern, a master that follows
-the pattern is guaranteed to fit. So where some keys under a master are unknown,
-the pattern doubles as a **promise about a population**, the assumption that lets
-the check be completed. Where every key under a master is known, the tools check
-the gap rule per core and need no pattern. And in a new system the order of
-generation flips: choose the masters first, then draw each change key from the
-keys that avoid the neighbours of its masters' cuts, which leaves eight or nine of
-the ten depths at each position instead of the five that parity leaves.
+to fit the decoded ones may clash with a unit key not yet decoded. Parity would
+make that safe, if every undecoded key were known to follow the pattern, but in
+the building this tool is for there are no original records: the unit keys follow
+what was possible, and nobody can say they follow a parity pattern. So parity
+cannot be the assumption that completes the check here. The retired keys can, as
+the next section describes. Where every key under a master is known, the tools
+check the gap rule per core and need no assumption at all. And in a new system
+the order of generation flips: choose the masters first, then draw each change key
+from the keys that avoid the neighbours of its masters' cuts, which leaves eight
+or nine of the ten depths at each position instead of the five that parity leaves.
+
+## What the retired keys tell us
+
+A rekey starts from a building whose original master and control keys are known,
+held as `retired_keys`. The tools already use them to make sure that the new cores
+refuse them. They also hold information, because the old cores were physically
+pinned, every unit core included, and a core can only be pinned if no two of its
+keys differ by exactly one in any chamber. So if a retired master sat above every
+unit key, as the old unit master did, every unit key, decoded or not, avoids that
+master's cut plus or minus one at every position. That needs no guess about how
+the unit keys were chosen. It rests only on the old cores having been pinned as
+the old hierarchy says, which is a fact about the building and not about its
+history. The old control key adds a weaker constraint of the same kind.
+
+It can be put to three uses, in the order they would be built. The first is a
+check of the rules themselves against real data: every decoded unit key must be
+compatible with the retired master, including at odd gaps. A failure means either
+that the assumption about which retired keys sat in which cores is wrong or that
+the rules are too strict, and it is reported as a warning for that reason.
+
+The second is a better population for the residual-risk estimate. Today it assumes
+every undecoded unit key is uniform among all valid bittings. The retired keys
+let it say instead: uniform among valid bittings that also avoid the retired
+master's neighbours. Each retired master removes at most two of the ten depths at
+each position, so the population stays large, but it is now exactly described, and
+the counting that already works from per-position sets of cuts adapts to it. The
+estimate gains a second figure beside the chance of cross-operation: the chance
+that an undecoded unit key cannot be pinned under a candidate master at all.
+
+The third is guidance for the solver. At a position where the new master's cut
+equals the retired master's, every unit key is compatible, at no risk; at any
+other, the exact chance of a clash can be worked out per candidate cut. The
+closeness rule limits how many positions can match (at most two, with seven pins
+and the default `min_diff` of 5), and matching positions make it likelier that the
+retired master operates the new unit cores, so this is a trade the scoring has to
+weigh. That is a change to the solver's scoring, so it will be agreed before it is
+built (D6).
+
+Evidence from the decoded keys themselves, such as every one of them sharing a
+parity at some position, could be shown as information. It is weaker than the
+retired keys, since by chance alone a few keys will often agree, and the tools
+would not rely on it.
 
 ## Control keys are part of the core
 
@@ -292,9 +336,11 @@ bitting or a pin size, so that its output is safe to quote in an issue.
 The limit of the third layer is that agreement shows the arithmetic and the layout
 are right, and says nothing about whether the rules are too permissive: a model
 that wrongly allowed a gap of 1 would pass, because no valid chart contains one.
-That risk is covered by the first two layers, by the pin ranges the maintainer
-confirmed, and by the open question about progression below, which is exactly a
-question about permissiveness.
+That risk rests on one confirmed fact, that no pin shorter than 2 exists outside
+the bottom family, which is all the gap rule depends on. The opposite risk, rules
+that are too strict, is checked from two sides: the maintainer has seen real
+odd-sized master pins, and the retired-key check described above tests the rules
+against the real decoded unit keys.
 
 The fourth layer is humility in the output. Until a pinning has passed the
 conformance script against real charts, anything the tools print about pinning is
@@ -303,40 +349,74 @@ manufacturer's software remains the authority.
 
 ### The chart layout
 
-The charts the maintainer has, and the ones the tools should print, share one
-layout, so that output can be compared with a chart by eye or with a diff. A chart
-is a header naming the system and the keys of one core, then a blank line, then
-one row per layer of pins from the top of the stack down, one column per chamber.
-A pin that a chamber does not have, because keys share a cut there, is shown as
-`--`. This example is computed from the fake example system's keys (the sub-master
-and one area key, with its control key), so its numbers are consistent:
+The maintainer's real charts are single-core charts, and the tools should print
+charts in the same layout, so that output can be compared with a chart by eye or
+with a diff. A chart is a header, a blank line, and then one row per layer of pins
+from the top of the stack down, one column per chamber. In a real chart the first
+header line is `System = A2`, naming the pinning system. The tools' charts keep
+that line and add, above the control key, the name of the key system (from a new
+optional field of the system file, added when it is needed) and the name of the
+core, which the system file already has. The labels `Key System` and `Core` here
+are provisional. Then come `Control Key = <bitting>` and one `name = bitting` line
+for every operating key of the core.
+
+Every core's chart repeats the whole header. Cores may share a page, separated by
+a horizontal line of dashes with at least one blank line on either side, and the
+maintainer may later want one core per page for record-keeping, so each chart has
+to stand on its own. How the separation looks is to be settled by looking at real
+output.
+
+The row labels are T/D (the driver), Control, one Master row for every pin layer
+the core needs, and Bottom. Master pins fill from the bottom, so the rows nearest
+Bottom are filled first and a chamber with fewer pins shows `--` in the higher
+rows, as the real charts do. The example below is computed from the fake example
+system's keys, so its numbers are consistent. The first core has three operating
+keys, the second only one:
 
 ```
-System = Example core
+System = A2
+Key System = Example building
+Core = Area A cores
 Control Key = 9743854
 area_a = 5721276
 master_sub = 7305496
+master_top = 5961634
 
 T/D      4  6  9 10  5  8  9
-Control 12 10 12  8 14  6  8
-Master   2  4  2  4  2  2 --
-Bottom   5  3  0  1  2  7  6
+Control 12  8  8  8 12  6  8
+Master  --  2  4 --  2  2 --
+Master   2  4  2  4  2  4  2
+Bottom   5  3  0  1  2  3  4
+
+----------------------------------------
+
+System = A2
+Key System = Example building
+Core = Standalone cores
+Control Key = 9743854
+area_d = 1161012
+
+T/D      4  6  9 10  5  8  9
+Control 18 16  8 12 18 14 12
+Bottom   1  1  6  1  0  1  2
 ```
 
-The row labels are T/D (the driver), Control, one Master row for every pin layer
-the core needs, and Bottom. In the maintainer's chart, omitted pins appear in the
-master row nearest the bottom, so the master rows nearest the control fill first;
-the example above follows that and it needs confirming against a real chart. How
-several cores are laid out in one file is not yet known either (see the open
-questions).
+The reader for the conformance script accepts one chart or several separated by
+lines of dashes, and reads the header by its labels (`System`, `Key System`,
+`Core`, `Control Key`, and any other `name = bitting` line as an operating key).
+Those labels are therefore reserved, and a system file that names a key `Core`
+would have to be refused.
 
 ## What changes in the tools
 
 The new code is mostly new modules beside the existing ones: the pinning system
 record and its registry, the pinner (cuts for one core in, pins out, or a
 specific reason it cannot be built), the simulated lock, and a chart renderer.
-The config loader gains the `pinning` field and a `control` entry on each core
-(naming one key from `control_keys`), and validates them like the rest. The checker, when a pinning system is set, adds two things to its report:
+The config loader gains the `pinning` field, a `control` entry on each core
+(naming one key from `control_keys`), an optional name for the system, and a way
+to say which retired keys were pinned into the unit cores (the shape of that is
+settled when it is built, probably a list of retired key names), and validates
+them like the rest. The checker, when a pinning system is set, adds two things to its report:
 which cores cannot be pinned and why (the chamber and the gap), and any key that
 operates a core's control shear line. A new command, in the same style as the
 others (`sfic-pin-system`, with a root script), prints the pinning chart for every
@@ -347,11 +427,10 @@ pinnability becomes a hard rule for the solver alongside cross-operation and
 duplicates (D6): a master that cannot be pinned over a known unit key is as bad
 as one that operates the wrong core. The second is that the residual-risk estimate
 assumes undecoded unit keys are uniform among valid bittings, and with a relational
-validity rule the population has to be stated: it needs the pattern-as-promise
-reading above, or another population model, and for a system declaring no pattern
-the tools can only say what they know of the decoded keys. Neither changes any weight or
-algorithm for files that do not opt in, and each will be raised for agreement
-before it is built.
+validity rule the population has to be stated: it comes from the retired keys, as
+described above, or from a declared pattern where the owner knows one holds.
+Neither changes any weight or algorithm for files that do not opt in, and each
+will be raised for agreement before it is built.
 
 ## Plan
 
@@ -364,9 +443,9 @@ the checker, so the rules are verified before anything depends on them.
 | --- | --- | --- |
 | 1 | Refactor: bundle pin count, depth count, MACS and the optional parity pattern into one key-space rules object, in place of the loose parameters passed around today | None |
 | 2 | Library: the pinning system record with A2, the pinner with control pins, the simulated lock, and property tests | None for existing files (library only) |
-| 3 | The local conformance script: read the chart layout and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
-| 4 | Config and checker: the `pinning` field, `control` on each core, pinnability and control cross-operation in the report | Only for files that opt in |
-| 5 | Pinnability is checked whether or not a pattern is declared, so the generator and solver work with or without parity; revisit residual risk | For opted-in files, with agreement |
+| 3 | The local conformance script: read single-core charts (one or several to a file) and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
+| 4 | Config and checker: the `pinning` field, `control` on each core, pinnability, control cross-operation and the retired-key consistency check in the report | Only for files that opt in |
+| 5 | The generator and solver work with or without a pattern; the residual-risk population comes from the retired keys, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
 | 6 | The chart command and README updates | New command |
 | 7 | An ASCII drawing of each core's pin stacks in the chart output, and optional PDF output of all charts as one document, each with its own design document | New output only |
 
@@ -392,28 +471,22 @@ mean copying them.
 
 ## Open questions
 
-The rules themselves are settled, apart from the first question below. What
-remains is about the policy, the chart format and the edges of the work.
+The rules themselves are settled. What remains is about the building's history,
+the chart format and the edges of the work.
 
-Will the keying software or the locksmith accept cuts outside the 2-step
-progression? Pins of every size from 2 to 19 exist, so a change cut of 4 under a
-master cut of 1 can be pinned with a 3, but the published practice offers only the
-odd cuts, and the real charts cannot tell us, because they follow the pattern.
-Until the owner knows, the design leaves `pattern` in the owner's hands, as
-described above. The question is for the manufacturer's software or the locksmith
-who does the pinning, and is worth asking before anything real is generated
-without a pattern.
+Which retired keys were pinned into the unit cores: only the old unit master, or
+the higher masters above it as well? And did the old unit cores all use one
+control key? The retired-key evidence depends on exactly that, and so does the
+shape of the config field that names them.
 
-In the chart layout, do omitted pins always sit in the master row nearest the
-bottom, as the example suggests? How are several cores laid out in one file: one
-block each, separated by a blank line, or something else? Is the system name a
-property of one core or of a group of cores?
+Does a real chart carry anything in its header besides the lines described above,
+such as a date? Should unit cores carry the unit key's name in their `Core` line?
+The header labels and the dashed separator are provisional and will be iterated
+once there is output to look at.
 
-For the existing building, can the unit keys be assumed to follow the parity
-pattern, so that it can serve as the population promise? And should the data-file
-guard grow to cover chart formats (a spreadsheet or PDF export, say), beyond
-`.json` and `.csv`, which it covers today? That is a guard change in its own
-commit, before step 3.
+Should the data-file guard grow to cover chart formats (a spreadsheet or PDF
+export, say), beyond `.json` and `.csv`, which it covers today? That is a guard
+change in its own commit, before step 3.
 
 ## Sources
 
