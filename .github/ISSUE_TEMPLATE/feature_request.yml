@@ -1,0 +1,32 @@
+name: Feature request or question
+description: An idea, a missing rule, or a question about how the tools work
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Never post real key data
+        Issues are public. **Do not paste real bittings, real system files, or
+        anything that identifies a building, its residents or its keys.** Use
+        made-up values or `system.example.json`.
+
+        Please also remember the tools model only the rules in the README. Real
+        manufacturer rules and your keying software still apply.
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like to do, or what are you wondering about?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: How your system is structured, in generic terms (no real names or bittings).
+  - type: checkboxes
+    id: no-real-data
+    attributes:
+      label: No real data
+      options:
+        - label: I have not included real bittings, real system files, or anything that identifies a real building.
+          required: true

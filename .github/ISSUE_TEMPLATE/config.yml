@@ -1,0 +1,2 @@
+# Every issue goes through a form, so everyone sees the "no real data" warning.
+blank_issues_enabled: false

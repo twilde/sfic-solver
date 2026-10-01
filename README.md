@@ -251,6 +251,10 @@ two guards enforce it:
 
 Keep real files in a directory outside the repository.
 
+Issues and pull requests are public too: never paste real bittings, real system
+files, or anything that identifies a real building. Reproduce problems with
+`system.example.json` or made-up values (the issue forms say the same).
+
 ## Development
 
 ```bash

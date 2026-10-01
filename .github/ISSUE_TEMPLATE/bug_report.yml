@@ -1,0 +1,46 @@
+name: Bug report
+description: A wrong result, a crash, or a confusing message
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Never post real key data
+        Issues are public. **Do not paste real bittings, real system files, or
+        anything that identifies a building, its residents or its keys.** Anyone
+        who reads them could learn how a real lock system is keyed.
+
+        Reproduce the problem with `system.example.json` or with made-up
+        bittings instead. If you cannot reproduce it without real data, describe
+        the situation in words and we will work out a safe example together.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you run, and what did you see?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The command line, and a made-up or example system file (not a real one).
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: Version and environment
+      description: Commit or release, Python version, operating system.
+  - type: checkboxes
+    id: no-real-data
+    attributes:
+      label: No real data
+      options:
+        - label: I have not included real bittings, real system files, or anything that identifies a real building.
+          required: true

@@ -151,3 +151,12 @@ pins (it has no Ubuntu 26.04 build), and 3.10 reaches end-of-life in October
 README, the CI matrix and a test all state the same minimum. The runner pins
 from D14 stay for now; once `ubuntu-latest` has fully moved to 26.04
 (rollout finishes by 2026-11-19) they can be replaced by `ubuntu-latest`.
+
+## D16. Issue forms carry a "no real data" warning
+
+Issues are public and users of this tool hold real key data, so pasting a real
+system file into a bug report is the most likely way to leak it. All issues go
+through a form (blank issues are disabled), and every form opens with the
+warning and ends with a required "no real data" checkbox. The README's Privacy
+section repeats it. A test checks that each form keeps the warning and the
+required checkbox.
