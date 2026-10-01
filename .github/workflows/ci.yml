@@ -27,13 +27,13 @@ jobs:
       fail-fast: false
       matrix:
         # Runners are pinned rather than ubuntu-latest, which is moving to 26.04
-        # in late 2026. Python 3.9 has no build for 26.04, so the full matrix
-        # stays on 24.04, plus one job to see how 26.04 behaves ahead of time.
+        # in late 2026. The matrix stays on 24.04, plus one job on 26.04 with the
+        # newest Python to see how the new image behaves ahead of time.
         os: [ubuntu-24.04]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
         include:
           - os: ubuntu-26.04
-            python-version: "3.13"
+            python-version: "3.14"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

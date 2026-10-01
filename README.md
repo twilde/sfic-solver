@@ -9,7 +9,7 @@ in missing bittings (such as a unit master) so as to minimise the risk of it.
 > manufacturer.** It models only the rules described below. See
 > [Limitations](#limitations).
 
-Standard library only. Python 3.9 or newer.
+Standard library only. Python 3.11 or newer.
 
 ## The tools
 

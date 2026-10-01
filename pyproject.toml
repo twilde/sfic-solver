@@ -7,7 +7,7 @@ name = "sfic-solver"
 version = "0.1.0"
 description = "Plan and check a master-keyed SFIC (small format interchangeable core) key system"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
 dependencies = []          # standard library only

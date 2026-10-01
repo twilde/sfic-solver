@@ -12,5 +12,7 @@
 - A mode that screens candidate unit masters against decoded unit keys.
 - `--avoid-file` for the generator.
 - Generate the `cores` list from an exported CSV of the key matrix.
+- After 2026-11-19 (`ubuntu-latest` fully on Ubuntu 26.04), replace the pinned
+  runner images in CI with `ubuntu-latest` (see D14/D15 in docs/design.md).
 - Configurable pin count and keyway rules so the tools work for other buildings
   and systems.

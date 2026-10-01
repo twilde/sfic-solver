@@ -18,11 +18,12 @@ use do not change. Alternative considered: flat scripts only. That works for
 four files, but gives no installable commands and makes `solve_system` import
 `check_system` by path.
 
-## D2. Standard library only, Python 3.9+
+## D2. Standard library only, Python 3.11+
 
-No runtime dependencies. pytest is the only (optional, test) dependency. CI runs
-3.9-3.13; there is no 3.9 interpreter locally, so avoid newer syntax (no
-`X | Y` types, no `match`, no nested same-quote f-strings).
+No runtime dependencies. pytest is the only (optional, test) dependency. The
+floor is 3.11 (see D15); CI runs 3.11-3.14. The original floor was 3.9, so the
+code still has some older idioms (such as `typing.Optional`) that could be
+modernised in a refactor pass.
 
 ## D3. Pin count is one patchable module constant
 
@@ -141,3 +142,12 @@ problems with the new image show up early and on our terms. When 3.9 support is
 dropped (it is already end-of-life upstream), the matrix can move to a newer
 runner and these pins can be revisited. Action versions are tracked by major tag
 and chosen to run on Node 24.
+
+## D15. Python floor raised to 3.11
+
+3.9 was already end-of-life upstream and was the only reason D14 needed runner
+pins (it has no Ubuntu 26.04 build), and 3.10 reaches end-of-life in October
+2026, so the floor is 3.11 and CI covers 3.11-3.14. `requires-python`, the
+README, the CI matrix and a test all state the same minimum. The runner pins
+from D14 stay for now; once `ubuntu-latest` has fully moved to 26.04
+(rollout finishes by 2026-11-19) they can be replaced by `ubuntu-latest`.

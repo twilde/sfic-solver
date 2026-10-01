@@ -5,7 +5,7 @@ for what the tools do and docs/design.md for why they are built the way they are
 
 ## Project
 
-Small, dependency-free Python tools (3.9+, standard library only) that plan and
+Small, dependency-free Python tools (3.11+, standard library only) that plan and
 check a master-keyed SFIC key system. Code lives in `sfic_solver/`; the root
 `*.py` scripts are thin entry points that must keep working as command lines.
 

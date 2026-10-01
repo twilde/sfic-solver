@@ -56,3 +56,14 @@ def test_license_is_mit_and_declared_consistently():
     assert "Copyright (c) 2026 Tim Wilde" in text
     assert re.search(r'^license = "MIT"$', (ROOT / "pyproject.toml").read_text(), re.M)
     assert "[MIT](LICENSE)" in (ROOT / "README.md").read_text()
+
+
+def test_minimum_python_is_stated_consistently():
+    """pyproject, README and the CI matrix must agree on the oldest Python."""
+    floor = re.search(r'^requires-python = ">=(\d+\.\d+)"$',
+                      (ROOT / "pyproject.toml").read_text(), re.M).group(1)
+    assert f"Python {floor} or newer" in (ROOT / "README.md").read_text()
+    matrix = re.search(r"^\s+python-version: \[(.*)\]$",
+                       (ROOT / ".github/workflows/ci.yml").read_text(), re.M).group(1)
+    versions = [tuple(map(int, v.strip(' "').split("."))) for v in matrix.split(",")]
+    assert min(versions) == tuple(map(int, floor.split(".")))
