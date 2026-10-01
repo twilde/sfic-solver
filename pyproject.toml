@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sfic-solver"
-version = "0.1.0"
+dynamic = ["version"]          # single source: sfic_solver.__version__
 description = "Plan and check a master-keyed SFIC (small format interchangeable core) key system"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,6 +23,9 @@ sfic-solve-system = "sfic_solver.solve_system:main"
 
 [tool.setuptools]
 packages = ["sfic_solver"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sfic_solver.__version__"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

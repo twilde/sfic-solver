@@ -237,3 +237,10 @@ pattern, `max_step` and `min_diff` stay the only keyway rules; configurable cut
 depth ranges and per-pin allowed-cut sets remain a TODO. The counting maths
 needed no change beyond D21, and the existing brute-force tests now also cover
 1, 2 and 5 pins. Scoring weights and algorithms are unchanged (D6).
+
+## D23. One source of truth for the version
+
+The version is `sfic_solver.__version__`; `pyproject.toml` declares it dynamic
+and reads it from there, so it cannot drift between the two. A test checks the
+format and that `pyproject.toml` holds no second copy. Release tags (`vX.Y.Z`)
+must match it.
