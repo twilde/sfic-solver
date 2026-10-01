@@ -17,7 +17,7 @@ pytest
 
 ## Privacy (hard rules)
 
-Treat everything committed as if strangers will read it. The repo may go public.
+Treat everything committed as if strangers will read it. The repo is public.
 
 - Never commit, and never ask the user to paste, real key data: real bittings,
   decoded unit keys, or anything identifying the building, residents, trustees
