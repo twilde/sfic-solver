@@ -102,3 +102,17 @@ def test_max_step_must_be_positive():
 def test_default_count_is_ten():
     proc = run_script("gen_bittings", "OOEOEOE")
     assert len(proc.stdout.split()) == 10
+
+
+@pytest.mark.parametrize("args, message", [
+    (["EOEE"], "pattern must be 7 characters of E/O"),
+    (["EOEEOOX"], "pattern must be 7 characters of E/O"),
+    (["OOEOEOE", "--avoid", "12345"], "bitting must be 7 digits"),
+    (["OOEOEOE", "--avoid", "0123456", "01234x6"], "bitting must be 7 digits"),
+])
+def test_bad_arguments_are_usage_errors_not_tracebacks(args, message):
+    proc = run_script("gen_bittings", *args)
+    assert proc.returncode == 2
+    assert proc.stderr.startswith("usage:")
+    assert message in proc.stderr
+    assert "Traceback" not in proc.stderr

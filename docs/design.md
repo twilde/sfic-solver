@@ -94,3 +94,11 @@ except `/system.example.json` and `/tests/fixtures/**/*.json`;
 CI (tracked files and all history). Fixtures must carry a `_comment` starting
 with `FAKE` (a test enforces it). Tests that need other configs build them in a
 temporary directory.
+
+## D10. Usage errors exit 2 in every tool
+
+A malformed command-line argument is a usage error: `usage:` plus a one-line
+message on stderr and exit status 2 (argparse's convention), in all four tools.
+`gen_bittings` previously let a bad pattern or `--avoid` bitting escape as a
+traceback with status 1; `check_bittings` already behaved this way. Status 1
+keeps meaning "the check flagged something" or "the config file is invalid".

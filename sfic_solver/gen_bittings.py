@@ -66,8 +66,11 @@ def main(argv=None):
 
     if args.max_step < 1:
         ap.error("--max-step must be at least 1")
-    pattern = parse_pattern(args.pattern)
-    avoid = [parse_bitting(b) for b in args.avoid]
+    try:
+        pattern = parse_pattern(args.pattern)
+        avoid = [parse_bitting(b) for b in args.avoid]
+    except ValueError as err:
+        ap.error(str(err))
 
     accepted = []
     attempts = 0
