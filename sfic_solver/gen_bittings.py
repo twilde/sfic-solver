@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Generate random 7-pin key bittings from an even/odd pattern.
+"""Generate random key bittings from an even/odd pattern.
 
+The pattern has one E or O per pin (7 for an SFIC system, but any length works).
 Each cut is 0-9 with the parity the pattern asks for, and adjacent cuts
 may differ by at most --max-step (default 5).
 
@@ -18,12 +19,16 @@ MAX_ATTEMPTS = 100_000
 
 
 def parse_pattern(text):
-    return model.normalize_pattern(text.strip())
+    """Normalise the pattern; its length is the pin count."""
+    text = text.strip()
+    if not text:
+        raise ValueError("pattern must have at least one E/O character")
+    return model.normalize_pattern(text, len(text))
 
 
-def parse_bitting(text):
-    if not model.is_bitting(text):
-        raise ValueError(f"bitting must be {model.PINS} digits, got {text!r}")
+def parse_bitting(text, pins):
+    if not model.is_bitting(text, pins):
+        raise ValueError(f"bitting must be {pins} digits, got {text!r}")
     return [int(c) for c in text]
 
 
@@ -52,25 +57,29 @@ def differs_enough(cuts, avoid, min_diff):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pattern", help="7 characters of E/O, e.g. OOEOEOE")
+    ap.add_argument("pattern", help="one E/O per pin, e.g. OOEOEOE (its length is the pin count)")
     ap.add_argument("-n", "--count", type=int, default=10, help="how many bittings")
     ap.add_argument("--max-step", type=int, default=5,
                     help="max difference between adjacent cuts (default 5)")
     ap.add_argument("--avoid", nargs="*", action="extend", default=[], metavar="BITTING",
                     help="existing bittings to stay away from; list several after one "
                          "flag or repeat the flag")
-    ap.add_argument("--min-diff", type=int, default=3,
+    ap.add_argument("--min-diff", type=int,
                     help="min positions that must differ from each --avoid bitting "
-                         "and from each other")
+                         "and from each other (default 3, or the pin count if smaller)")
     args = ap.parse_args(argv)
 
     if args.max_step < 1:
         ap.error("--max-step must be at least 1")
     try:
         pattern = parse_pattern(args.pattern)
-        avoid = [parse_bitting(b) for b in args.avoid]
+        avoid = [parse_bitting(b, len(pattern)) for b in args.avoid]
     except ValueError as err:
         ap.error(str(err))
+    if args.min_diff is None:
+        args.min_diff = min(3, len(pattern))
+    elif args.min_diff > len(pattern):
+        ap.error(f"--min-diff {args.min_diff} is more than the {len(pattern)} pins in the pattern")
 
     accepted = []
     attempts = 0

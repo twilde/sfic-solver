@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Whole-scheme check for master-keyed 7-pin bittings.
+"""Whole-scheme check for master-keyed bittings (7 pins unless the file says otherwise).
 
 Reads a JSON description of the system and reports:
   * per-key problems (parity and adjacent-cut limit for keys and control keys;
@@ -13,9 +13,11 @@ Usage:
     ./check_system.py system.json
 
 Config (see system.example.json):
-    pattern        7 chars of E/O (optional; enables parity checks)
+    pins           number of pins (default: the length of pattern, else 7)
+    pattern        one E/O per pin (optional; enables parity checks)
     max_step       max adjacent-cut difference (default 5)
-    min_diff       flag key pairs differing in fewer positions (default 5);
+    min_diff       flag key pairs differing in fewer positions (default 5, or
+                   the pin count if smaller);
                    pairs involving unit keys are skipped unless
                    close_check_units is true (cross-operation is the real test)
     unit_prefix    key-name prefix for unit keys (default "unit:")
@@ -83,7 +85,7 @@ def main(argv=None):
     if not close:
         print("none")
 
-    total_valid = count_valid(pattern, max_step)
+    total_valid = count_valid(pattern, max_step, cfg.pins)
     print(f"\n== Core operating sets (valid bittings in the whole key space: {total_valid:,}) ==")
     group_p = {}
     for core in cores:
@@ -127,7 +129,7 @@ def main(argv=None):
             if core["is_unit"]:
                 pairs = unit_count * (unit_count - 1) - decoded * (decoded - 1)
                 p = pair_conflict_probability([keys[m] for m in core["masters"]],
-                                              pattern, max_step, total_valid)
+                                              pattern, max_step, total_valid, cfg.pins)
                 expected = pairs * p
                 print(f"{core['name']}: about {expected:.1f} unit-to-unit cross-operations expected "
                       f"by chance; re-check after decoding")

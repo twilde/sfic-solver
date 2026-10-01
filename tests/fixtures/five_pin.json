@@ -1,0 +1,30 @@
+{
+  "_comment": "FAKE bittings for tests only. A clean 5-pin system: check_system must exit 0.",
+  "pattern": "EOEOE",
+  "max_step": 5,
+  "min_diff": 3,
+  "unit_prefix": "unit:",
+  "unit_count": 5,
+  "keys": {
+    "general_master": "01234",
+    "key_a": "23456",
+    "key_b": "45678",
+    "key_c": "67896",
+    "unit_master": "87654",
+    "unit:101": "65432",
+    "unit:102": "01210",
+    "unit:103": "23458"
+  },
+  "retired_keys": {
+    "old_master": "43210"
+  },
+  "control_keys": {
+    "control_common": "63058"
+  },
+  "cores": [
+    {"name": "Area A", "change": "key_a", "masters": ["general_master"]},
+    {"name": "Area B", "change": "key_b", "masters": ["general_master"]},
+    {"name": "Area C", "change": "key_c", "masters": []},
+    {"name": "Unit doors", "change": "unit:*", "masters": ["unit_master"]}
+  ]
+}

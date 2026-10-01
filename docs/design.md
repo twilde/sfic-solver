@@ -25,12 +25,11 @@ floor is 3.11 (see D15); CI runs 3.11-3.14. The original floor was 3.9, so the
 code still has some older idioms (such as `typing.Optional`) that could be
 modernised in a refactor pass.
 
-## D3. Pin count is one patchable module constant
+## D3. Pin count is one patchable module constant (superseded by D21)
 
-`model.PINS` (7) is read at call time by every function that depends on it. The
-tests patch it to 3 or 4 to compare the dynamic-programming results against
-brute-force enumeration. Other modules must refer to `model.PINS`, never copy it
-with `from .model import PINS`. Configurable pin count for users is a TODO.
+`model.PINS` (7) was read at call time by every function that depends on it, and
+tests patched it to 3 or 4 to compare the dynamic-programming results against
+brute-force enumeration. D21 replaced the global with an explicit parameter.
 
 ## D4. Counting is exact
 
@@ -199,3 +198,42 @@ data" warning and starts its checklist with a "no real data" box, alongside the
 agreements from CONTRIBUTING.md (one logical change, tests, docs, no new
 dependencies, randomness defaults). It also prompts for behavior changes and AI
 assistance, since both are things the maintainer wants to see explicitly.
+
+## D21. Pin count is a parameter, not a module global
+
+To let the pin count vary per system file, `model.PINS` is gone. Functions that
+cannot read the count off their arguments (`is_bitting`, `normalize_pattern`,
+`valid_digits`, `count_valid`, `pair_conflict_probability`) take a `pins`
+argument; the others use the length of the bittings or option lists they are
+given. `Config.pins` carries the value to the tools, and `model.DEFAULT_PINS`
+(7) is the default. Tests pass `pins` directly instead of patching a global,
+which also removes the "never `from .model import PINS`" trap from D3. This
+commit changes no behavior (the count is still always 7); making it
+configurable comes next.
+
+## D22. Pin count: `pins`, else the pattern's length, else 7
+
+A system file may set `pins` (a whole number, at least 1). If it does not, the
+count is the length of `pattern`, and if there is no pattern either it is 7, so
+every existing file means what it did. If `pins` and `pattern` disagree the
+usual pattern error is reported ("pattern must be 5 characters"). Bittings are
+checked against the resulting count, and the error says what count was
+expected. The count is deliberately not inferred from the bittings: `null`
+bittings carry no length, and a typo in one bitting should be an error, not a
+new pin count.
+
+The command-line tools follow the same order. `gen_bittings` always has a
+pattern, so its pin count is the pattern's length (any length of at least 1).
+`check_bittings` takes `--pins`, else the length of `--pattern`, else 7.
+
+`min_diff` has a pin-count-aware default of `min(5, pins)` (`gen_bittings`:
+`min(3, pins)`), and an explicit value above `pins` is an error (a usage error
+on the command line), because no two keys could ever satisfy it. Without this a
+5-pin file that never mentions `min_diff` would be valid at 7 pins and
+impossible at 4.
+
+Scope: this covers the pin count only. Cut depths stay 0-9, and the parity
+pattern, `max_step` and `min_diff` stay the only keyway rules; configurable cut
+depth ranges and per-pin allowed-cut sets remain a TODO. The counting maths
+needed no change beyond D21, and the existing brute-force tests now also cover
+1, 2 and 5 pins. Scoring weights and algorithms are unchanged (D6).

@@ -20,6 +20,10 @@ Standard library only. Python 3.11 or newer.
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
 
+The pin count is 7 unless the system file says otherwise (`pins`, or the length
+of `pattern`); `gen_bittings.py` takes it from the pattern's length and
+`check_bittings.py` from `--pins` or `--pattern`.
+
 Run them straight from a checkout (`./check_system.py system.json`), as modules
 (`python3 -m sfic_solver.check_system system.json`), or install the package
 (`pip install .`) to get the `sfic-*` commands. Every tool exits with status 1
@@ -28,9 +32,10 @@ read the check report that follows).
 
 ## The theory, in plain language
 
-**Bitting.** A key's cuts, written as a 7-digit string: one cut depth (0-9) per
-pin position. `5961634` means depth 5 at position 1, depth 9 at position 2, and
-so on.
+**Bitting.** A key's cuts, written as a string of digits: one cut depth (0-9)
+per pin position, 7 positions for a standard SFIC core. `5961634` means depth 5
+at position 1, depth 9 at position 2, and so on. The number of pins is
+configurable (see `pins` below).
 
 **Parity pattern** (for example `OOEOEOE`). Each position must be even (`E`) or
 odd (`O`). If every key in the system follows the pattern, two keys' cuts at a
@@ -76,9 +81,10 @@ A JSON file. Fields (only `keys` and `cores` are needed for the basics):
 
 | Field | Meaning |
 | --- | --- |
-| `pattern` | 7 characters of `E`/`O`. Enables parity checks and restricts the key space. If omitted, any cut 0-9 is allowed at every position. |
+| `pins` | Number of pins, so the length of every bitting. Default: the length of `pattern` if there is one, otherwise `7`. If both are given they must agree. |
+| `pattern` | One `E`/`O` per pin (7 by default). Enables parity checks and restricts the key space. If omitted, any cut 0-9 is allowed at every position. |
 | `max_step` | Max difference between adjacent cuts. Default `5`. |
-| `min_diff` | Flag non-unit key pairs differing in fewer positions. Default `5`. |
+| `min_diff` | Flag non-unit key pairs differing in fewer positions. Default `5`, or `pins` if that is smaller. Cannot be more than `pins`. |
 | `unit_prefix` | Name prefix of unit keys. Default `"unit:"`. |
 | `unit_count` | Total number of units; enables the residual-risk estimate and lets the solver weigh it. |
 | `close_check_units` | `true` to also run the closeness check on unit keys. Default `false`. |
@@ -216,9 +222,12 @@ OK
 
 ## Limitations
 
-- It models **only** the rules above: a fixed 7 pins, one parity pattern, a
-  single adjacent-cut limit, and "a core accepts the change key's or a master's
-  cut at each position". Nothing else.
+- It models **only** the rules above: one pin count for the whole system, cut
+  depths 0-9, one parity pattern, a single adjacent-cut limit, and "a core
+  accepts the change key's or a master's cut at each position". Nothing else.
+- Pin counts other than 7 are not tied to any real keyway: the tools do not
+  know which pin counts or cut depths a manufacturer actually offers, and the
+  chance of unintended cross-operation grows quickly as pins are removed.
 - **Real manufacturer MACS, parity and progression rules still apply**, and so
   do the keying software's own checks (pinning limits, master-ring and control
   rules, available pin sizes, and so on). Use the keying software's output as

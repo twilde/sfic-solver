@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Tuple
 from . import model
 
 SECTIONS = ("keys", "retired_keys", "control_keys")
-TOP_LEVEL_FIELDS = {"pattern", "max_step", "min_diff", "unit_prefix", "unit_count",
+TOP_LEVEL_FIELDS = {"pins", "pattern", "max_step", "min_diff", "unit_prefix", "unit_count",
                     "close_check_units", "cores", *SECTIONS}
 CORE_FIELDS = {"name", "change", "masters"}
 
@@ -26,6 +26,7 @@ class ConfigError(ValueError):
 @dataclass
 class Config:
     raw: dict                                   # the file as loaded (solve_system writes it back)
+    pins: int
     pattern: Optional[str]
     max_step: int
     min_diff: int
@@ -74,21 +75,31 @@ def parse_config(raw, allow_null=False):
                 for name in raw if name not in TOP_LEVEL_FIELDS and not name.startswith("_")]
 
     pattern = raw.get("pattern")
+    if "pins" in raw:
+        pins = _whole_number(raw, "pins", None, 1)
+    elif pattern and isinstance(pattern, str):
+        pins = len(pattern)
+    else:
+        pins = model.DEFAULT_PINS
+
     if pattern:
         if not isinstance(pattern, str):
-            raise ConfigError(f"pattern must be a string of {model.PINS} E/O characters, "
+            raise ConfigError(f"pattern must be a string of {pins} E/O characters, "
                               f"got {pattern!r}")
         try:
-            pattern = model.normalize_pattern(pattern)
+            pattern = model.normalize_pattern(pattern, pins)
         except ValueError:
-            raise ConfigError(f"pattern must be {model.PINS} characters of E/O "
+            raise ConfigError(f"pattern must be {pins} characters of E/O "
                               f"(even/odd per pin), got {pattern!r} "
                               f"({len(pattern)} characters)") from None
     else:
         pattern = None
 
     max_step = _whole_number(raw, "max_step", 5, 1)
-    min_diff = _whole_number(raw, "min_diff", 5, 0)
+    min_diff = _whole_number(raw, "min_diff", model.default_min_diff(pins), 0)
+    if min_diff > pins:
+        raise ConfigError(f"min_diff is {min_diff} but keys have only {pins} pins, so no two "
+                          f"keys could differ in that many positions")
     unit_prefix = raw.get("unit_prefix", "unit:")
     if not isinstance(unit_prefix, str) or not unit_prefix:
         raise ConfigError(f"unit_prefix must be a non-empty string, got {unit_prefix!r}")
@@ -118,8 +129,8 @@ def parse_config(raw, allow_null=False):
                     raise ConfigError(f"{label}: {name!r}: bitting is unknown (null); "
                                       f"fill it in or run solve_system.py")
                 items[name] = None
-            elif not model.is_bitting(text):
-                raise ConfigError(f"{label}: {name!r}: bitting must be {model.PINS} digits "
+            elif not model.is_bitting(text, pins):
+                raise ConfigError(f"{label}: {name!r}: bitting must be {pins} digits "
                                   f"(0-9), got {text!r}")
             else:
                 items[name] = tuple(int(c) for c in text)
@@ -188,7 +199,7 @@ def parse_config(raw, allow_null=False):
             "is_unit": any(c.startswith(unit_prefix) for c in changes),
         })
 
-    return Config(raw=raw, pattern=pattern, max_step=max_step, min_diff=min_diff,
+    return Config(raw=raw, pins=pins, pattern=pattern, max_step=max_step, min_diff=min_diff,
                   unit_prefix=unit_prefix, unit_count=unit_count,
                   close_check_units=close_check_units, keys=keys,
                   retired_keys=groups["retired_keys"], control_keys=groups["control_keys"],

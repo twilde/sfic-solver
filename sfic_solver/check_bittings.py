@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sanity-check a set of 7-pin bittings.
+"""Sanity-check a set of bittings (7 pins unless --pins or --pattern says otherwise).
 
 Checks each bitting for format, parity (if --pattern is given) and the
 adjacent-cut limit, then lists every pair closer than --min-diff positions.
@@ -16,11 +16,11 @@ import itertools
 from . import model
 
 
-def parse_item(text):
+def parse_item(text, pins):
     name, _, bitting = text.rpartition("=")
     name = name or bitting
-    if not model.is_bitting(bitting):
-        raise ValueError(f"{text!r}: bitting must be {model.PINS} digits")
+    if not model.is_bitting(bitting, pins):
+        raise ValueError(f"{text!r}: bitting must be {pins} digits (set --pins if that is wrong)")
     return name, [int(c) for c in bitting]
 
 
@@ -28,21 +28,37 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("keys", nargs="+", metavar="[NAME=]BITTING")
-    ap.add_argument("--pattern", help="7 characters of E/O; flags cuts with the wrong parity")
+    ap.add_argument("--pins", type=int,
+                    help="number of pins (default: the length of --pattern, else 7)")
+    ap.add_argument("--pattern",
+                    help="one E/O per pin; flags cuts with the wrong parity")
     ap.add_argument("--max-step", type=int, default=5, help="max adjacent-cut difference")
-    ap.add_argument("--min-diff", type=int, default=5,
-                    help="flag pairs differing in fewer positions than this")
+    ap.add_argument("--min-diff", type=int,
+                    help="flag pairs differing in fewer positions than this "
+                         "(default 5, or the pin count if smaller)")
     args = ap.parse_args(argv)
 
+    if args.pins is not None and args.pins < 1:
+        ap.error("--pins must be at least 1")
+    if args.pins is not None:
+        pins = args.pins
+    elif args.pattern:
+        pins = len(args.pattern)
+    else:
+        pins = model.DEFAULT_PINS
     pattern = None
     if args.pattern:
         try:
-            pattern = model.normalize_pattern(args.pattern)
+            pattern = model.normalize_pattern(args.pattern, pins)
         except ValueError:
-            ap.error(f"--pattern must be {model.PINS} characters of E/O")
+            ap.error(f"--pattern must be {pins} characters of E/O")
+    if args.min_diff is None:
+        args.min_diff = model.default_min_diff(pins)
+    elif args.min_diff > pins:
+        ap.error(f"--min-diff {args.min_diff} is more than the {pins} pins")
 
     try:
-        keys = [parse_item(k) for k in args.keys]
+        keys = [parse_item(k, pins) for k in args.keys]
     except ValueError as err:
         ap.error(str(err))
 

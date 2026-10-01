@@ -87,10 +87,10 @@ def test_uses_secrets_module_by_default(monkeypatch, capsys):
 
 
 def test_impossible_constraints_exit_with_message(monkeypatch):
-    # min-diff 8 can never hold between two 7-pin bittings; give up quickly.
+    # 200 bittings that all differ at every pin cannot exist; give up quickly.
     monkeypatch.setattr(gen_bittings, "MAX_ATTEMPTS", 50)
     with pytest.raises(SystemExit) as exc:
-        gen_bittings.main(["OOEOEOE", "-n", "5", "--min-diff", "8"])
+        gen_bittings.main(["OOEOEOE", "-n", "200", "--min-diff", "7"])
     assert "loosen the constraints" in str(exc.value.code)
 
 
@@ -105,8 +105,11 @@ def test_default_count_is_ten():
 
 
 @pytest.mark.parametrize("args, message", [
-    (["EOEE"], "pattern must be 7 characters of E/O"),
     (["EOEEOOX"], "pattern must be 7 characters of E/O"),
+    (["EOEEOOX1"], "pattern must be 8 characters of E/O"),
+    (["  "], "pattern must have at least one E/O character"),
+    (["EOE", "--avoid", "0123456"], "bitting must be 3 digits"),
+    (["OOEOEOE", "--min-diff", "8"], "--min-diff 8 is more than the 7 pins"),
     (["OOEOEOE", "--avoid", "12345"], "bitting must be 7 digits"),
     (["OOEOEOE", "--avoid", "0123456", "01234x6"], "bitting must be 7 digits"),
 ])
