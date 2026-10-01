@@ -1,6 +1,6 @@
 # Safety net: real system files hold real bittings and must never be committed.
 # Ignore every .json, then un-ignore only the example and the fake test fixtures.
-# scripts/check_no_stray_json.py (pre-commit hook + CI) enforces the same rule.
+# scripts/check_no_stray_data.py (pre-commit hook + CI) enforces the same rule.
 *.json
 !/system.example.json
 !/tests/fixtures/**/*.json

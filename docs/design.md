@@ -90,7 +90,7 @@ behavior.
 
 Real system files contain real bittings. Layers: `.gitignore` ignores `*.json`
 except `/system.example.json` and `/tests/fixtures/**/*.json`;
-`scripts/check_no_stray_json.py` runs as a pre-commit hook (staged files) and in
+`scripts/check_no_stray_data.py` runs as a pre-commit hook (staged files) and in
 CI (tracked files and all history). Fixtures must carry a `_comment` starting
 with `FAKE` (a test enforces it). Tests that need other configs build them in a
 temporary directory.

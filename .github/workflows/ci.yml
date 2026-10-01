@@ -16,9 +16,9 @@ jobs:
         with:
           fetch-depth: 0          # the history check needs every commit
       - name: Only system.example.json and tests/fixtures/ may be tracked
-        run: python3 scripts/check_no_stray_json.py --tracked
+        run: python3 scripts/check_no_stray_data.py --tracked
       - name: ...and none may ever have been committed
-        run: python3 scripts/check_no_stray_json.py --history
+        run: python3 scripts/check_no_stray_data.py --history
 
   test:
     runs-on: ubuntu-latest

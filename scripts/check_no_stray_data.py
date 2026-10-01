@@ -6,10 +6,10 @@ allowed JSON files are system.example.json (repo root) and fixtures under
 tests/fixtures/, which must use obviously fake bittings.
 
 Usage:
-    scripts/check_no_stray_json.py --staged     # files staged for commit (pre-commit hook)
-    scripts/check_no_stray_json.py --tracked    # every tracked file (CI)
-    scripts/check_no_stray_json.py --history    # every path ever committed on HEAD (CI)
-    scripts/check_no_stray_json.py PATH...      # explicit paths
+    scripts/check_no_stray_data.py --staged     # files staged for commit (pre-commit hook)
+    scripts/check_no_stray_data.py --tracked    # every tracked file (CI)
+    scripts/check_no_stray_data.py --history    # every path ever committed on HEAD (CI)
+    scripts/check_no_stray_data.py PATH...      # explicit paths
 
 Exits with status 1 if a disallowed .json file is found.
 """

@@ -9,7 +9,7 @@ import pytest
 from conftest import FIXTURES, ROOT
 
 _spec = importlib.util.spec_from_file_location(
-    "check_no_stray_json", ROOT / "scripts" / "check_no_stray_json.py")
+    "check_no_stray_data", ROOT / "scripts" / "check_no_stray_data.py")
 guard = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(guard)
 
@@ -53,7 +53,7 @@ def git(repo, *args):
 
 
 def run_guard(repo, mode):
-    return subprocess.run([sys.executable, str(ROOT / "scripts" / "check_no_stray_json.py"), mode],
+    return subprocess.run([sys.executable, str(ROOT / "scripts" / "check_no_stray_data.py"), mode],
                           cwd=repo, capture_output=True, text=True)
 
 
