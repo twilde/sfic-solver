@@ -35,3 +35,11 @@ def test_dependabot_keeps_github_actions_current():
     text = (ROOT / ".github" / "dependabot.yml").read_text()
     assert re.search(r'package-ecosystem: "github-actions"', text)
     assert re.search(r'interval: "weekly"', text)
+
+
+def test_security_policy_exists_and_is_consistent():
+    text = (ROOT / "SECURITY.md").read_text()
+    assert "Report a vulnerability" in text
+    assert "never post real key data" in text.lower()
+    assert "@" not in text                     # no personal email address published
+    assert "[SECURITY.md](SECURITY.md)" in (ROOT / "README.md").read_text()

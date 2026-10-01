@@ -268,7 +268,8 @@ the generator's constraints, plant cross-operations and confirm the checker
 flags them, and confirm the solver leaves known keys untouched and produces a
 system that passes the checker. Test fixtures use obviously fake bittings.
 
-See [TODO.md](TODO.md) for open items.
+See [TODO.md](TODO.md) for open items. To report a security problem, see
+[SECURITY.md](SECURITY.md).
 
 ## License
 

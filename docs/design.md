@@ -169,3 +169,13 @@ current. There is deliberately no pip entry: the package has no runtime
 dependencies, and pytest and setuptools are left unpinned, so there is nothing
 for it to update. Review its pull requests like any other and merge only when
 CI is green.
+
+## D18. Security reports go through GitHub private vulnerability reporting
+
+`SECURITY.md` points reporters at GitHub's private "Report a vulnerability"
+flow rather than an email address, so no personal address needs to be published
+(see the noreply decision in CLAUDE.md). It separates three things: genuine
+vulnerabilities (private), wrong results from the checker or solver (ordinary
+public issues, reproduced with made-up data), and the standing rule never to
+post real key data anywhere. It makes no response-time promise, and only the
+latest `main` is supported while the project is pre-1.0.
