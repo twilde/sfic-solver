@@ -17,13 +17,13 @@ from . import model
 MAX_ATTEMPTS = 100_000
 
 
-def parse_pattern(text):
-    return model.normalize_pattern(text.strip())
+def parse_pattern(text, pins):
+    return model.normalize_pattern(text.strip(), pins)
 
 
-def parse_bitting(text):
-    if not model.is_bitting(text):
-        raise ValueError(f"bitting must be {model.PINS} digits, got {text!r}")
+def parse_bitting(text, pins):
+    if not model.is_bitting(text, pins):
+        raise ValueError(f"bitting must be {pins} digits, got {text!r}")
     return [int(c) for c in text]
 
 
@@ -67,8 +67,8 @@ def main(argv=None):
     if args.max_step < 1:
         ap.error("--max-step must be at least 1")
     try:
-        pattern = parse_pattern(args.pattern)
-        avoid = [parse_bitting(b) for b in args.avoid]
+        pattern = parse_pattern(args.pattern, model.DEFAULT_PINS)
+        avoid = [parse_bitting(b, model.DEFAULT_PINS) for b in args.avoid]
     except ValueError as err:
         ap.error(str(err))
 

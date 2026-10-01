@@ -25,12 +25,11 @@ floor is 3.11 (see D15); CI runs 3.11-3.14. The original floor was 3.9, so the
 code still has some older idioms (such as `typing.Optional`) that could be
 modernised in a refactor pass.
 
-## D3. Pin count is one patchable module constant
+## D3. Pin count is one patchable module constant (superseded by D21)
 
-`model.PINS` (7) is read at call time by every function that depends on it. The
-tests patch it to 3 or 4 to compare the dynamic-programming results against
-brute-force enumeration. Other modules must refer to `model.PINS`, never copy it
-with `from .model import PINS`. Configurable pin count for users is a TODO.
+`model.PINS` (7) was read at call time by every function that depends on it, and
+tests patched it to 3 or 4 to compare the dynamic-programming results against
+brute-force enumeration. D21 replaced the global with an explicit parameter.
 
 ## D4. Counting is exact
 
@@ -199,3 +198,15 @@ data" warning and starts its checklist with a "no real data" box, alongside the
 agreements from CONTRIBUTING.md (one logical change, tests, docs, no new
 dependencies, randomness defaults). It also prompts for behavior changes and AI
 assistance, since both are things the maintainer wants to see explicitly.
+
+## D21. Pin count is a parameter, not a module global
+
+To let the pin count vary per system file, `model.PINS` is gone. Functions that
+cannot read the count off their arguments (`is_bitting`, `normalize_pattern`,
+`valid_digits`, `count_valid`, `pair_conflict_probability`) take a `pins`
+argument; the others use the length of the bittings or option lists they are
+given. `Config.pins` carries the value to the tools, and `model.DEFAULT_PINS`
+(7) is the default. Tests pass `pins` directly instead of patching a global,
+which also removes the "never `from .model import PINS`" trap from D3. This
+commit changes no behavior (the count is still always 7); making it
+configurable comes next.

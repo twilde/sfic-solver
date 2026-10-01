@@ -83,7 +83,7 @@ def main(argv=None):
     if not close:
         print("none")
 
-    total_valid = count_valid(pattern, max_step)
+    total_valid = count_valid(pattern, max_step, cfg.pins)
     print(f"\n== Core operating sets (valid bittings in the whole key space: {total_valid:,}) ==")
     group_p = {}
     for core in cores:
@@ -127,7 +127,7 @@ def main(argv=None):
             if core["is_unit"]:
                 pairs = unit_count * (unit_count - 1) - decoded * (decoded - 1)
                 p = pair_conflict_probability([keys[m] for m in core["masters"]],
-                                              pattern, max_step, total_valid)
+                                              pattern, max_step, total_valid, cfg.pins)
                 expected = pairs * p
                 print(f"{core['name']}: about {expected:.1f} unit-to-unit cross-operations expected "
                       f"by chance; re-check after decoding")

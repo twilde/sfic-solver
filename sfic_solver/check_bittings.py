@@ -16,11 +16,11 @@ import itertools
 from . import model
 
 
-def parse_item(text):
+def parse_item(text, pins):
     name, _, bitting = text.rpartition("=")
     name = name or bitting
-    if not model.is_bitting(bitting):
-        raise ValueError(f"{text!r}: bitting must be {model.PINS} digits")
+    if not model.is_bitting(bitting, pins):
+        raise ValueError(f"{text!r}: bitting must be {pins} digits")
     return name, [int(c) for c in bitting]
 
 
@@ -34,15 +34,16 @@ def main(argv=None):
                     help="flag pairs differing in fewer positions than this")
     args = ap.parse_args(argv)
 
+    pins = model.DEFAULT_PINS
     pattern = None
     if args.pattern:
         try:
-            pattern = model.normalize_pattern(args.pattern)
+            pattern = model.normalize_pattern(args.pattern, pins)
         except ValueError:
-            ap.error(f"--pattern must be {model.PINS} characters of E/O")
+            ap.error(f"--pattern must be {pins} characters of E/O")
 
     try:
-        keys = [parse_item(k) for k in args.keys]
+        keys = [parse_item(k, pins) for k in args.keys]
     except ValueError as err:
         ap.error(str(err))
 

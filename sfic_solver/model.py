@@ -1,23 +1,23 @@
-"""The counting maths for a master-keyed 7-pin system. Pure functions, no I/O.
+"""The counting maths for a master-keyed system. Pure functions, no I/O.
 
-A bitting is a tuple of cuts (0-9), one per pin. `PINS` is a module-level
-setting that every function reads when called, so tests can patch it to a
-smaller number of pins and compare against brute-force enumeration.
+A bitting is a tuple of cuts (0-9), one per pin. The number of pins is passed
+in where a function cannot read it off its arguments (`pins`), and otherwise
+read from the length of the bittings and option lists it is given.
 """
 
-PINS = 7
+DEFAULT_PINS = 7
 
 
-def is_bitting(text):
-    """True if `text` is a string of exactly PINS ASCII digits."""
-    return isinstance(text, str) and len(text) == PINS and text.isascii() and text.isdigit()
+def is_bitting(text, pins):
+    """True if `text` is a string of exactly `pins` ASCII digits."""
+    return isinstance(text, str) and len(text) == pins and text.isascii() and text.isdigit()
 
 
-def normalize_pattern(text):
+def normalize_pattern(text, pins):
     """Upper-case an E/O parity pattern, or raise ValueError if it is malformed."""
     pattern = text.upper()
-    if len(pattern) != PINS or set(pattern) - {"E", "O"}:
-        raise ValueError(f"pattern must be {PINS} characters of E/O, got {text!r}")
+    if len(pattern) != pins or set(pattern) - {"E", "O"}:
+        raise ValueError(f"pattern must be {pins} characters of E/O, got {text!r}")
     return pattern
 
 
@@ -41,18 +41,18 @@ def distance(a, b):
     return sum(x != y for x, y in zip(a, b))
 
 
-def valid_digits(pattern):
+def valid_digits(pattern, pins):
     """Per pin, the cut depths allowed by the parity pattern (all of 0-9 if None)."""
     return [[d for d in range(10)
              if pattern is None or d % 2 == (0 if pattern[i] == "E" else 1)]
-            for i in range(PINS)]
+            for i in range(pins)]
 
 
-def count_valid(pattern, max_step):
+def count_valid(pattern, max_step, pins):
     """Number of bittings matching the parity pattern and adjacent-cut limit."""
-    digits = valid_digits(pattern)
+    digits = valid_digits(pattern, pins)
     ways = {d: 1 for d in digits[0]}
-    for i in range(1, PINS):
+    for i in range(1, pins):
         ways = {d: sum(w for pd, w in ways.items() if abs(d - pd) <= max_step)
                 for d in digits[i]}
     return sum(ways.values())
@@ -61,36 +61,36 @@ def count_valid(pattern, max_step):
 def options_for(change, masters):
     """Per pin, the sorted cuts a core pinned with `change` plus `masters` accepts."""
     keys = [change] + list(masters)
-    return [sorted({k[p] for k in keys}) for p in range(PINS)]
+    return [sorted({k[p] for k in keys}) for p in range(len(change))]
 
 
 def operates(key, options):
-    return all(key[p] in options[p] for p in range(PINS))
+    return all(key[p] in options[p] for p in range(len(options)))
 
 
 def operating_set_size(options, max_step):
     """Number of MACS-valid bittings built from the per-position option sets."""
     ways = {d: 1 for d in options[0]}
-    for p in range(1, PINS):
+    for p in range(1, len(options)):
         ways = {d: sum(w for pd, w in ways.items() if abs(d - pd) <= max_step)
                 for d in options[p]}
     return sum(ways.values())
 
 
-def pair_conflict_probability(masters, pattern, max_step, total_valid):
+def pair_conflict_probability(masters, pattern, max_step, total_valid, pins):
     """Chance that a random valid key B operates the core of a random valid key A.
 
     The core is pinned with A as change key and `masters` above it, so B works
     when, at every position, its cut equals A's cut or a master's cut.
     Exact (dynamic programming over positions), no sampling.
     """
-    digits = valid_digits(pattern)
+    digits = valid_digits(pattern, pins)
 
     def allowed(p, a):
         return {a, *(m[p] for m in masters)} & set(digits[p])
 
     states = {(a, b): 1 for a in digits[0] for b in allowed(0, a)}
-    for p in range(1, PINS):
+    for p in range(1, pins):
         new = {}
         for (a0, b0), w in states.items():
             for a in digits[p]:
