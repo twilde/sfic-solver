@@ -21,7 +21,9 @@ for material that really is list-shaped (formats, ranges, a plan of commits).
 
 ## Feature design documents
 
-None yet.
+- [Core pinning for SFIC pinning systems (A2 first)](designs/core-pinning.md):
+  pinning cores, control keys, a simulated lock, and moving beyond the parity
+  pattern. Draft (D25).
 
 ## D1. Package layout, with root scripts kept as entry points
 
@@ -288,3 +290,18 @@ to `docs/design.md` (CLAUDE.md, CONTRIBUTING.md, the pull request template);
 writing every feature into the log would make it unreadable. Existing entries are
 unchanged: they already read as short narratives, and rewriting history helps
 nobody.
+
+## D25. Core pinning gets a feature design document
+
+The tools will grow from "which keys operate which cores" to "which pins make
+the cores behave that way", for SFIC A2 first and other pinning systems as data.
+The reasoning is long and has open questions, so it lives in
+[docs/designs/core-pinning.md](designs/core-pinning.md) (status: draft) rather
+than here. The decisions it records so far, none yet built: control keys are part
+of every core's pinning, not an extra; a simulated lock built from pins alone is
+the test oracle; A2 is a data record, not code; the work opts in per system file
+so that existing files keep their meaning; and the parity pattern is to be
+demoted from a rule every key obeys to a promise about keys we cannot see, because
+the real constraint is that two cuts in one chamber of one core must not differ
+by exactly one. Pinnability as a hard rule in the solver, and the residual-risk
+population, are flagged there for agreement before they are built.
