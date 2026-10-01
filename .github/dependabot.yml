@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Keep the actions used by CI current (e.g. Node runtime deprecations).
+  # There is no pip entry: the package has no runtime dependencies and the only
+  # others (pytest, setuptools) are deliberately unpinned.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "CI"

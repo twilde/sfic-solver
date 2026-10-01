@@ -29,3 +29,9 @@ def test_every_issue_form_warns_and_requires_the_checkbox():
 def test_readme_repeats_the_issue_warning():
     text = (ROOT / "README.md").read_text()
     assert "Issues and pull requests are public too" in text
+
+
+def test_dependabot_keeps_github_actions_current():
+    text = (ROOT / ".github" / "dependabot.yml").read_text()
+    assert re.search(r'package-ecosystem: "github-actions"', text)
+    assert re.search(r'interval: "weekly"', text)

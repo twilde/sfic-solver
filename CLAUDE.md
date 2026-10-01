@@ -57,5 +57,7 @@ first and explaining why.
   email: commit emails are public and permanent. Always end commit messages with a `Co-Authored-By: <Claude model>
   <noreply@anthropic.com>` trailer, so AI involvement is transparent. Do the
   same for pull request descriptions as instructed by the session.
+- **Dependabot** opens a weekly pull request for GitHub Actions updates. Merge
+  it only when CI is green.
 - **Keep docs current.** README limitations, file-format notes and TODO.md
   change in the same commit as the behavior they describe.

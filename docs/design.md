@@ -160,3 +160,12 @@ through a form (blank issues are disabled), and every form opens with the
 warning and ends with a required "no real data" checkbox. The README's Privacy
 section repeats it. A test checks that each form keeps the warning and the
 required checkbox.
+
+## D17. Dependabot for GitHub Actions only
+
+CI uses third-party actions whose runtimes get deprecated (Node 20, runner
+images), so Dependabot opens one grouped pull request a week to keep them
+current. There is deliberately no pip entry: the package has no runtime
+dependencies, and pytest and setuptools are left unpinned, so there is nothing
+for it to update. Review its pull requests like any other and merge only when
+CI is green.
