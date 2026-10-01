@@ -54,6 +54,13 @@ but usually many more: any mix-and-match of their cuts. Those extra keys are
 **false keys**. Their number is computed exactly (dynamic programming over
 positions, trimming combinations that break MACS), not estimated.
 
+The names *change key* and *master* describe how a hierarchy is used, not how a
+core works. For any one core they are interchangeable: each is simply a key the
+core is pinned to accept, and the core's behavior depends only on those keys'
+cuts, never on which one is called the master. Two keys pinned into the same core
+are on an equal footing, and either may have the higher cut, the lower, or the
+same.
+
 **Cross-operation.** A known key that operates a core it was not meant to
 operate. This is the problem the checker exists to find. A common trap is a key
 that happens to be made of one key's cuts and a master's cuts.
