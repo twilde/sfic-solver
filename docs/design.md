@@ -130,3 +130,14 @@ most with many outside contributors or corporate users, which is not expected.
 `LICENSE` carries the text and `pyproject.toml` the SPDX identifier. Part of the
 code was written with AI assistance; commits record that with a Co-Authored-By
 trailer.
+
+## D14. CI runners are pinned, not `ubuntu-latest`
+
+`ubuntu-latest` moves to Ubuntu 26.04 from late 2026, and Python 3.9 has no
+build for 26.04 in `actions/python-versions`, so the 3.9 job would start failing
+by surprise. CI therefore pins `ubuntu-24.04` for the guard job and the full
+Python 3.9-3.13 matrix, and adds one Python 3.13 job on `ubuntu-26.04` so
+problems with the new image show up early and on our terms. When 3.9 support is
+dropped (it is already end-of-life upstream), the matrix can move to a newer
+runner and these pins can be revisited. Action versions are tracked by major tag
+and chosen to run on Node 24.
