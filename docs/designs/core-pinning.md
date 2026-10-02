@@ -546,7 +546,7 @@ the checker, so the rules are verified before anything depends on them.
 
 | Step | What | Behavior change |
 | --- | --- | --- |
-| 1 | Refactor: bundle pin count, depth count, MACS and the optional parity pattern into one key-space rules object, in place of the loose parameters passed around today | None |
+| 1 | Refactor: bundle pin count, depth count, MACS and the optional parity pattern into one key-space rules object, in place of the loose parameters passed around today (done, D26) | None |
 | 2 | Library: the pinning system record with A2, the pinner with control pins, the simulated lock, and property tests | None for existing files (library only) |
 | 3 | First the data-file guard learns `.txt`, in its own commit. Then the local conformance script: read single-core charts, in the tools' layout or the legacy one (one or several to a file), and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
 | 4 | Config and checker: the `pinning` field, `control` on each core, `retired_cores`, pinnability, control cross-operation and the retired-core consistency check in the report | Only for files that opt in |

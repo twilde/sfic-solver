@@ -26,9 +26,7 @@ class ConfigError(ValueError):
 @dataclass
 class Config:
     raw: dict                                   # the file as loaded (solve_system writes it back)
-    pins: int
-    pattern: Optional[str]
-    max_step: int
+    space: model.KeySpace                       # pins, pattern, max_step and depths
     min_diff: int
     unit_prefix: str
     unit_count: Optional[int]
@@ -95,7 +93,8 @@ def parse_config(raw, allow_null=False):
     else:
         pattern = None
 
-    max_step = _whole_number(raw, "max_step", 5, 1)
+    max_step = _whole_number(raw, "max_step", model.DEFAULT_MAX_STEP, 1)
+    space = model.KeySpace(pins=pins, pattern=pattern, max_step=max_step)
     min_diff = _whole_number(raw, "min_diff", model.default_min_diff(pins), 0)
     if min_diff > pins:
         raise ConfigError(f"min_diff is {min_diff} but keys have only {pins} pins, so no two "
@@ -129,7 +128,7 @@ def parse_config(raw, allow_null=False):
                     raise ConfigError(f"{label}: {name!r}: bitting is unknown (null); "
                                       f"fill it in or run solve_system.py")
                 items[name] = None
-            elif not model.is_bitting(text, pins):
+            elif not space.is_bitting(text):
                 raise ConfigError(f"{label}: {name!r}: bitting must be {pins} digits "
                                   f"(0-9), got {text!r}")
             else:
@@ -199,9 +198,8 @@ def parse_config(raw, allow_null=False):
             "is_unit": any(c.startswith(unit_prefix) for c in changes),
         })
 
-    return Config(raw=raw, pins=pins, pattern=pattern, max_step=max_step, min_diff=min_diff,
-                  unit_prefix=unit_prefix, unit_count=unit_count,
-                  close_check_units=close_check_units, keys=keys,
+    return Config(raw=raw, space=space, min_diff=min_diff, unit_prefix=unit_prefix,
+                  unit_count=unit_count, close_check_units=close_check_units, keys=keys,
                   retired_keys=groups["retired_keys"], control_keys=groups["control_keys"],
                   cores=cores, warnings=warnings)
 

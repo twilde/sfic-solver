@@ -26,26 +26,21 @@ def parse_pattern(text):
     return model.normalize_pattern(text, len(text))
 
 
-def parse_bitting(text, pins):
-    if not model.is_bitting(text, pins):
-        raise ValueError(f"bitting must be {pins} digits, got {text!r}")
+def parse_bitting(text, space):
+    if not space.is_bitting(text):
+        raise ValueError(f"bitting must be {space.pins} digits, got {text!r}")
     return [int(c) for c in text]
 
 
-def digits_for(parity):
-    return [d for d in range(10) if d % 2 == (0 if parity == "E" else 1)]
-
-
-def generate(pattern, max_step):
-    """One random bitting matching the parity pattern and max adjacent step.
+def generate(space):
+    """One random bitting matching the key space's parity pattern and max adjacent step.
 
     Rejection sampling: draw each cut uniformly, retry until the adjacent-cut
     rule holds. This is uniform over all valid bittings.
     """
-    choices = [digits_for(p) for p in pattern]
     for _ in range(MAX_ATTEMPTS):
-        cuts = [secrets.choice(c) for c in choices]
-        if all(abs(a - b) <= max_step for a, b in zip(cuts, cuts[1:])):
+        cuts = [secrets.choice(c) for c in space.digits]
+        if space.macs_ok(cuts):
             return cuts
     raise RuntimeError("no valid bitting found; is --max-step too small?")
 
@@ -73,7 +68,8 @@ def main(argv=None):
         ap.error("--max-step must be at least 1")
     try:
         pattern = parse_pattern(args.pattern)
-        avoid = [parse_bitting(b, len(pattern)) for b in args.avoid]
+        space = model.KeySpace(pins=len(pattern), pattern=pattern, max_step=args.max_step)
+        avoid = [parse_bitting(b, space) for b in args.avoid]
     except ValueError as err:
         ap.error(str(err))
     if args.min_diff is None:
@@ -87,7 +83,7 @@ def main(argv=None):
         attempts += 1
         if attempts > MAX_ATTEMPTS:
             raise SystemExit("could not find enough bittings; loosen the constraints")
-        cuts = generate(pattern, args.max_step)
+        cuts = generate(space)
         # New bittings must also stay --min-diff away from each other, not just
         # from the --avoid list. Also rejects duplicates when min-diff >= 1.
         if cuts not in accepted and differs_enough(cuts, avoid + accepted, args.min_diff):
