@@ -75,6 +75,13 @@ first and explaining why.
   same for pull request descriptions as instructed by the session. Do not add
   `Claude-Session:` trailers or links to claude.ai sessions to commits or pull
   request text: they point at private conversations.
+- **Pull requests are independent.** Treat every pull request as owned by a
+  separate party, including one that we, or another Claude session, wrote. Review
+  it through GitHub: a review with inline comments, which its author resolves. Do
+  not commit to, push to, rebase or force-push its branch, edit its description,
+  or build a competing copy of its work. Reading it, checking it out in a scratch
+  worktree and running its tests are fine. If you think the branch itself needs
+  changing, ask the user first. Merge only when the user says to.
 - **Dependabot** opens a weekly pull request for GitHub Actions updates. Merge
   it only when CI is green.
 - **Keep docs current.** README limitations, file-format notes and TODO.md
