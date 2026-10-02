@@ -114,7 +114,8 @@ def test_a_dash_outside_the_master_rows_is_failed(truth):
 
 def test_master_rows_that_do_not_fill_from_the_bottom_are_failed():
     # Two master rows; chamber 1 has a pin in the upper row and a dash below it.
-    truth = {"system": "A2", "control": "1234567", "master": "1234567", "change": ["1234567"],
+    ascending = "".join(str(n) for n in range(1, 8))      # an invented bitting
+    truth = {"system": "A2", "control": ascending, "master": ascending, "change": [ascending],
              "rows": [("T/D", ["4"] * 7), ("Control", ["8"] * 7),
                       ("Master", ["2"] + ["--"] * 6), ("Master", ["--"] + ["2"] * 6),
                       ("Bottom", ["1"] * 7)]}
