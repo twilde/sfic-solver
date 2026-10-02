@@ -26,7 +26,7 @@ for material that really is list-shaped (formats, ranges, a plan of commits).
   pattern. Accepted (D25).
 - [Reading scanned pinning charts](designs/chart-scanning.md): a local tool that
   turns scans of paper charts into the text layout `check_charts` reads, and
-  flags whatever it is unsure of. Draft (D38).
+  flags whatever it is unsure of. Accepted (D38).
 
 ## D1. Package layout, with root scripts kept as entry points
 
@@ -602,7 +602,7 @@ project does not control.
 
 An owner whose pinning charts exist only on paper needs them as text before
 `check_charts` (D31) can run on them. The design for a local tool that does that is
-in [docs/designs/chart-scanning.md](designs/chart-scanning.md) (status: draft,
+in [docs/designs/chart-scanning.md](designs/chart-scanning.md) (status: accepted,
 nothing built). What it records so far: the tool transcribes and never repairs, and
 never consults the pinner or the pinning rules to choose a reading, so that the
 conformance check stays falsifiable; it fails closed, writing the charts that

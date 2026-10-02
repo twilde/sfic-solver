@@ -1,6 +1,6 @@
 # Reading scanned pinning charts
 
-Status: Draft
+Status: Accepted
 
 This document proposes a local tool that turns scans of paper pinning charts into
 the text chart format that `check_charts` reads, so that an owner who has charts
