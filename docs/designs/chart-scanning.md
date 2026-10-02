@@ -273,27 +273,39 @@ to the paper, where whatever is written beside the chart says which core it is. 
 legacy layout has no place for a name, and giving it one would mean changing the
 reader, which this feature does not do.
 
-There are two outputs and a report. The accepted file holds every chart that
-passed, in the legacy layout, and can be given to `check_charts` as it stands. The
-review file holds every chart that did not, in the same layout, with `??` in place
-of any cell or header digit that could not be read; since `check_charts` refuses
-such a file (a row without a number per chamber is unreadable to it), a flagged
-chart can never be checked by accident. A chart that was read completely but failed
-a check, a column that does not sum, is written out as read, without `??`, so that
-the owner can compare it with the paper and, if it is the paper's own, run
-`check_charts` on it too. The owner finishes the review file by hand, looking at
-the page named in the report, and checks it like the other.
+There are three outputs and a report, and the difference between them is what
+`check_charts` can do with each.
+
+- The **accepted file** holds every chart that passed every check, in the legacy
+  layout, and can be given to `check_charts` as it stands.
+- The **failed file** (`.failed.txt`) holds every chart that was read completely, so
+  that every cell and header digit is a number, but failed a chart-internal check:
+  a column that does not add up, a cell outside its range, master rows that do not
+  fill from the bottom. It is written out as read, in the legacy layout, and
+  `check_charts` can read it. It is kept apart from the accepted file so that "the
+  paper's own column does not add up" is not mistaken for "the tool could not read
+  it", and so that these charts can be run through `check_charts` and compared with
+  the paper without being mixed with the ones that passed.
+- The **review file** (`.review.txt`) holds every chart that could not be read
+  completely or is not well formed (a row with the wrong number of cells, say), in
+  the same layout with `??` in place of any cell or header digit that could not be
+  read. `check_charts` refuses this file, as a whole and at its first unreadable
+  chart: a row without a number per chamber is unreadable to it. That is deliberate,
+  so that a flagged chart can never be checked by accident, and it is the reason a
+  chart that was read completely does not go here: it would be refused along with
+  the rest of the file. The owner finishes the review file by hand, looking at the
+  page named in the report, and checks the result like the others.
 
 The report lists, per input and page, the charts accepted and flagged, and for
 each flag its position (row and chamber, or the header line and digit) and its kind
 (unreadable, a count that does not match, the votes did not agree, a check that
 failed). It lists pages skipped as blank, lines ignored, and a count of marks in
 groups too small to vote, and ends with a line that says how many charts were
-accepted and how many need review, and the exit status is 1 if any did, as with
-`check_charts`. None of it contains a digit read from the page.
+accepted, how many failed a check and how many need review, and the exit status is 1
+if any did not pass, as with `check_charts`. None of it contains a digit read from the page.
 
 By default the files are written next to the input, with the input's name and the
-extensions `.txt` and `.review.txt`, since the owner chose that directory and it is
+extensions `.txt`, `.failed.txt` and `.review.txt`, since the owner chose that directory and it is
 outside this repository; `-o` chooses another place. The tool will not overwrite an
 existing file without being told to, and it writes nothing else: there are no
 debugging images, because an image of a page is key data in a place the owner did

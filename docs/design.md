@@ -606,9 +606,10 @@ in [docs/designs/chart-scanning.md](designs/chart-scanning.md) (status: draft,
 nothing built). What it records so far: the tool transcribes and never repairs, and
 never consults the pinner or the pinning rules to choose a reading, so that the
 conformance check stays falsifiable; it fails closed, writing the charts that
-passed every check to one file and the rest, with `??` where a cell could not be
-read, to a review file that `check_charts` refuses to read, and reports positions
-only; Tesseract (run locally, as a subprocess) reads each row of cells as a line,
+passed every check to one file, those read completely that failed a chart-internal
+check to a second that `check_charts` can read, and the rest, with `??` where a cell
+could not be read, to a review file that `check_charts` refuses, and reports
+positions only; Tesseract (run locally, as a subprocess) reads each row of cells as a line,
 and its readings are used as votes that label groups of digit marks of the same
 shape on the document itself, because per-row agreement among its readings was
 shown to flag most charts yet still pass a systematic misreading; and the check
