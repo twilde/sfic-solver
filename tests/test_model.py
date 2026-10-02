@@ -113,6 +113,10 @@ def test_distance_and_macs_and_parity_helpers():
     assert parity.parity_bad((1, 1, 2, 3, 4, 5, 7)) == [1, 7]
 
 
+def test_without_a_pattern_no_cut_has_the_wrong_parity():
+    assert model.KeySpace(3).parity_bad((0, 1, 2)) == []
+
+
 def test_key_space_defaults_are_the_standard_seven_pin_rules():
     space = model.KeySpace()
     assert (space.pins, space.pattern, space.max_step, space.depths) == (7, None, 5, 10)

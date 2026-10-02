@@ -71,7 +71,10 @@ class KeySpace:
                      for i in range(self.pins))
 
     def parity_bad(self, cuts):
-        """1-based pin numbers whose cut has the wrong parity for the pattern."""
+        """1-based pin numbers whose cut has the wrong parity for the pattern (none if
+        there is no pattern: any parity is allowed)."""
+        if self.pattern is None:
+            return []
         return [i + 1 for i, (c, p) in enumerate(zip(cuts, self.pattern))
                 if c % 2 != (0 if p == "E" else 1)]
 
