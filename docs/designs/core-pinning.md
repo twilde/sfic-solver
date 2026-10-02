@@ -80,11 +80,11 @@ pin layer, and its pin may belong to any of the keys. This document says
 **operating keys** of a core when it means all of them.
 
 The control shear line is a further 0.125 inch out, which is 10 increments, so
-the stack needs 10 more pins below the boundary there. A boundary at height 10 + c
-lines up with the control shear line for a control key whose cut at that chamber
-is c. Operating cuts therefore match boundaries at heights 0 to 9 and control cuts
-match boundaries at heights 10 to 19. The two ranges never overlap, which is why
-one stack can serve both.
+the stack needs 10 more increments of pin below the boundary there. A boundary
+at height 10 + c lines up with the control shear line for a control key whose
+cut at that chamber is c. Operating cuts therefore match boundaries at heights
+0 to 9 and control cuts match boundaries at heights 10 to 19. The two ranges
+never overlap, which is why one stack can serve both.
 
 The A2 rules we are working from are these. The maintainer confirmed them, and
 the published description we have (see Sources) agrees with the stack total and
