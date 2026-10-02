@@ -74,13 +74,13 @@ class Chart:
     def column(self, chamber):
         """The pins in a chamber from the bottom up as the chart shows them, or None if
         the chart does not follow the fill rule (masters fill from the bottom)."""
-        cells = [cells[chamber] for _, cells in reversed(self.rows)]
+        column = [row_cells[chamber] for _, row_cells in reversed(self.rows)]
         # bottom, then master layers from the bottom up, then control, then T/D
-        masters = cells[1:-2]
+        masters = column[1:-2]
         filled = [c for c in masters if c is not None]
         if masters[:len(filled)] != filled:
             return None
-        return tuple([cells[0], *filled, cells[-2], cells[-1]])
+        return tuple([column[0], *filled, column[-2], column[-1]])
 
 
 def split_charts(text):
