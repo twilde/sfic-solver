@@ -1,0 +1,38 @@
+FAKE charts for tests only: computed from the placeholder keys in system.example.json.
+
+System = A2
+Control Key = 9743854
+Master Key = 5961634
+Change Keys = 5721276, 9565698
+
+T/D      4  6  9 10  5  8  9
+Control 10  8  8  8 12  6  6
+Master  --  2 -- -- --  2  2
+Master   4  2  4  4  4  4  2
+Bottom   5  5  2  1  2  3  4
+
+----------------------------------------
+
+System = A2
+Control Key = 3785412
+Master Key = 7587672
+Change Keys = 3101658
+
+T/D     10  6  5  8  9 12 11
+Control  6 12 10  8  8  4  4
+Master   4  4  8  6 --  2  6
+Bottom   3  1  0  1  6  5  2
+
+----------------------------------------
+
+System = A2
+Control Key = 3785412
+Master Key = 7305496
+Change Keys = 3323872, 1161012, 9565698
+
+T/D     10  6  5  8  9 12 11
+Control  4 12 12 10  6  2  4
+Master   2 -- -- --  2 -- --
+Master   4  2  4  2  2  2  2
+Master   2  2  2  2  4  6  4
+Bottom   1  1  0  1  0  1  2

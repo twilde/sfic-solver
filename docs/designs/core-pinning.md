@@ -503,15 +503,13 @@ A chart is as sensitive as the bittings it is built from, which is the rule in
 CLAUDE.md, and more so once it names units and carries a date. So the chart
 command writes to standard output unless it is given a file, and it is up to the
 owner where that file goes. What the repository can do is refuse to commit one,
-and the data-file guard grows with the features. Today it refuses `.json` and
-`.csv`. Charts are plain text first and PDF later, so the guard learns to refuse
-`.txt` in its own commit, ahead of the conformance script, which reads text charts,
-and `.pdf` in its own commit, ahead of the PDF output. Spreadsheets are not
-planned, and the guard is extended as formats appear and not by trying to list
-every format now. Neither extension is a problem for CI today, since no `.txt` or
-`.pdf` file has ever been committed. Fake fixtures under `tests/fixtures/` stay
-allowed, and must be marked as fake in whatever way the format allows (for text, a
-first line saying so).
+and the data-file guard grows with the features. It refuses `.json`, `.csv` and,
+since the conformance script, `.txt` (D30), and charts are plain text first and
+PDF later, so it learns to refuse `.pdf` in its own commit, ahead of the PDF
+output. Spreadsheets are not planned, and the guard is extended as formats appear
+and not by trying to list every format now. Fake fixtures under `tests/fixtures/`
+stay allowed, and must be marked as fake in whatever way the format allows (for
+text, a first line saying so).
 
 ## What changes in the tools
 
@@ -550,7 +548,7 @@ the checker, so the rules are verified before anything depends on them.
 | --- | --- | --- |
 | 1 | Refactor: bundle pin count, depth count, MACS and the optional parity pattern into one key-space rules object, in place of the loose parameters passed around today (done, D26) | None |
 | 2 | Library: the pinning system record with A2, the pinner with control pins, the simulated lock, and property tests (done, D27 to D29) | None for existing files (library only) |
-| 3 | First the data-file guard learns `.txt`, in its own commit. Then the local conformance script: read single-core charts, in the tools' layout or the legacy one (one or several to a file), and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
+| 3 | (done, D30 and D31) First the data-file guard learns `.txt`, in its own commit. Then the local conformance script: read single-core charts, in the tools' layout or the legacy one (one or several to a file), and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
 | 4 | Config and checker: the `pinning` field, `control` on each core, `retired_cores`, pinnability, control cross-operation and the retired-core consistency check in the report | Only for files that opt in |
 | 5 | The generator and solver work with or without a pattern; the residual-risk population comes from the retired cores, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
 | 6 | The chart command (with the key system name, the date and the unit names) and README updates | New command |

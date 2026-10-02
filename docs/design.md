@@ -421,3 +421,29 @@ never contained a `.txt` file, in its tree or its history, and a legitimate one
 system file is. `.pdf` follows when PDF output does (D25); spreadsheets are not
 planned.
 
+## D31. The conformance command reads charts and reports positions only
+
+Step 3 of core pinning (D25). `sfic_solver/charts.py` reads pinning charts in
+either layout from the design (the tools' own, with `name = bitting` lines, and
+the legacy one of older keying software, with a master line and a
+comma-separated list of change keys), several to a file when separated by lines
+of dashes, skipping the `FAKE` line of a test fixture. Its header labels sit in
+one table and match without regard to case, a chart that mixes the two layouts is
+refused, and every error says which chart and line and what kind of problem,
+never what was written there, because a chart is key data.
+
+`check_charts` (root script `check_charts.py`, installed as `sfic-check-charts`)
+pins each chart's keys with the pinning system it names and compares every
+chamber with the chart, reporting each disagreement as one of four kinds: the
+pins differ, the pinner refuses the chamber, the master rows do not fill from the
+bottom, or a cut the system does not have. It takes files or directories of `.txt`
+files, or `SFIC_CHARTS` when given no path, and does nothing when it has neither.
+The report holds counts and positions (file, chart and chamber, numbered in the
+order given) and no key, core or building name, bitting or pin size, so it is safe
+to quote in an issue, and a test checks that on a deliberately wrong chart.
+`--details` adds the pin sizes and the pinner's reasons for the owner's own
+use, and says not to share them. The exit status is 1 for any disagreement or
+unreadable chart. It has been tested on fake charts computed independently of the
+pinner; whether it agrees with real charts is for their owner to find out
+locally, which is the point of the step.
+
