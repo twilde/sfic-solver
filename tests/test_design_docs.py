@@ -42,11 +42,7 @@ def example_charts():
         control = fields["Control Key"]
         reserved = {"Key System", "System", "Core", "Date", "Control Key"}
         keys = [v for k, v in fields.items() if k not in reserved]
-        rows = []
-        for line in body.strip().splitlines():
-            label, *cells = line.split()
-            rows.append((label, [None if c == "--" else int(c) for c in cells]))
-        charts.append((fields, keys, control, rows))
+        charts.append((fields, keys, control, parse_rows(body)))
     return charts
 
 
@@ -66,20 +62,44 @@ def test_core_pinning_unit_charts_name_their_unit_in_the_core_line():
         assert f"({unit})" in fields["Core"]
 
 
-def test_core_pinning_example_charts_are_the_pins_for_their_keys():
+def parse_rows(body):
+    rows = []
+    for line in body.strip().splitlines():
+        label, *cells = line.split()
+        rows.append((label, [None if c == "--" else int(c) for c in cells]))
+    return rows
+
+
+def assert_chart_is_the_pins_for_its_keys(where, keys, control, rows):
     """Recompute every chamber from the header's keys: the chart must say the same."""
+    labels = [label for label, _ in rows]
+    assert labels[:2] == ["T/D", "Control"] and labels[-1] == "Bottom"
+    assert set(labels[2:-1]) <= {"Master"}
+    for chamber in range(len(control)):
+        heights = sorted({int(k[chamber]) for k in keys})
+        line = int(control[chamber]) + 10
+        expected = [heights[0]] + [b - a for a, b in zip(heights, heights[1:])]
+        expected += [line - heights[-1], 23 - line]
+        column = [cells[chamber] for _, cells in rows]
+        filled = [c for c in column if c is not None]
+        assert filled == expected[::-1], f"{where}, chamber {chamber + 1}"
+        assert sum(filled) == 23
+        masters = column[2:-1]       # top to bottom: empties must come first
+        assert masters == sorted(masters, key=lambda c: c is not None)
+
+
+def test_core_pinning_example_charts_are_the_pins_for_their_keys():
     for fields, keys, control, rows in example_charts():
-        labels = [label for label, _ in rows]
-        assert labels[:2] == ["T/D", "Control"] and labels[-1] == "Bottom"
-        assert set(labels[2:-1]) <= {"Master"}
-        for chamber in range(len(control)):
-            heights = sorted({int(k[chamber]) for k in keys})
-            line = int(control[chamber]) + 10
-            expected = [heights[0]] + [b - a for a, b in zip(heights, heights[1:])]
-            expected += [line - heights[-1], 23 - line]
-            column = [cells[chamber] for _, cells in rows]
-            filled = [c for c in column if c is not None]
-            assert filled == expected[::-1], f"{fields['Core']}, chamber {chamber + 1}"
-            assert sum(filled) == 23
-            masters = column[2:-1]       # top to bottom: empties must come first
-            assert masters == sorted(masters, key=lambda c: c is not None)
+        assert_chart_is_the_pins_for_its_keys(fields["Core"], keys, control, rows)
+
+
+def test_core_pinning_legacy_example_chart_is_the_pins_for_its_keys():
+    """The old software's header: one master line and one comma-separated change keys line."""
+    text = (ROOT / "docs" / "designs" / "core-pinning.md").read_text()
+    chart = re.search(r"```\n(System = A2\nControl Key = .*?)```", text, re.S).group(1)
+    header, _, body = chart.strip().partition("\n\n")
+    fields = dict(re.findall(r"^(.+?) = (.+)$", header, re.M))
+    assert list(fields) == ["System", "Control Key", "Master Key", "Change Keys"]
+    keys = [fields["Master Key"], *re.split(r"[,\s]+", fields["Change Keys"])]
+    assert len(keys) == 3
+    assert_chart_is_the_pins_for_its_keys("legacy", keys, fields["Control Key"], parse_rows(body))

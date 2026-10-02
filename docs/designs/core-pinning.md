@@ -385,14 +385,17 @@ manufacturer's software remains the authority.
 
 ### The chart layout
 
-The maintainer's real charts are single-core charts, and the tools should print
-charts in the same layout, so that output can be compared with a chart by eye or
-with a diff. A chart is a header, a blank line, and then one row per layer of pins
-from the top of the stack down, one column per chamber. A real chart's header
-names the pinning system (`System = A2`), the control key, and every operating key
-of the core as `name = bitting`. The tools' charts add three lines of metadata
-around that. The first line is the name of the key system, from a new optional
-field of the system file, so a chart says which building it belongs to. After
+The maintainer's real charts come from an older piece of software and are
+single-core charts. A chart is a header, a blank line, and then one row per layer
+of pins from the top of the stack down, one column per chamber, and the tools
+print the same rows, so that output can be compared with a chart by eye. The
+headers differ. A real chart's header gives `System = A2`, the control key, the
+master key and a single `Change Keys` line of comma-separated bittings (the legacy
+layout, shown below). The tools' charts instead list one `name = bitting` line for
+every operating key, since within one core there is no difference between a master
+and a change key, and a name says which key is which. They also add three lines of
+metadata. The first line is the name of the key system, from a new optional field
+of the system file, so a chart says which building it belongs to. After
 `System = A2` come the name of the core, which the system file already has, and
 the date the chart was made, in ISO form, which defaults to today and can be set
 on the command line so that tests and diffs are reproducible. The labels are
@@ -462,11 +465,37 @@ Control 18 16  8 12 18 14 12
 Bottom   1  1  6  1  0  1  2
 ```
 
-The reader for the conformance script accepts one chart or several separated by
-lines of dashes, and reads the header by its labels (`Key System`, `System`,
-`Core`, `Date`, `Control Key`, and any other `name = bitting` line as an operating
-key). Those labels are therefore reserved, and when a pinning system is set a
-system file that names a key `Core` would have to be refused.
+The legacy layout, as the maintainer's old software writes it, has exactly four
+header lines: `System`, `Control Key`, `Master Key` and a single `Change Keys` line
+listing every change key, separated by commas. It has no key system name, no core
+name and no date, and its keys are known only by their roles. Every key on the
+master and change lines is an operating key of the one core, so a chart with a
+master and two change keys has three. The example is computed from fake keys:
+
+```
+System = A2
+Control Key = 9743854
+Master Key = 5961634
+Change Keys = 5721276, 9565698
+
+T/D      4  6  9 10  5  8  9
+Control 10  8  8  8 12  6  6
+Master  --  2 -- -- --  2  2
+Master   4  2  4  4  4  4  2
+Bottom   5  5  2  1  2  3  4
+```
+
+The reader for the conformance script accepts both layouts, one chart or several
+separated by lines of dashes, and tells them apart by their labels. In the tools'
+layout it reads `Key System`, `System`, `Core`, `Date` and `Control Key`, and takes
+every other `name = bitting` line as an operating key. In the legacy layout it
+reads `System`, `Control Key`, `Master Key` and `Change Keys`, splitting the last
+on commas and spaces. A chart that mixes the two is refused. These labels are
+therefore reserved, and when a pinning system is set a system file that names a key
+`Core` or `Change Keys` would have to be refused. The legacy labels are as the
+maintainer described them and have not been checked against a real chart here, so
+the reader keeps its labels in one table (matched without regard to case) to make
+a different spelling a one-line change.
 
 ## Charts are key data
 
@@ -519,7 +548,7 @@ the checker, so the rules are verified before anything depends on them.
 | --- | --- | --- |
 | 1 | Refactor: bundle pin count, depth count, MACS and the optional parity pattern into one key-space rules object, in place of the loose parameters passed around today | None |
 | 2 | Library: the pinning system record with A2, the pinner with control pins, the simulated lock, and property tests | None for existing files (library only) |
-| 3 | First the data-file guard learns `.txt`, in its own commit. Then the local conformance script: read single-core charts (one or several to a file) and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
+| 3 | First the data-file guard learns `.txt`, in its own commit. Then the local conformance script: read single-core charts, in the tools' layout or the legacy one (one or several to a file), and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
 | 4 | Config and checker: the `pinning` field, `control` on each core, `retired_cores`, pinnability, control cross-operation and the retired-core consistency check in the report | Only for files that opt in |
 | 5 | The generator and solver work with or without a pattern; the residual-risk population comes from the retired cores, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
 | 6 | The chart command (with the key system name, the date and the unit names) and README updates | New command |

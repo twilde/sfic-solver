@@ -314,6 +314,8 @@ they replace parity as the assumption that completes the residual-risk estimate;
 the old pinning is described generically, as a list of retired cores shaped like
 the current ones. Charts name the key system, the core, the unit and the date, so
 they are key data, and the data-file guard grows to `.txt` and `.pdf` as the
-features that read or write them are built.
+features that read or write them are built. The conformance reader also takes
+the legacy layout of the maintainer's old software (one master line and one
+comma-separated list of change keys), which the tools never write.
 Pinnability as a hard rule in the solver, and the new residual-risk population,
 are flagged there for agreement before they are built.
