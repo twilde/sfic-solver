@@ -134,3 +134,54 @@ def test_nothing_is_written_to_the_temporary_directory(monkeypatch, tmp_path, pa
     finally:
         reader.close()
     assert list(empty.iterdir()) == []
+
+
+@needs_tesseract
+def test_a_mark_pasted_after_a_row_is_read_and_dropped(recogniser, page):
+    box, height, blank, count, wanted = digit_row(page, 0)
+    prepared, found, truth, arrays = page
+    line = found.lines[4]
+    first = next(t for t in line.tokens[1:] if t.kind == layout.MARK)
+    tail = (first.x0, line.y0, first.x1, line.y1)
+    marks = sum(1 for g in first.glyphs if g.kind == layout.MARK)
+    readings = ocr.read_marks(recogniser, arrays, box, height, blank, tail=tail,
+                              tail_marks=marks)
+    usable = ["".join(r) for r in readings if r is not None and len(r) == count]
+    assert len(usable) >= 3 and usable.count(wanted) >= len(usable) // 2 + 1
+
+
+@needs_tesseract
+def test_the_last_digit_of_a_row_is_read_more_reliably_with_something_after_it(recogniser):
+    # Tesseract misreads the last character of a line (a final 3 as 8, a final 0 as 9
+    # or nothing). Over the rows of a few charts the sentinel makes the last digit right
+    # at least as often, and the rows where it matters, much more often.
+    plain_right = tail_right = rows = 0
+    for seed in (1, 2, 3):
+        lines, truth = random_chart(random.Random(seed))
+        prepared = clean.prepare(render(lines))
+        found = layout.analyse(prepared)
+        arrays = ocr.source_arrays(prepared)
+        for index, (_, cells) in enumerate(truth["rows"]):
+            line = found.lines[4 + index]
+            tokens = line.tokens[1:]
+            digits = [g for t in tokens for g in t.glyphs if g.kind == layout.MARK]
+            blank = [(g.x0, g.y0, g.x1, g.y1) for t in tokens for g in t.glyphs
+                     if g.kind != layout.MARK]
+            height = found.glyph_height
+            box = (tokens[0].x0 - int(.4 * height), line.y0 - int(.4 * height),
+                   tokens[-1].x1 + int(.4 * height), line.y1 + int(.4 * height))
+            first = next(t for t in tokens if t.kind == layout.MARK)
+            tail = (first.x0, line.y0, first.x1, line.y1)
+            marks = sum(1 for g in first.glyphs if g.kind == layout.MARK)
+            last = [c for c in cells if c != "--"][-1][-1]
+
+            def right(readings):
+                return sum(1 for r in readings
+                           if r is not None and len(r) == len(digits) and r[-1] == last)
+            plain_right += right(ocr.read_marks(recogniser, arrays, box, height, blank))
+            tail_right += right(ocr.read_marks(recogniser, arrays, box, height, blank,
+                                               tail=tail, tail_marks=marks))
+            rows += 1
+    assert tail_right >= plain_right
+    assert tail_right >= 0.7 * rows * len(ocr.ROW_RENDITIONS)
+

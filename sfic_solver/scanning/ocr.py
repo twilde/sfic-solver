@@ -39,23 +39,42 @@ def source_arrays(prepared):
     return {"g": prepared.gray, "b": np.asarray(smoothed, dtype=np.float32)}
 
 
-def crop_png(array, box, height, scale, blank=()):
+def crop_png(array, box, height, scale, blank=(), tail=None):
     """PNG bytes of the crop `box` = (x0, y0, x1, y1) of `array`, scaled so that text
     `height` pixels tall is `scale` pixels, with the boxes in `blank` painted white
-    first and a white border around it."""
+    first and a white border around it.
+
+    `tail` is the box of a mark to paste after the crop, two text heights to its right.
+    Tesseract reads the last character of a line much less reliably than the others
+    (a final 3 comes back as 8, a final 0 as 9 or nothing, at most sizes alike), so the
+    row is given something known to follow it, and the caller discards what is read.
+    """
     import numpy as np
     from PIL import Image
 
-    x0, y0, x1, y1 = (max(0, v) for v in box)
-    piece = np.array(array[y0:y1, x0:x1], dtype=np.float32)
-    for bx0, by0, bx1, by1 in blank:
-        piece[max(0, by0 - y0):max(0, by1 - y0 + 1), max(0, bx0 - x0 - 1):max(0, bx1 - x0 + 1)] = 255
-    image = Image.fromarray(np.clip(piece, 0, 255).astype(np.uint8))
-    factor = scale / height
-    image = image.resize((max(1, int(image.width * factor)),
-                          max(1, int(image.height * factor))), Image.LANCZOS)
-    canvas = Image.new("L", (image.width + 2 * PAD, image.height + 2 * PAD), 255)
-    canvas.paste(image, (PAD, PAD))
+    def cut(region, paint=()):
+        x0, y0, x1, y1 = (max(0, v) for v in region)
+        piece = np.array(array[y0:y1, x0:x1], dtype=np.float32)
+        for bx0, by0, bx1, by1 in paint:
+            piece[max(0, by0 - y0):max(0, by1 - y0 + 1),
+                  max(0, bx0 - x0 - 1):max(0, bx1 - x0 + 1)] = 255
+        image = Image.fromarray(np.clip(piece, 0, 255).astype(np.uint8))
+        factor = scale / height
+        return image.resize((max(1, int(image.width * factor)),
+                             max(1, int(image.height * factor))), Image.LANCZOS)
+
+    main = cut(box, blank)
+    width, tall = main.width, main.height
+    follower = None
+    if tail is not None:
+        top = box[1]
+        follower = cut((tail[0] - 2, top, tail[2] + 2, box[3]))
+        width += int(2 * scale) + follower.width
+        tall = max(tall, follower.height)
+    canvas = Image.new("L", (width + 2 * PAD, tall + 2 * PAD), 255)
+    canvas.paste(main, (PAD, PAD))
+    if follower is not None:
+        canvas.paste(follower, (PAD + main.width + int(2 * scale), PAD))
     out = io.BytesIO()
     canvas.save(out, "PNG")
     return out.getvalue()
@@ -99,13 +118,21 @@ class Recogniser:
 
 
 def read_marks(recogniser, arrays, box, height, blank=(), renditions=ROW_RENDITIONS,
-               whitelist=DIGITS):
+               whitelist=DIGITS, tail=None, tail_marks=0):
     """One reading per rendition of the digits in `box`: a list of characters, or None
     where Tesseract failed. The caller decides which readings are usable by comparing
-    their length with the number of marks it knows are in the box."""
-    requests = [(crop_png(arrays[source], box, height, scale, blank), whitelist, True)
+    their length with the number of marks it knows are in the box.
+
+    With `tail` (the box of a mark of the same row, `tail_marks` marks long) that mark
+    is pasted after the row and the characters read from it are dropped again.
+    """
+    requests = [(crop_png(arrays[source], box, height, scale, blank, tail), whitelist, True)
                 for source, scale in renditions]
-    return recogniser.read_all(requests)
+    readings = recogniser.read_all(requests)
+    if tail is not None and tail_marks:
+        readings = [r[:-tail_marks] if r is not None and len(r) >= tail_marks else None
+                    for r in readings]
+    return readings
 
 
 def read_text(recogniser, arrays, box, height, whitelist=LETTERS, renditions=LABEL_RENDITIONS):
