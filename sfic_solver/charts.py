@@ -33,10 +33,18 @@ FAKE_MARKER = "FAKE"
 def split_header_line(text):
     """(label, value) of a header line written `label = value` or `label: value`, else None.
 
-    A line with an `=` splits at the first one (labels never contain `=`, but a key's
-    name may contain `:`, as in `unit:101 = 3101658`); a line with only colons splits
-    at the last one, so `unit:101: 3101658` still reads as a key named `unit:101`.
+    A line that starts with a reserved label followed by `=` or `:` splits right after
+    the label, so `Core: Unit cores (unit:101)` keeps its colons in the value. Any
+    other line with an `=` splits at the first one (labels never contain `=`, but a
+    key's name may contain `:`, as in `unit:101 = 3101658`), and one with only colons
+    splits at the last one, so `unit:101: 3101658` still reads as a key named
+    `unit:101`.
     """
+    stripped = text.strip()
+    for label in sorted(RESERVED_LABELS, key=len, reverse=True):     # "key system" first
+        rest = stripped[len(label):].lstrip()
+        if stripped[:len(label)].lower() == label and rest[:1] in ("=", ":"):
+            return stripped[:len(label)], rest[1:].strip()
     if "=" in text:
         label, _, value = text.partition("=")
     elif ":" in text:

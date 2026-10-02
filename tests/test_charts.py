@@ -76,6 +76,22 @@ def test_a_key_name_may_contain_a_colon_whichever_separator_is_used(line):
     assert keys["unit:101"] == "3101658"
 
 
+@pytest.mark.parametrize("separator", ["=", ":"])
+def test_a_reserved_label_keeps_colons_that_follow_it_in_the_value(separator):
+    header = TOOLS_HEADER.replace("Core = Area A cores", f"Core {separator} Unit cores (unit:101)")
+    header = header.replace("Date = 2026-10-01", f"Date {separator} 2026-10-01 12:30")
+    parsed = parse_charts(chart(header))[0]
+    assert dict(parsed.metadata)["core"] == "Unit cores (unit:101)"
+    assert dict(parsed.metadata)["date"] == "2026-10-01 12:30"
+
+
+def test_a_key_name_that_starts_like_a_label_is_still_a_key():
+    from sfic_solver.charts import split_header_line
+    assert split_header_line("system_b: 5961634") == ("system_b", "5961634")
+    assert split_header_line("Cores = 5961634") == ("Cores", "5961634")
+    assert split_header_line("Key System: Example building") == ("Key System", "Example building")
+
+
 def test_split_header_line_edge_cases():
     from sfic_solver.charts import split_header_line
     assert split_header_line("Change Keys = 1, 2") == ("Change Keys", "1, 2")
