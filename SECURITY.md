@@ -34,8 +34,9 @@ instead and we will find a safe example together.
 ## Protecting your own system files
 
 A real system file lists the bittings of a real key system. Treat it like a
-password file: keep it outside any repository (this one ignores `.json` and
-`.csv` files and refuses to commit them, but your other repositories will not),
+password file: keep it outside any repository (this one ignores `.json`,
+`.csv` and `.txt` files and refuses to commit them, but your other repositories
+will not),
 and restrict who can read it.
 
 ## Supported versions

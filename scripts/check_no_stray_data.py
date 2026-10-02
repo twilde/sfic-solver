@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Fail if any data file (.json or .csv) other than the allowed ones is committed.
+"""Fail if any data file (.json, .csv or .txt) other than the allowed ones is committed.
 
-Real system files and exports (such as a key matrix) contain real bittings and
-must never be committed. The only allowed data files are system.example.json
+Real system files, exports (such as a key matrix) and pinning charts contain real
+bittings and must never be committed. The only allowed data files are system.example.json
 (repo root) and fixtures under tests/fixtures/, which must use obviously fake
 bittings.
 
@@ -17,7 +17,7 @@ Exits with status 1 if a disallowed data file is found.
 import subprocess
 import sys
 
-DATA_EXTENSIONS = (".json", ".csv")
+DATA_EXTENSIONS = (".json", ".csv", ".txt")
 ALLOWED_EXACT = {"system.example.json"}
 ALLOWED_PREFIX = "tests/fixtures/"
 
@@ -55,7 +55,7 @@ def main(argv=None):
 
     stray = find_stray(paths)
     if stray:
-        print("Refusing: .json and .csv files other than system.example.json and "
+        print("Refusing: .json, .csv and .txt files other than system.example.json and "
               "tests/fixtures/ may hold real key data:", file=sys.stderr)
         for p in stray:
             print(f"  {p}", file=sys.stderr)

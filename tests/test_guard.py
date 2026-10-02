@@ -19,6 +19,7 @@ _spec.loader.exec_module(guard)
     "tests/fixtures/clean.json",
     "tests/fixtures/nested/other.json",
     "tests/fixtures/matrix.csv",
+    "tests/fixtures/charts/legacy.txt",
     "README.md",
     "sfic_solver/check_system.py",
     "notes.jsonl",
@@ -40,6 +41,10 @@ def test_allowed(path):
     "keys/matrix.CSV",
     "system.example.csv",               # only the root example .json is allowed
     "tests/matrix.csv",
+    "chart.txt",
+    "notes/CHARTS.TXT",
+    "tests/chart.txt",
+    "tests/fixturesX/chart.txt",
 ])
 def test_stray(path):
     assert guard.find_stray([path]) == [path]
@@ -64,8 +69,8 @@ def run_guard(repo, mode):
 
 def test_staged_and_history_modes_in_a_scratch_repo(tmp_path):
     git(tmp_path, "init", "-q")
-    (tmp_path / "ok.txt").write_text("x")
-    git(tmp_path, "add", "ok.txt")
+    (tmp_path / "ok.md").write_text("x")
+    git(tmp_path, "add", "ok.md")
     assert run_guard(tmp_path, "--staged").returncode == 0
 
     (tmp_path / "real.json").write_text("{}")
@@ -97,6 +102,9 @@ def test_fixtures_are_marked_fake():
     ("tests/fixtures/clean.json", False),
     ("tests/fixtures/matrix.csv", False),
     ("subdir/system.example.json", True),
+    ("chart.txt", True),
+    ("docs/charts/legacy.txt", True),
+    ("tests/fixtures/chart.txt", False),
 ])
 def test_gitignore_matches_the_guard(path, ignored):
     probe = subprocess.run(["git", "check-ignore", "-q", "--no-index", path],
@@ -104,3 +112,10 @@ def test_gitignore_matches_the_guard(path, ignored):
     if probe.returncode not in (0, 1):
         pytest.skip("git not available")
     assert (probe.returncode == 0) == ignored, path
+
+
+def test_text_fixtures_are_marked_fake():
+    for path in sorted(FIXTURES.rglob("*.txt")):
+        first = path.read_text().splitlines()[0]
+        assert first.startswith("FAKE"), \
+            f"{path.name}: text fixtures must begin with a line starting with FAKE"

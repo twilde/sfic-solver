@@ -1,12 +1,14 @@
 # Safety net: real system files hold real bittings and must never be committed.
-# Ignore every .json and .csv (system files, exported key matrices), then
-# un-ignore only the example and the fake test fixtures.
+# Ignore every .json, .csv and .txt (system files, exported key matrices, pinning
+# charts), then un-ignore only the example and the fake test fixtures.
 # scripts/check_no_stray_data.py (pre-commit hook + CI) enforces the same rule.
 *.json
 !/system.example.json
 !/tests/fixtures/**/*.json
 *.csv
 !/tests/fixtures/**/*.csv
+*.txt
+!/tests/fixtures/**/*.txt
 
 # Python
 __pycache__/

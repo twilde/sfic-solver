@@ -407,3 +407,17 @@ shear lines written down separately. `joint_on_line` says which joint is on a sh
 line in a chamber, which is what explanations and a later visualizer need. It also
 shows the control cross-operation the checker will report: a key cut like a core's
 control bitting lines up the control line.
+
+## D30. The data-file guard also covers .txt
+
+Pinning charts are key data (D25) and the tools will print them as plain text, so
+the guard that already refuses `.json` (D9) and `.csv` (D12) learns `.txt` before
+anything reads or writes a chart: `.gitignore`, the pre-commit hook and CI reject a
+`.txt` file anywhere except under `tests/fixtures/`, where it must begin with a
+line starting `FAKE` (a test enforces it, as it does for the `_comment` in JSON
+fixtures). A blanket `.txt` rule is broader than charts, but the repository has
+never contained a `.txt` file, in its tree or its history, and a legitimate one
+(a requirements file, say) can be allowed by name when it appears, as the example
+system file is. `.pdf` follows when PDF output does (D25); spreadsheets are not
+planned.
+
