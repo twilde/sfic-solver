@@ -184,14 +184,15 @@ With many unrelated keys the chance that a random master fits them all collapses
 (a fifth per key, so a vanishing fraction for a hundred), and even a master found
 to fit the decoded ones may clash with a unit key not yet decoded. Parity would
 make that safe, if every undecoded key were known to follow the pattern, but in
-the building this tool is for there are no original records: the unit keys follow
-what was possible, and nobody can say they follow a parity pattern. So parity
-cannot be the assumption that completes the check here. The retired keys can, as
-the next section describes. Where every key under a master is known, the tools
-check the gap rule per core and need no assumption at all. And in a new system
-the order of generation flips: choose the masters first, then draw each change key
-from the keys that avoid the neighbours of its masters' cuts, which leaves eight
-or nine of the ten depths at each position instead of the five that parity leaves.
+the building this tool was originally built for there are no original records: the
+unit keys follow what was possible, and nobody can say they follow a parity
+pattern. So parity cannot be the assumption that completes the check here. The
+retired keys can, as the next section describes. Where every key under a master is
+known, the tools check the gap rule per core and need no assumption at all. And in
+a new system the order of generation flips: choose the masters first, then draw
+each change key from the keys that avoid the neighbours of its masters' cuts,
+which leaves eight or nine of the ten depths at each position instead of the five
+that parity leaves.
 
 ## What the retired keys tell us
 
