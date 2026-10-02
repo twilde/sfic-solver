@@ -49,6 +49,12 @@ floor is 3.11 (see D15); CI runs 3.11-3.14. The original floor was 3.9, so the
 code still has some older idioms (such as `typing.Optional`) that could be
 modernised in a refactor pass.
 
+One exception, for one feature: reading scanned charts (D38) needs an image library
+and a recogniser, so it has an optional `scan` extra and an optional Tesseract
+program. Nothing else imports them, and every other tool still needs none; the terms
+are in [docs/designs/chart-scanning.md](designs/chart-scanning.md), "An exception to
+D2, and its limits".
+
 ## D3. Pin count is one patchable module constant (superseded by D21)
 
 `model.PINS` (7) was read at call time by every function that depends on it, and
