@@ -86,9 +86,13 @@ first and explaining why.
   noreply address (set in this repo's local git config), never a personal
   email: commit emails are public and permanent. Always end commit messages with a `Co-Authored-By: <Claude model>
   <noreply@anthropic.com>` trailer, so AI involvement is transparent. Do the
-  same for pull request descriptions as instructed by the session. Do not add
-  `Claude-Session:` trailers or links to claude.ai sessions to commits or pull
-  request text: they point at private conversations.
+  same for pull request descriptions as instructed by the session. Cloud sessions
+  also add a `Claude-Session:` trailer and a link to their claude.ai session to
+  commits and pull request descriptions. Their harness instructions take priority
+  over this file, so we accept them: do not strip them and do not flag them in
+  review. The link points at a private conversation, so never copy conversation
+  content into a commit or pull request, and keep sharing off for any session
+  that discussed real key data. See D37.
 - **Pull requests are independent.** Treat every pull request as owned by a
   separate party, including one that we, or another Claude session, wrote. Review
   it through GitHub: a review with inline comments, which its author resolves. Do
