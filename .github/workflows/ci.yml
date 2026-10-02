@@ -52,3 +52,4 @@ jobs:
         run: |
           sfic-check-system tests/fixtures/clean.json
           sfic-gen-bittings OOEOEOE -n 3
+          sfic-scan-charts --help > /dev/null

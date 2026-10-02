@@ -38,6 +38,13 @@ def test_missing_packages_names_what_to_install(monkeypatch):
     assert scanning.missing_packages() == ["Pillow", "pypdfium2"]
 
 
+def test_a_package_that_cannot_be_looked_for_counts_as_missing(monkeypatch):
+    def broken(name, *args):
+        raise ImportError("a broken install")
+    monkeypatch.setattr(importlib.util, "find_spec", broken)
+    assert scanning.missing_packages() == ["Pillow", "numpy", "pypdfium2"]
+
+
 def test_require_names_packages_and_install_command(monkeypatch):
     monkeypatch.setattr(scanning, "missing_packages", lambda: ["numpy"])
     monkeypatch.setattr(scanning, "find_tesseract", lambda explicit=None: "/bin/true")

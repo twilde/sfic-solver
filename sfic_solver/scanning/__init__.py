@@ -41,9 +41,17 @@ class InputError(ScanError):
 
 
 def missing_packages():
-    """The names to install for the optional Python packages that are not there."""
-    return [name for module, name in PACKAGES.items()
-            if importlib.util.find_spec(module) is None]
+    """The names to install for the optional Python packages that are not there (or
+    that cannot even be looked for: a broken install counts as missing)."""
+    missing = []
+    for module, name in PACKAGES.items():
+        try:
+            found = importlib.util.find_spec(module)
+        except (ImportError, ValueError):
+            found = None
+        if found is None:
+            missing.append(name)
+    return missing
 
 
 def find_tesseract(explicit=None):
