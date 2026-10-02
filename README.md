@@ -54,6 +54,13 @@ but usually many more: any mix-and-match of their cuts. Those extra keys are
 **false keys**. Their number is computed exactly (dynamic programming over
 positions, trimming combinations that break MACS), not estimated.
 
+The names *change key* and *master* describe how a hierarchy is used, not how a
+core works. For any one core they are interchangeable: each is simply a key the
+core is pinned to accept, and the core's behavior depends only on those keys'
+cuts, never on which one is called the master. Two keys pinned into the same core
+are on an equal footing, and either may have the higher cut, the lower, or the
+same.
+
 **Cross-operation.** A known key that operates a core it was not meant to
 operate. This is the problem the checker exists to find. A common trap is a key
 that happens to be made of one key's cuts and a master's cuts.
@@ -258,7 +265,8 @@ two guards enforce it:
 - a CI job that fails if any other `.json` or `.csv` is tracked or appears
   anywhere in the history.
 
-Keep real files in a directory outside the repository.
+Keep real files in a directory outside the repository. A pinning chart counts as
+real key data in any format, because the pin sizes give the bittings away.
 
 Issues and pull requests are public too: never paste real bittings, real system
 files, or anything that identifies a real building. Reproduce problems with
@@ -278,7 +286,10 @@ flags them, and confirm the solver leaves known keys untouched and produces a
 system that passes the checker. Test fixtures use obviously fake bittings.
 
 To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md). Open items are in
-[TODO.md](TODO.md). To report a security problem, see [SECURITY.md](SECURITY.md).
+[TODO.md](TODO.md). Why things are built the way they are is in the decision
+log, [docs/design.md](docs/design.md), and the feature design documents it links
+to in [docs/designs/](docs/designs/). To report a security problem, see
+[SECURITY.md](SECURITY.md).
 
 ## License
 

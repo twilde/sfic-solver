@@ -1,7 +1,9 @@
 # CLAUDE.md
 
 Guidance for AI assistants (and humans) working in this repo. Read README.md
-for what the tools do and docs/design.md for why they are built the way they are.
+for what the tools do, docs/design.md for the decision log, and docs/designs/
+for the larger feature designs that explain why the tools are built the way they
+are.
 
 ## Project
 
@@ -22,6 +24,16 @@ Treat everything committed as if strangers will read it. The repo is public.
 - Never commit, and never ask the user to paste, real key data: real bittings,
   decoded unit keys, or anything identifying the building, residents, trustees
   or vendors. This applies to files, tests, docs, examples and commit messages.
+- Pinning charts are real key data too: the pin sizes in each chamber give the
+  bittings away. They follow every rule above, in any format, including a chart
+  re-typed or "anonymised" from a real one. Tests may only use charts that are
+  computed from fake bittings.
+- Facts about the real building's key history are covered too, even with no
+  names or bittings in them: whether it was rekeyed, what the old system looked
+  like, which records exist or are missing, what charts or software the
+  maintainer holds. Write design reasoning as general scenarios ("a building
+  rekeyed without original records"), never as facts about this one. This applies
+  to commit messages and pull request text as well as files.
 - Real system files live outside this repo. Do not go looking for them. If you
   find any `.json` or `.csv` other than `system.example.json` and files under
   `tests/fixtures/`, stop and ask before reading it.
@@ -46,9 +58,13 @@ first and explaining why.
   significant, make it its own commit, separate from the deeper work built on
   top of it, so each is easy to read.
 - **Ask questions.** If you are not sure what the user wants, ask.
-- **Write design decisions down** in `docs/design.md` (and do a deeper design
-  pass first when the change warrants one). Update it in the same commit as the
-  decision.
+- **Write design decisions down.** A small decision goes in the log,
+  `docs/design.md`, in the same commit as the decision. A larger feature (one
+  that changes what the tools model, will take several commits, or has open
+  questions) gets a narrative design document in `docs/designs/` first, written
+  as an essay (problem, model, alternatives, decision, plan, open questions) and
+  agreed with the user before any code, plus a short log entry pointing to it.
+  See D24.
 - **Commit and push when a piece of work is complete.** The user reviews on
   GitHub, not in the Claude interface, so push finished work. Do not push
   half-done work.
@@ -56,7 +72,9 @@ first and explaining why.
   noreply address (set in this repo's local git config), never a personal
   email: commit emails are public and permanent. Always end commit messages with a `Co-Authored-By: <Claude model>
   <noreply@anthropic.com>` trailer, so AI involvement is transparent. Do the
-  same for pull request descriptions as instructed by the session.
+  same for pull request descriptions as instructed by the session. Do not add
+  `Claude-Session:` trailers or links to claude.ai sessions to commits or pull
+  request text: they point at private conversations.
 - **Dependabot** opens a weekly pull request for GitHub Actions updates. Merge
   it only when CI is green.
 - **Keep docs current.** README limitations, file-format notes and TODO.md

@@ -6,9 +6,10 @@ while.
 
 ## The one hard rule: no real key data
 
-Never put real bittings, real system files, or anything that identifies a real
-building, its residents or its keys in an issue, pull request, test, example,
-comment or commit message. The project is public, and so is its history.
+Never put real bittings, real system files, real pinning charts (the pin sizes
+give the bittings away), or anything that identifies a real building, its
+residents or its keys in an issue, pull request, test, example, comment or
+commit message. The project is public, and so is its history.
 
 - Reproduce problems with `system.example.json` or invented values.
 - Test fixtures live in `tests/fixtures/`, use random or obviously fake
@@ -23,6 +24,12 @@ Open an issue first for anything bigger than a small fix, so we can agree on the
 approach. In particular, the solver's scoring weights, the counting algorithms
 and the output format are deliberately stable. Changes there need a stated
 reason and discussion first (see D6 in [docs/design.md](docs/design.md)).
+
+A larger feature, meaning one that changes what the tools model, needs several
+commits, or has open questions, starts with a short design document in
+`docs/designs/` that we agree on before any code is written. The existing ones
+show the style: an essay about the problem, the model, the alternatives and the
+plan, not a list of bullet points.
 
 ## Setup
 
@@ -45,8 +52,9 @@ pytest
 - **Keep the randomness defaults.** Anything that produces real keys uses
   `secrets` or `random.SystemRandom`; `--seed` exists only for reproducible
   tests.
-- **Update the docs in the same change:** the README (format, limitations) and
-  the decision log in `docs/design.md` when you make a design decision.
+- **Update the docs in the same change:** the README (format, limitations), the
+  decision log in `docs/design.md` when you make a design decision, and the
+  feature's design document in `docs/designs/` if it has one.
 - **Match the surrounding code**: naming, comment density and idiom.
 - **Markdown:** do not wrap a line so that it starts with `+`, `-` or a number
   and a period; it renders as a list. A test checks every Markdown file.

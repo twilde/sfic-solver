@@ -14,7 +14,7 @@ or invented values.
 - [ ] I have not included real bittings, real system files, or anything that identifies a real building.
 - [ ] One logical change (refactors are in their own commits).
 - [ ] Tests added or updated, and `pytest` passes. A bug fix has a regression test.
-- [ ] README and `docs/design.md` updated if behavior or a design decision changed.
+- [ ] README and the decision log in `docs/design.md` updated if behavior or a design decision changed (and the feature's document in `docs/designs/`, if it has one).
 - [ ] No new runtime dependencies; randomness defaults (`secrets`, `random.SystemRandom`) unchanged.
 
 ## Behavior changes and AI assistance
