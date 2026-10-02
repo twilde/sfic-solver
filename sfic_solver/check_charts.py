@@ -110,8 +110,12 @@ def main(argv=None):
         print("--details shows pin sizes: this is key data, do not share it.\n")
     for file_number, path in enumerate(files, 1):
         try:
-            parsed = charts.parse_charts(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError):
+            parsed = charts.parse_charts(path.read_text(encoding="utf-8-sig"))   # a BOM is fine
+        except UnicodeDecodeError:
+            print(f"file {file_number}: is not UTF-8 text (save it as UTF-8 or plain ASCII)")
+            n["unreadable"] += 1
+            continue
+        except OSError:
             print(f"file {file_number}: cannot be read")
             n["unreadable"] += 1
             continue

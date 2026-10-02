@@ -439,7 +439,9 @@ pins each chart's keys with the pinning system it names and compares every
 chamber with the chart, reporting each disagreement as one of four kinds: the
 pins differ, the pinner refuses the chamber, the master rows do not fill from the
 bottom, or a cut the system does not have. It takes files or directories of `.txt`
-files, or `SFIC_CHARTS` when given no path, and does nothing when it has neither.
+files (UTF-8, with or without the byte order mark that Windows tools write; any
+other encoding is reported as such), or `SFIC_CHARTS` when given no path, and does
+nothing when it has neither.
 The report holds counts and positions (file, chart and chamber, numbered in the
 order given) and no key, core or building name, bitting or pin size, so it is safe
 to quote in an issue, and a test checks that on a deliberately wrong chart.

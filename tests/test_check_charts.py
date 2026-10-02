@@ -144,6 +144,21 @@ def test_an_unknown_pinning_system_is_reported(tmp_path, capsys):
     assert "OK" not in out
 
 
+def test_a_utf8_byte_order_mark_is_fine(tmp_path, capsys):
+    path = tmp_path / "c.txt"
+    path.write_bytes(b"\xef\xbb\xbf" + LEGACY.read_bytes())          # as Windows tools write it
+    assert main([str(path)]) == 0
+    assert "Checked 1 file(s), 3 chart(s)" in capsys.readouterr().out
+
+
+def test_a_file_in_another_encoding_says_it_is_not_utf8(tmp_path, capsys):
+    path = tmp_path / "c.txt"
+    path.write_bytes(LEGACY.read_bytes().replace(b"Control Key", b"Contr\xf4l Key", 1))
+    assert main([str(path)]) == 1
+    out = capsys.readouterr().out
+    assert "file 1: is not UTF-8 text" in out and "1 file(s) could not be read" in out
+
+
 @pytest.mark.parametrize("digit", ["\u00b2", "\u0663"])
 def test_a_non_ascii_digit_is_an_unreadable_chart_not_a_traceback(tmp_path, capsys, digit):
     path = tmp_path / "c.txt"

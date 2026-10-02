@@ -72,7 +72,7 @@ def split_charts(text):
     Charts are separated by lines of dashes. A first line starting FAKE marks a
     test fixture and is skipped.
     """
-    lines = text.splitlines()
+    lines = text.removeprefix("\ufeff").splitlines()      # a byte order mark is not content
     first = 1
     if lines and lines[0].strip().startswith(FAKE_MARKER):
         lines, first = lines[1:], 2

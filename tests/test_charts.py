@@ -60,6 +60,11 @@ def test_charts_are_separated_by_dashes_and_the_fake_line_is_skipped():
     assert parse_charts("") == [] and parse_charts("FAKE only\n") == []
 
 
+def test_a_byte_order_mark_is_ignored():
+    parsed = parse_charts("\ufeff" + chart(LEGACY_HEADER))
+    assert [len(c.keys) for c in parsed] == [3] and parsed[0].system == "A2"
+
+
 def test_labels_ignore_case_and_spacing():
     shouty = (LEGACY_HEADER.replace("System", "SYSTEM").replace("Control Key", "control key")
               .replace("Change Keys =", "  change keys   =   "))
