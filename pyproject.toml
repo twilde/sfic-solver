@@ -14,16 +14,19 @@ dependencies = []          # standard library only
 
 [project.optional-dependencies]
 test = ["pytest"]
+# Optional, for reading scanned charts only; the core tools need none of it (D2, D38).
+scan = ["Pillow", "numpy", "pypdfium2"]
 
 [project.scripts]
 sfic-gen-bittings = "sfic_solver.gen_bittings:main"
 sfic-check-bittings = "sfic_solver.check_bittings:main"
 sfic-check-system = "sfic_solver.check_system:main"
 sfic-solve-system = "sfic_solver.solve_system:main"
+sfic-scan-charts = "sfic_solver.scan_charts:main"
 sfic-check-charts = "sfic_solver.check_charts:main"
 
 [tool.setuptools]
-packages = ["sfic_solver"]
+packages = ["sfic_solver", "sfic_solver.scanning"]
 
 [tool.setuptools.dynamic]
 version = {attr = "sfic_solver.__version__"}

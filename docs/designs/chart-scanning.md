@@ -527,6 +527,61 @@ and purity below which a group is flagged, begin at values that flag too much
 rather than too little, and are relaxed only as far as the harness shows that no
 wrong chart is ever accepted. The values themselves are settled while building.
 
+## What building the tool changed
+
+Writing the tool showed that a few of the details above were wrong, and the code
+does what this section says where it differs from them.
+
+Margin ink is removed by size, then placed by position. The first design cut the page
+to the block of print by gaps, and then by looking only at rows dense enough to be
+print; neither survives a real page. A row label's field is as wide as an ordinary
+left margin, so no gap separates a note from the label that follows it, and a row
+with little ink (dashes, or digits whose middle is nearly empty) falls under a
+threshold set by the busiest row, so lines split or vanish. A pen stroke is, though,
+one connected blob far larger than a character. So any connected component much
+taller or wider than the typical one is removed first, found on run lengths with no
+extra dependency and reported as outside the printed block; whatever it touches goes
+with it, so a stroke across the print costs the cells it covers, and the chart is
+flagged for them. Small marks that remain are placed by position: printed lines are
+flush left, so a token entirely left of that edge is outside, and on the right a gap
+wider than any gap inside a printed line starts the margin. Removed ink is painted
+out of what Tesseract is given.
+
+The last character of a row is the weak one. Tesseract misreads the final character
+of a line (a final `3` as `8`, a final `0` as `9` or nothing) in most renditions at
+once and whatever the padding, so the readings of a row agreed on the wrong digit and
+the dissent check flagged a third of clean charts. Each rendition is therefore read
+twice, as the row stands and with a copy of the row's first digit token pasted after
+it (its characters dropped again); the two fail in different places and all the
+usable readings vote. That doubles the Tesseract calls: in the tests a chart takes
+about six seconds on four cores, not the two to three the prototype took.
+
+A line that is not recognised is judged by where it sits. A line that is neither a
+header line nor a row is "ignored" and reported, but it must never be how a chart
+disappears, and a rule that any ignored line fails the run would fail every page with
+a title or a page number. So position decides. An ignored line *inside* a chart's
+lines (between its first and last recognised line) is something printed in the chart
+that was not read, such as a dropped row, and the chart goes to review. Recognised
+lines above the first System line of a page are a chart whose System line was not
+recognised, and they are a chart of their own, in review, with no System line, and
+not nothing. A title above a chart or a page number below it is outside every chart
+and only reported. A System line that is missed between two charts makes the second
+chart's header lines follow the first chart's rows, which the structure check refuses,
+so the first chart goes to review as well.
+
+The equals sign is found by structure and not by look. Fonts draw it as two bars, a
+wider pair, or a single bar that blurs flat, so it is a single flat glyph narrower
+than a `--` cell, after one or two label words and before a value.
+
+The shape groups are used as designed, with the thresholds strict: a group needs at
+least three marks and nine votes in ten for its label, and the four checks on groups
+(too small, impure, duplicate label, dissent) each have tests with simulated
+readings. What the groups and the thresholds do across image quality is for the
+harness (step 4) to measure; the end-to-end tests here only show that clean pages are
+accepted as drawn, that a missing cell, a changed digit, a blank page, a page without
+a chart and margin strokes each end up where the design says, and that nothing
+accepted ever differs from the chart that was drawn.
+
 ## What cannot be known yet
 
 How closely the real printouts match the assumptions here can only be learned by

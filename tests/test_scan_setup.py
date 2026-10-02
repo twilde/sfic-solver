@@ -1,0 +1,169 @@
+"""The scanner's optional dependencies: what happens without them (D2, D38).
+
+These tests need none of the scan extra, because they are about its absence.
+"""
+import importlib
+import importlib.util
+import pkgutil
+import subprocess
+import sys
+import textwrap
+
+import pytest
+
+import sfic_solver
+from sfic_solver import scanning
+
+BLOCKER = textwrap.dedent('''
+    import importlib.abc, sys
+
+    class Block(importlib.abc.MetaPathFinder):
+        def find_spec(self, name, path=None, target=None):
+            if name.split(".")[0] in {"PIL", "numpy", "pypdfium2"}:
+                raise ImportError(f"{name} is blocked for this test")
+
+    sys.meta_path.insert(0, Block())
+''')
+
+
+def run_blocked(code):
+    return subprocess.run([sys.executable, "-c", BLOCKER + textwrap.dedent(code)],
+                          capture_output=True, text=True)
+
+
+def test_missing_packages_names_what_to_install(monkeypatch):
+    real = importlib.util.find_spec
+    monkeypatch.setattr(importlib.util, "find_spec",
+                        lambda name, *a: None if name in ("PIL", "pypdfium2") else real(name, *a))
+    assert scanning.missing_packages() == ["Pillow", "pypdfium2"]
+
+
+def test_a_package_that_cannot_be_looked_for_counts_as_missing(monkeypatch):
+    def broken(name, *args):
+        raise ImportError("a broken install")
+    monkeypatch.setattr(importlib.util, "find_spec", broken)
+    assert scanning.missing_packages() == ["Pillow", "numpy", "pypdfium2"]
+
+
+def test_require_names_packages_and_install_command(monkeypatch):
+    monkeypatch.setattr(scanning, "missing_packages", lambda: ["numpy"])
+    monkeypatch.setattr(scanning, "find_tesseract", lambda explicit=None: "/bin/true")
+    with pytest.raises(scanning.MissingDependency) as err:
+        scanning.require()
+    assert "numpy" in str(err.value)
+    assert scanning.INSTALL_HINT in str(err.value)
+
+
+def test_require_reports_everything_missing_at_once(monkeypatch):
+    monkeypatch.setattr(scanning, "missing_packages", lambda: ["Pillow"])
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.delenv(scanning.TESSERACT_ENV, raising=False)
+    with pytest.raises(scanning.MissingDependency) as err:
+        scanning.require()
+    message = str(err.value)
+    assert "Pillow" in message and "Tesseract" in message
+    assert "brew install tesseract" in message
+
+
+def test_tesseract_is_found_on_the_path_or_where_told(monkeypatch, tmp_path):
+    fake = tmp_path / "fake-tesseract"
+    fake.write_text("#!/bin/sh\necho 'tesseract 9.9.9'\n")
+    fake.chmod(0o755)
+    monkeypatch.delenv(scanning.TESSERACT_ENV, raising=False)
+    assert scanning.find_tesseract(str(fake)) == str(fake)
+    monkeypatch.setenv(scanning.TESSERACT_ENV, str(fake))
+    assert scanning.find_tesseract() == str(fake)
+    assert scanning.tesseract_version(str(fake)) == "tesseract 9.9.9"
+
+
+def test_a_tesseract_path_that_does_not_exist_is_refused(monkeypatch, tmp_path):
+    monkeypatch.delenv(scanning.TESSERACT_ENV, raising=False)
+    with pytest.raises(scanning.MissingDependency, match="was not found"):
+        scanning.find_tesseract(str(tmp_path / "nope"))
+
+
+def test_version_of_a_program_that_cannot_run_is_empty(tmp_path):
+    assert scanning.tesseract_version(str(tmp_path / "nope")) == ""
+
+
+def test_the_scanning_package_imports_without_the_packages():
+    run = run_blocked('''
+        import sfic_solver.scanning, sfic_solver.scanning.pages
+        print("imported")
+    ''')
+    assert run.returncode == 0, run.stderr
+    assert "imported" in run.stdout
+
+
+def core_modules():
+    names = [info.name for info in pkgutil.iter_modules(sfic_solver.__path__, "sfic_solver.")
+             if not info.name.startswith("sfic_solver.scanning")
+             and not info.name.endswith("scan_charts")]
+    assert "sfic_solver.check_system" in names
+    return names
+
+
+@pytest.mark.parametrize("module", core_modules())
+def test_every_core_module_imports_with_the_scan_packages_blocked(module):
+    run = run_blocked(f'''
+        import importlib
+        importlib.import_module({module!r})
+        print("imported")
+    ''')
+    assert run.returncode == 0, run.stderr
+    assert "imported" in run.stdout
+
+
+def test_reading_pages_without_the_packages_says_so(monkeypatch):
+    from sfic_solver.scanning import pages
+    monkeypatch.setattr(pages, "missing_packages", lambda: ["Pillow"])
+    with pytest.raises(scanning.MissingDependency):
+        list(pages.iter_pages([]))
+
+
+def test_a_named_test_font_is_never_a_stand_in_for_another():
+    # Review: on a Mac the tests named "liberation" and "dejavu" silently drew with
+    # Courier New and Menlo, so a failure there could not be told from a failure with
+    # the font the test names. Each name now means its own font, or is skipped.
+    from scan_helpers import FONT_CANDIDATES, default_font, font_path
+    expected = {"liberation": "Liberation", "dejavu": "DejaVu", "freemono": "FreeMono",
+                "courier": "Courier", "menlo": "Menlo"}
+    assert set(FONT_CANDIDATES) == set(expected)
+    for name, word in expected.items():
+        for candidate in FONT_CANDIDATES[name]:
+            assert word in candidate, (name, candidate)
+        found = font_path(name)
+        assert found is None or word in found
+    assert default_font() is None or font_path(default_font())
+
+
+def test_the_ocr_tests_never_draw_with_a_thin_comma_font_when_a_good_one_is_here():
+    # Review: on a Mac with only Courier New and Menlo the OCR tests failed. They now
+    # skip there. Where any good font exists it is the default, so they run.
+    from scan_helpers import DEFAULT_FONTS, OCR_FONTS, default_font, font_path, ocr_font_here
+    assert set(OCR_FONTS) < set(DEFAULT_FONTS)
+    assert DEFAULT_FONTS[:len(OCR_FONTS)] == OCR_FONTS          # good fonts come first
+    if any(font_path(name) for name in OCR_FONTS):
+        assert default_font() in OCR_FONTS and ocr_font_here()
+    else:
+        assert not ocr_font_here()
+
+
+def test_the_font_requirements_are_written_down_and_match_ci():
+    # The same fact is in the test helpers, CONTRIBUTING.md and the CI workflow.
+    import re
+    from conftest import ROOT
+    from scan_helpers import OCR_FONTS
+    words = {"liberation": "Liberation Mono", "dejavu": "DejaVu Sans Mono", "freemono": "FreeMono"}
+    assert set(OCR_FONTS) == set(words)
+    contributing = (ROOT / "CONTRIBUTING.md").read_text()
+    for name in OCR_FONTS:
+        assert words[name] in contributing
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    packages = re.search(r"apt-get install -y ([^\n]+)", ci).group(1).split()
+    assert "tesseract-ocr" in packages
+    for package in packages:
+        if package.startswith("fonts-"):
+            assert package in contributing
+    assert "Tesseract" in (ROOT / "README.md").read_text()
+    assert "scanning-tests-optional" in (ROOT / "README.md").read_text()
