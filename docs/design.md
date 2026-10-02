@@ -624,3 +624,44 @@ feature alone. The maintainer approved this at the outset, and accepting the des
 document accepts it. The document states the terms; when the tool lands, D2 gets a
 line pointing at them, and the README and CLAUDE.md say it where they now say
 "standard library only".
+
+## D39. How reviews close, and how a merge is checked
+
+Reviews here are done through GitHub by a session or a person other than the
+author, and the author is often another session, so how a review ends has to be
+written down. The case that showed it was a pull request merged while two review
+notes had no reply and nothing tracked them: one was an extension list that had
+been missing formats, the other a rule that was being broken in its own
+description. The notes sat on a closed pull request where they were easy to lose,
+and the project had filed no issues at all.
+
+So each inline comment starts with a label, Should fix or Optional, and the summary
+says whether anything blocks (GitHub does not let an author approve or request
+changes on their own pull request, so the verdict has to be in the text). The author
+answers every thread with a disposition: fixed in a commit, tracked in an issue or a
+named pull request, or declined with a reason. A pull request merges when no
+Should-fix thread is open and every Optional one has a disposition. If the
+maintainer says to merge now, the merge goes ahead and the leftovers are filed as an
+issue straight away. This is the maintainer's own habit of merging only when
+nothing is open, made precise enough for a review that has optional notes. GitHub's
+"require conversation resolution" setting was not used: it blocks a deliberate merge
+as well, and the dispositions do the same job without that.
+
+A merge is checked at both ends. Before it, the head on GitHub must be the one that
+was reviewed, CI green, and the pull request tested merged into current `main`,
+since that is what lands. The merge is pinned to the reviewed head
+(`--match-head-commit`), so nothing pushed afterwards can slip in. After it, `main`
+is updated and the first-parent log, the preservation of the original commits and
+the test suite are checked, which is also how a wrong merge subject was noticed
+(D33).
+
+Four smaller agreements came out of the same stretch. Log entries were numbered
+over the top of each other three times by pull requests open at once, so the next
+free number is taken after looking at the open branches, and whichever merges second
+rebases. A refactor that claims to change no behavior shows it by comparing the
+output of the commands before and after, seeded runs included, which is what the
+key-space refactor did. A fact written in several files gets a test that keeps them
+in step (the minimum Python, the setup commands, the license and the list of refused
+extensions each did), because a list in prose is where the original gaps were. And
+reproductions in a review use obviously fake names, because a placeholder invented
+for a review was copied into a test and read like a real building.

@@ -17,6 +17,10 @@ git config core.hooksPath .githooks
 pytest
 ```
 
+In a session, pytest is usually not installed globally: make a venv in the
+scratchpad (`python3 -m venv $SCRATCH/venv && $SCRATCH/venv/bin/pip install -e
+".[test]"`) and use its `pytest`.
+
 ## Privacy (hard rules)
 
 Treat everything committed as if strangers will read it. The repo is public.
@@ -65,7 +69,9 @@ first and explaining why.
 - **Refactor freely, separately.** We do periodic refactor passes, and you
   should suggest or make refactors when you see duplication. If a refactor is
   significant, make it its own commit, separate from the deeper work built on
-  top of it, so each is easy to read.
+  top of it, so each is easy to read. A refactor that claims to change no
+  behavior shows it: capture the output of the commands before (seeded runs
+  included) and compare it after.
 - **Ask questions.** If you are not sure what the user wants, ask.
 - **Write design decisions down.** A small decision goes in the log,
   `docs/design.md`, in the same commit as the decision. A larger feature (one
@@ -73,7 +79,9 @@ first and explaining why.
   questions) gets a narrative design document in `docs/designs/` first, written
   as an essay (problem, model, alternatives, decision, plan, open questions) and
   agreed with the user before any code, plus a short log entry pointing to it.
-  See D24.
+  Before numbering a log entry, look at the open pull request branches
+  (`git show origin/BRANCH:docs/design.md | grep '^## D'`) and take the next free
+  number; whichever merges second rebases. See D24.
 - **Commit and push when a piece of work is complete.** The user reviews on
   GitHub, not in the Claude interface, so push finished work. Do not push
   half-done work.
@@ -109,6 +117,20 @@ first and explaining why.
   or build a competing copy of its work. Reading it, checking it out in a scratch
   worktree and running its tests are fine. If you think the branch itself needs
   changing, ask the user first. Merge only when the user says to.
+- **Reviews.** Start each inline comment with a label, **Should fix** or
+  **Optional**, and say in the summary whether anything blocks. The author gives
+  every thread a disposition: fixed in a commit, tracked (an issue or a named
+  pull request), or declined with a reason. Merge when no Should-fix thread is
+  open and every Optional one has a disposition. If the user says to merge now,
+  merge, then file an issue listing the threads still open and tell the user. In
+  reproductions and examples use obviously fake names and values (`NOT A REAL
+  SYSTEM 4B`), because authors copy them into tests. See D39.
+- **Merge procedure.** Before merging, check that the head on GitHub is the one
+  that was reviewed and that CI is green, and test the pull request merged into
+  current `main`. Pin the merge to the reviewed head
+  (`gh pr merge --match-head-commit <sha>`). Afterwards update `main`, check the
+  first-parent log, that a merged pull request's original commits are still on
+  `main`, and run the suite. See D39.
 - **Merging.** The user chooses the method when they say to merge. The default is
   a merge commit; squash an iterative pull request, with a hand-written message;
   rebase merge a focused pull request whose commits each stand alone, only when
@@ -127,4 +149,6 @@ first and explaining why.
 - **Dependabot** opens a weekly pull request for GitHub Actions updates. Merge
   it only when CI is green.
 - **Keep docs current.** README limitations, file-format notes and TODO.md
-  change in the same commit as the behavior they describe.
+  change in the same commit as the behavior they describe. When one fact is
+  written in several files (a version, a list of extensions, the setup
+  commands), add a test that keeps them in step.
