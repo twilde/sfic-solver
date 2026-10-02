@@ -569,8 +569,8 @@ cloud service", that was a design decision and not a note about the guard, and i
 belongs in the log. A scan of a chart is the chart: the pin sizes can be read off
 it, so any service that receives the image receives the key data, and what is
 sent to an outside service may be kept, cached or indexed even if it is later
-deleted. A cloud OCR service would be the more accurate by default and is ruled out
-for exactly that reason. The alternatives are a local engine (Tesseract, run as a
+deleted. A cloud OCR service is typically more accurate, but it would receive the
+whole chart, and that alone rules it out. The alternatives are a local engine (Tesseract, run as a
 subprocess, is the candidate) and transcription by hand, which stays the fallback
 for whatever a local engine cannot read with confidence. The same rule covers
 debugging: a tool that reads scans reports positions only, and nobody is asked to
