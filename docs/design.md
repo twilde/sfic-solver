@@ -528,3 +528,20 @@ explain, but it gives up the per-commit history of a squashed pull request and
 makes every stack costly, so it was not chosen. Disabling rebase merge was also
 rejected, since the maintainer likes its clean history and wants the option.
 History already on `main` mixes the methods and is not rewritten.
+
+## D34. Direct commits, or a pull request
+
+Most work here is committed straight to `main`, and some of it goes through a
+pull request. The choice follows what the reviewer has already seen, not the
+size of the change. A direct commit is for a change whose exact wording or intent
+the maintainer has given, or that is small and low risk: a documentation fix, a
+TODO update, a mechanical edit. A pull request is for new policy or design
+wording the maintainer has not seen yet, for code or behavior that should pass CI
+before it lands, for files another session is editing (so that its author sees
+the conflict coming and resolves it on rebase), and whenever the maintainer asks
+for one. Because the maintainer reviews on GitHub, a draft pull request is also
+the place to put a draft for review. Whichever route is taken, the session says
+which and why in one line, so the choice is never a surprise. Alternatives
+considered: always committing directly (no place to review new wording, and no
+warning to a session editing the same files) and always opening a pull request
+(a review step for edits whose wording is already agreed).

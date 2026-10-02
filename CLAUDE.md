@@ -75,6 +75,13 @@ first and explaining why.
 - **Commit and push when a piece of work is complete.** The user reviews on
   GitHub, not in the Claude interface, so push finished work. Do not push
   half-done work.
+- **Direct commit or pull request.** Commit straight to `main` when the user has
+  given the exact wording or intent, or the change is small and low risk
+  (documentation fixes, TODO updates, mechanical edits). Open a pull request for
+  new policy or design wording the user has not seen, for code or behavior that
+  should pass CI before it lands, for files another session is editing, and
+  whenever the user asks. Say which route you are taking, and why, in one line.
+  See D34.
 - **Commit identity and attribution.** Commit as the user, using their GitHub
   noreply address (set in this repo's local git config), never a personal
   email: commit emails are public and permanent. Always end commit messages with a `Co-Authored-By: <Claude model>
