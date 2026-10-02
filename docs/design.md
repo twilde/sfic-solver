@@ -355,3 +355,24 @@ that would fall outside the stack) so that a mistyped future entry fails when it
 is defined and not when a chart looks wrong. The record is data, not logic: the
 pinner reads these numbers and nothing is hard-coded to A2.
 
+## D28. The pinner: one pin per gap, and refusals that name the chamber
+
+`pinning.pin_core` takes a pinning system, the bittings of every key that operates
+a core and the core's control bitting, and returns one `Chamber` per position (a
+bottom pin, the master pins lowest first, a control pin and a driver), all in pin
+numbers. The rules are the ones in the design document and read from the system
+record: each distinct operating cut is a boundary, a gap between two boundaries
+is a single pin, keys sharing a cut share a boundary, the control boundary sits
+the control offset above the control cut, and the driver makes up the stack
+total. The operating keys are an unordered set; the pinner does not know which is
+the master. A chamber that cannot be built raises `PinningError`, which carries
+the chamber number and a reason in plain words ("operating cuts 4 and 5 are 1
+apart, so the pin between them would be 1, outside 2 to 19"), and bad input (a
+cut out of range, keys of different lengths) is a `ValueError`, so a caller can
+tell "this system cannot be built" from "this call is wrong". Pin sizes are
+checked against each family's range rather than reduced to the gap rule, so a
+system with different ranges needs no change here. The tests check the pinner
+against the design's gap rule written out separately, exhaustively for one
+chamber, against the Locksmith Ledger's worked example, and against the example
+charts in the design document.
+
