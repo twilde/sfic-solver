@@ -101,7 +101,9 @@ first and explaining why.
   rebase merge a focused pull request whose commits each stand alone, only when
   nothing is stacked on it. A pull request with another stacked on it is merged
   with a merge commit and nothing else. Write pull request titles as changelog
-  lines. See D33.
+  lines, and give a merge commit that title plus `(#N)` as its subject
+  (`gh pr merge --subject`), since GitHub's default subject names the branch.
+  See D33.
 - **Stacked pull requests** are allowed but not preferred, and one level deep:
   the upper one is a draft, says "Stacked on #N" and keeps that true. Never
   force-push a branch that has a pull request stacked on it; fix review findings

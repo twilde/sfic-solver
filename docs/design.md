@@ -504,7 +504,11 @@ stays available, for a focused pull request whose commits each stand alone, when
 nothing is stacked on it, no other branch is built on its commits and a straight
 line is wanted; it rewrites commit ids, so references to the branch's commits
 stop matching `main`. The maintainer chooses at merge time. A pull request's
-title is its line in the history, so it should read as a changelog entry.
+title is its line in the history, so it should read as a changelog entry. For
+that to be true of a merge commit, its subject is set to the title followed by the
+pull request number (`gh pr merge --subject`), because GitHub's default subject
+names the branch ("Merge pull request #6 from twilde/docs/merge-conventions") and
+leaves the title in the body.
 
 Stacking is allowed but not preferred. If the follow-up can wait for the base to
 merge, it waits. Otherwise the stack is one level deep: the upper pull request's
@@ -527,7 +531,8 @@ only, with merge commits disallowed in the repository settings) is simpler to
 explain, but it gives up the per-commit history of a squashed pull request and
 makes every stack costly, so it was not chosen. Disabling rebase merge was also
 rejected, since the maintainer likes its clean history and wants the option.
-History already on `main` mixes the methods and is not rewritten.
+History already on `main` mixes the methods and is not rewritten; the merge
+commits of #4, #5 and #6 keep GitHub's default subjects.
 
 ## D34. Direct commits, or a pull request
 
