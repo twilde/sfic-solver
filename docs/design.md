@@ -376,3 +376,22 @@ against the design's gap rule written out separately, exhaustively for one
 chamber, against the Locksmith Ledger's worked example, and against the example
 charts in the design document.
 
+## D29. The simulated lock models the physics, not the answer
+
+`lock.Lock` is a pin stack per chamber and nothing more: it knows no change keys,
+masters or control keys, and answers which shear lines a key lines up. Its
+geometry is the physical one, a deeper cut lifting the
+stack less (cut 0 the most, cut 9 the least), with the operating shear line at the
+height where bottom pin #n meets cut n and the control line a further control
+offset out, so "a boundary lines up when the pins below it total the cut number"
+comes out of the model and is not assumed by it. That is what makes it an
+independent check. It deliberately does not use the pinner's `Chamber.boundaries`
+or the key-level `operates`, and it ignores the adjacent-cut limit, which belongs
+to the keys and not to the lock. The tests compare it with the key-level counting
+for every key of random three-chamber cores, with the Ledger's example, and with
+the example charts in the design document, and show that splitting a gap into two
+pins creates a working key nobody intended. `joint_on_line` says which joint is on
+a shear line in a chamber, which is what explanations and a later visualizer need.
+It also shows the control cross-operation the checker will report: a key cut like
+a core's control bitting lines up the control line.
+
