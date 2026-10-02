@@ -75,6 +75,13 @@ first and explaining why.
 - **Commit and push when a piece of work is complete.** The user reviews on
   GitHub, not in the Claude interface, so push finished work. Do not push
   half-done work.
+- **Direct commit or pull request.** Commit straight to `main` when the user has
+  given the exact wording or intent, or the change is small and low risk
+  (documentation fixes, TODO updates, mechanical edits). Open a pull request for
+  new policy or design wording the user has not seen, for code or behavior that
+  should pass CI before it lands, for files another session is editing, and
+  whenever the user asks. Say which route you are taking, and why, in one line.
+  See D34.
 - **Commit identity and attribution.** Commit as the user, using their GitHub
   noreply address (set in this repo's local git config), never a personal
   email: commit emails are public and permanent. Always end commit messages with a `Co-Authored-By: <Claude model>
@@ -89,6 +96,19 @@ first and explaining why.
   or build a competing copy of its work. Reading it, checking it out in a scratch
   worktree and running its tests are fine. If you think the branch itself needs
   changing, ask the user first. Merge only when the user says to.
+- **Merging.** The user chooses the method when they say to merge. The default is
+  a merge commit; squash an iterative pull request, with a hand-written message;
+  rebase merge a focused pull request whose commits each stand alone, only when
+  nothing is stacked on it. A pull request with another stacked on it is merged
+  with a merge commit and nothing else. Write pull request titles as changelog
+  lines. See D33.
+- **Stacked pull requests** are allowed but not preferred, and one level deep:
+  the upper one is a draft, says "Stacked on #N" and keeps that true. Never
+  force-push a branch that has a pull request stacked on it; fix review findings
+  with new commits. After the base merges, the upper branch's author rebases it
+  onto `main` (`git rebase --onto origin/main <old tip of the base>` if the base
+  was squashed or rebase-merged), pushes with `--force-with-lease` and confirms
+  the pushed head on GitHub. See D33.
 - **Dependabot** opens a weekly pull request for GitHub Actions updates. Merge
   it only when CI is green.
 - **Keep docs current.** README limitations, file-format notes and TODO.md
