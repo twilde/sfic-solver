@@ -220,7 +220,7 @@ agreements from CONTRIBUTING.md (one logical change, tests, docs, no new
 dependencies, randomness defaults). It also prompts for behavior changes and AI
 assistance, since both are things the maintainer wants to see explicitly.
 
-## D21. Pin count is a parameter, not a module global
+## D21. Pin count is a parameter, not a module global (now part of KeySpace, D26)
 
 To let the pin count vary per system file, `model.PINS` is gone. Functions that
 cannot read the count off their arguments (`is_bitting`, `normalize_pattern`,
@@ -319,3 +319,24 @@ the legacy layout of older keying software (one master line and one
 comma-separated list of change keys), which the tools never write.
 Pinnability as a hard rule in the solver, and the new residual-risk population,
 are flagged there for agreement before they are built.
+
+## D26. The key-space rules are one object
+
+Step 1 of core pinning (see D25). The rules that decide which bittings can be cut
+travelled as loose arguments: after D21, five functions took some mix of
+`pattern`, `max_step` and `pins`, and each tool unpacked the config into locals
+and passed them along. Core pinning adds more rules (the cut depth count now, and
+a pinning system after that), and the loose arguments would only have multiplied.
+So `model.KeySpace`, a frozen dataclass of `pins`, `pattern`, `max_step` and
+`depths`, holds them, the functions that need them are its methods, and the
+derived values (the allowed cuts per pin, the count of valid bittings) are worked
+out once and cached. `Config.space` replaces `Config.pins`, `pattern` and
+`max_step`, and the tools read it from there.
+
+This changes no behavior. The depth count is new as a parameter, but it defaults
+to 10, the only value any file can use today. The output of all four tools,
+including seeded solver runs, was compared with the output from before the change
+and is identical. Two small tidy-ups came with it: `count_valid` was a second copy
+of `operating_set_size` fed with the allowed cuts, so it is now the same call, and
+a `KeySpace` refuses a pattern whose length is not the pin count, where the old
+functions would have silently compared the shorter of the two.

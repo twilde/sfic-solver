@@ -32,8 +32,7 @@ from functools import lru_cache
 
 from . import check_system, model
 from .config import load_or_exit
-from .model import (count_valid, distance, macs_ok, operates, operating_set_size,
-                    pair_conflict_probability, valid_digits)
+from .model import distance, operates
 
 HARD = 1_000_000.0
 CLOSE_WEIGHT = 1_000.0
@@ -46,14 +45,10 @@ def cached_options(change, masters):
 
 class Problem:
     def __init__(self, cfg):
-        self.pins = cfg.pins
-        self.pattern = cfg.pattern
-        self.max_step = cfg.max_step
+        self.space = cfg.space
         self.min_diff = cfg.min_diff
         self.unit_prefix = cfg.unit_prefix
         self.unit_count = cfg.unit_count
-        self.digits = valid_digits(self.pattern, self.pins)
-        self.total_valid = count_valid(self.pattern, self.max_step, self.pins)
 
         self.assign = {}
         self.unknown = []
@@ -70,16 +65,16 @@ class Problem:
     # -- candidate generation -------------------------------------------------
     def random_candidate(self, rng):
         while True:
-            cuts = tuple(rng.choice(self.digits[p]) for p in range(self.pins))
-            if macs_ok(cuts, self.max_step):
+            cuts = tuple(rng.choice(self.space.digits[p]) for p in range(self.space.pins))
+            if self.space.macs_ok(cuts):
                 return cuts
 
     def neighbors(self, cuts):
-        for p in range(self.pins):
-            for d in self.digits[p]:
+        for p in range(self.space.pins):
+            for d in self.space.digits[p]:
                 if d != cuts[p]:
                     cand = cuts[:p] + (d,) + cuts[p + 1:]
-                    if macs_ok(cand, self.max_step):
+                    if self.space.macs_ok(cand):
                         yield cand
 
     # -- scoring (only terms that depend on key k) -----------------------------
@@ -92,8 +87,7 @@ class Problem:
             return 0.0
         if core["is_unit"]:
             masters = [self.assign[m] for m in core["masters"]]
-            p = pair_conflict_probability(masters, self.pattern, self.max_step,
-                                           self.total_valid, self.pins)
+            p = self.space.pair_conflict_probability(masters)
             return (self.unit_count * (self.unit_count - 1) - decoded * (decoded - 1)) * p
         total = 0.0
         for ch in core["changes"]:
@@ -101,8 +95,8 @@ class Problem:
             if any(n not in self.assign for n in names):
                 continue
             opts = cached_options(self.assign[ch], tuple(self.assign[m] for m in core["masters"]))
-            size = operating_set_size(opts, self.max_step)
-            total += unknown * max(size - len(names), 0) / self.total_valid
+            size = self.space.operating_set_size(opts)
+            total += unknown * max(size - len(names), 0) / self.space.total_valid
         return total
 
     def score_key(self, k, cuts):
@@ -190,15 +184,12 @@ def unit_pair_summary(prob, rng, samples=300):
         unknown_masters = [m for m in core["masters"] if m in prob.unknown]
         if not unknown_masters:
             continue
-        chosen = pair_conflict_probability([prob.assign[m] for m in core["masters"]],
-                                           prob.pattern, prob.max_step, prob.total_valid,
-                                           prob.pins)
+        chosen = prob.space.pair_conflict_probability([prob.assign[m] for m in core["masters"]])
         total = 0.0
         for _ in range(samples):
             masters = [prob.random_candidate(rng) if m in unknown_masters else prob.assign[m]
                        for m in core["masters"]]
-            total += pair_conflict_probability(masters, prob.pattern, prob.max_step,
-                                               prob.total_valid, prob.pins)
+            total += prob.space.pair_conflict_probability(masters)
         typical = total / samples
         pairs = prob.unit_count * (prob.unit_count - 1)
         print(f"\nUnit-to-unit cross-operation by chance (all {prob.unit_count} units): "

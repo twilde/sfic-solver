@@ -76,7 +76,7 @@ def test_pattern_error_reports_length(clean_cfg, write_cfg):
 
 
 def test_lowercase_pattern_is_accepted(clean_cfg):
-    assert parse_config({**clean_cfg, "pattern": "eoeoeoe"}).pattern == "EOEOEOE"
+    assert parse_config({**clean_cfg, "pattern": "eoeoeoe"}).space.pattern == "EOEOEOE"
 
 
 @pytest.mark.parametrize("field, bad", [("max_step", 0), ("max_step", "5"), ("max_step", 2.5),

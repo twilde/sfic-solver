@@ -5,7 +5,7 @@ import secrets
 
 import pytest
 
-from sfic_solver import gen_bittings
+from sfic_solver import gen_bittings, model
 from conftest import call_main, run_script
 
 
@@ -26,7 +26,7 @@ def test_generate_always_satisfies_parity_and_macs():
     for _ in range(300):
         pattern = "".join(rng.choice("EO") for _ in range(7))
         max_step = rng.randint(3, 9)
-        cuts = gen_bittings.generate(pattern, max_step)
+        cuts = gen_bittings.generate(model.KeySpace(7, pattern, max_step))
         assert_valid("".join(map(str, cuts)), pattern, max_step)
 
 

@@ -29,23 +29,23 @@ def small_cfg():
 
 def test_pins_defaults_to_seven_without_pattern(clean_cfg):
     del clean_cfg["pattern"]
-    assert parse_config(clean_cfg).pins == 7
+    assert parse_config(clean_cfg).space.pins == 7
 
 
 def test_pins_is_taken_from_the_pattern(small_cfg):
     assert "pins" not in small_cfg
-    assert parse_config(small_cfg).pins == PINS
+    assert parse_config(small_cfg).space.pins == PINS
 
 
 def test_explicit_pins_without_pattern(small_cfg):
     del small_cfg["pattern"]
     small_cfg["pins"] = PINS
-    assert parse_config(small_cfg).pins == PINS
+    assert parse_config(small_cfg).space.pins == PINS
 
 
 def test_explicit_pins_agreeing_with_pattern(small_cfg):
     small_cfg["pins"] = PINS
-    assert parse_config(small_cfg).pins == PINS
+    assert parse_config(small_cfg).space.pins == PINS
 
 
 def test_pins_is_not_an_unknown_field(small_cfg):

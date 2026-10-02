@@ -16,11 +16,12 @@ import itertools
 from . import model
 
 
-def parse_item(text, pins):
+def parse_item(text, space):
     name, _, bitting = text.rpartition("=")
     name = name or bitting
-    if not model.is_bitting(bitting, pins):
-        raise ValueError(f"{text!r}: bitting must be {pins} digits (set --pins if that is wrong)")
+    if not space.is_bitting(bitting):
+        raise ValueError(f"{text!r}: bitting must be {space.pins} digits "
+                         f"(set --pins if that is wrong)")
     return name, [int(c) for c in bitting]
 
 
@@ -57,19 +58,20 @@ def main(argv=None):
     elif args.min_diff > pins:
         ap.error(f"--min-diff {args.min_diff} is more than the {pins} pins")
 
+    space = model.KeySpace(pins=pins, pattern=pattern, max_step=args.max_step)
     try:
-        keys = [parse_item(k, pins) for k in args.keys]
+        keys = [parse_item(k, space) for k in args.keys]
     except ValueError as err:
         ap.error(str(err))
 
     problems = 0
     for name, cuts in keys:
         if pattern:
-            bad = model.parity_bad(cuts, pattern)
+            bad = space.parity_bad(cuts)
             if bad:
                 print(f"PARITY  {name}: wrong parity at pin(s) {bad}")
                 problems += 1
-        big = model.macs_violations(cuts, args.max_step)
+        big = space.macs_violations(cuts)
         if big:
             print(f"MACS    {name}: adjacent cuts too far apart after pin(s) {big}")
             problems += 1

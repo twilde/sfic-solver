@@ -36,8 +36,7 @@ import itertools
 import sys
 
 from .config import load_or_exit
-from .model import (count_valid, distance, macs_ok, operates, operating_set_size,
-                    options_for, pair_conflict_probability, parity_bad)
+from .model import distance, operates, options_for
 
 
 def main(argv=None):
@@ -45,7 +44,7 @@ def main(argv=None):
     if len(argv) != 1:
         sys.exit(__doc__)
     cfg = load_or_exit(argv[0])
-    pattern, max_step, min_diff = cfg.pattern, cfg.max_step, cfg.min_diff
+    space, min_diff = cfg.space, cfg.min_diff
     unit_prefix = cfg.unit_prefix
     keys, retired, control = cfg.keys, cfg.retired_keys, cfg.control_keys
     everything = {**keys, **retired, **control}
@@ -54,12 +53,12 @@ def main(argv=None):
 
     print("== Key checks ==")
     for name, cuts in {**keys, **control}.items():     # retired keys are exempt
-        if pattern:
-            bad = parity_bad(cuts, pattern)
+        if space.pattern:
+            bad = space.parity_bad(cuts)
             if bad:
                 print(f"PARITY    {name}: wrong parity at pin(s) {bad}")
                 problems += 1
-        if not macs_ok(cuts, max_step):
+        if not space.macs_ok(cuts):
             print(f"MACS      {name}: adjacent cuts too far apart")
             problems += 1
     by_bitting = {}
@@ -85,14 +84,14 @@ def main(argv=None):
     if not close:
         print("none")
 
-    total_valid = count_valid(pattern, max_step, cfg.pins)
+    total_valid = space.total_valid
     print(f"\n== Core operating sets (valid bittings in the whole key space: {total_valid:,}) ==")
     group_p = {}
     for core in cores:
         sizes = []
         for ch in core["changes"]:
             opts = options_for(keys[ch], [keys[m] for m in core["masters"]])
-            sizes.append(operating_set_size(opts, max_step))
+            sizes.append(space.operating_set_size(opts))
         intended = 1 + len(core["masters"])
         mean = sum(sizes) / len(sizes)
         group_p[core["name"]] = max(mean - intended, 0) / total_valid
@@ -128,8 +127,7 @@ def main(argv=None):
             p = group_p[core["name"]]
             if core["is_unit"]:
                 pairs = unit_count * (unit_count - 1) - decoded * (decoded - 1)
-                p = pair_conflict_probability([keys[m] for m in core["masters"]],
-                                              pattern, max_step, total_valid, cfg.pins)
+                p = space.pair_conflict_probability([keys[m] for m in core["masters"]])
                 expected = pairs * p
                 print(f"{core['name']}: about {expected:.1f} unit-to-unit cross-operations expected "
                       f"by chance; re-check after decoding")

@@ -1,22 +1,23 @@
 """The counting maths for a master-keyed system. Pure functions, no I/O.
 
-A bitting is a tuple of cuts (0-9), one per pin. The number of pins is passed
-in where a function cannot read it off its arguments (`pins`), and otherwise
-read from the length of the bittings and option lists it is given.
+A bitting is a tuple of cuts (0-9), one per pin. The rules that decide which
+bittings can be cut (how many pins, how many depths, the adjacent-cut limit and
+the optional parity pattern) live together in a `KeySpace`; functions that need
+them are its methods, and the rest read what they need off their arguments.
 """
+from dataclasses import dataclass
+from functools import cached_property
+from typing import Optional
 
 DEFAULT_PINS = 7
+DEFAULT_DEPTHS = 10
+DEFAULT_MAX_STEP = 5
 DEFAULT_MIN_DIFF = 5
 
 
 def default_min_diff(pins):
     """The closeness default, capped so that it can be met at all (fewer than 5 pins)."""
     return min(DEFAULT_MIN_DIFF, pins)
-
-
-def is_bitting(text, pins):
-    """True if `text` is a string of exactly `pins` ASCII digits."""
-    return isinstance(text, str) and len(text) == pins and text.isascii() and text.isdigit()
 
 
 def normalize_pattern(text, pins):
@@ -27,41 +28,93 @@ def normalize_pattern(text, pins):
     return pattern
 
 
-def macs_violations(cuts, max_step):
-    """1-based pin numbers after which the next cut is more than max_step away."""
-    return [i + 1 for i, (a, b) in enumerate(zip(cuts, cuts[1:])) if abs(a - b) > max_step]
+@dataclass(frozen=True)
+class KeySpace:
+    """Which bittings can be cut: the rules every key in a system must follow.
 
+    pins       number of cut positions (the length of every bitting)
+    pattern    one E/O per pin (already normalised), or None for any parity
+    max_step   largest allowed difference between adjacent cuts (MACS)
+    depths     number of cut depths, 0 to depths - 1
+    """
+    pins: int = DEFAULT_PINS
+    pattern: Optional[str] = None
+    max_step: int = DEFAULT_MAX_STEP
+    depths: int = DEFAULT_DEPTHS
 
-def macs_ok(cuts, max_step):
-    return all(abs(a - b) <= max_step for a, b in zip(cuts, cuts[1:]))
+    def __post_init__(self):
+        if self.pattern is not None and len(self.pattern) != self.pins:
+            raise ValueError(f"pattern has {len(self.pattern)} characters "
+                             f"but the key space has {self.pins} pins")
 
+    def is_bitting(self, text):
+        """True if `text` is a string of exactly `pins` digits, each a legal depth."""
+        return (isinstance(text, str) and len(text) == self.pins and text.isascii()
+                and text.isdigit() and all(int(c) < self.depths for c in text))
 
-def parity_bad(cuts, pattern):
-    """1-based pin numbers whose cut has the wrong parity for the pattern."""
-    return [i + 1 for i, (c, p) in enumerate(zip(cuts, pattern))
-            if c % 2 != (0 if p == "E" else 1)]
+    @cached_property
+    def digits(self):
+        """Per pin, the cut depths allowed by the parity pattern (all depths if None)."""
+        return tuple(tuple(d for d in range(self.depths)
+                           if self.pattern is None
+                           or d % 2 == (0 if self.pattern[i] == "E" else 1))
+                     for i in range(self.pins))
+
+    def parity_bad(self, cuts):
+        """1-based pin numbers whose cut has the wrong parity for the pattern."""
+        return [i + 1 for i, (c, p) in enumerate(zip(cuts, self.pattern))
+                if c % 2 != (0 if p == "E" else 1)]
+
+    def macs_violations(self, cuts):
+        """1-based pin numbers after which the next cut is more than max_step away."""
+        return [i + 1 for i, (a, b) in enumerate(zip(cuts, cuts[1:]))
+                if abs(a - b) > self.max_step]
+
+    def macs_ok(self, cuts):
+        return all(abs(a - b) <= self.max_step for a, b in zip(cuts, cuts[1:]))
+
+    @cached_property
+    def total_valid(self):
+        """Number of bittings matching the parity pattern and adjacent-cut limit."""
+        return self.operating_set_size(self.digits)
+
+    def operating_set_size(self, options):
+        """Number of MACS-valid bittings built from the per-position option sets."""
+        ways = {d: 1 for d in options[0]}
+        for p in range(1, len(options)):
+            ways = {d: sum(w for pd, w in ways.items() if abs(d - pd) <= self.max_step)
+                    for d in options[p]}
+        return sum(ways.values())
+
+    def pair_conflict_probability(self, masters):
+        """Chance that a random valid key B operates the core of a random valid key A.
+
+        The core is pinned with A as change key and `masters` above it, so B works
+        when, at every position, its cut equals A's cut or a master's cut.
+        Exact (dynamic programming over positions), no sampling.
+        """
+        digits = self.digits
+
+        def allowed(p, a):
+            return {a, *(m[p] for m in masters)} & set(digits[p])
+
+        states = {(a, b): 1 for a in digits[0] for b in allowed(0, a)}
+        for p in range(1, self.pins):
+            new = {}
+            for (a0, b0), w in states.items():
+                for a in digits[p]:
+                    if abs(a - a0) > self.max_step:
+                        continue
+                    for b in allowed(p, a):
+                        if abs(b - b0) <= self.max_step:
+                            new[(a, b)] = new.get((a, b), 0) + w
+            states = new
+        return sum(states.values()) / self.total_valid ** 2
 
 
 def distance(a, b):
     """Number of pin positions at which two bittings differ."""
     return sum(x != y for x, y in zip(a, b))
-
-
-def valid_digits(pattern, pins):
-    """Per pin, the cut depths allowed by the parity pattern (all of 0-9 if None)."""
-    return [[d for d in range(10)
-             if pattern is None or d % 2 == (0 if pattern[i] == "E" else 1)]
-            for i in range(pins)]
-
-
-def count_valid(pattern, max_step, pins):
-    """Number of bittings matching the parity pattern and adjacent-cut limit."""
-    digits = valid_digits(pattern, pins)
-    ways = {d: 1 for d in digits[0]}
-    for i in range(1, pins):
-        ways = {d: sum(w for pd, w in ways.items() if abs(d - pd) <= max_step)
-                for d in digits[i]}
-    return sum(ways.values())
 
 
 def options_for(change, masters):
@@ -72,38 +125,3 @@ def options_for(change, masters):
 
 def operates(key, options):
     return all(key[p] in options[p] for p in range(len(options)))
-
-
-def operating_set_size(options, max_step):
-    """Number of MACS-valid bittings built from the per-position option sets."""
-    ways = {d: 1 for d in options[0]}
-    for p in range(1, len(options)):
-        ways = {d: sum(w for pd, w in ways.items() if abs(d - pd) <= max_step)
-                for d in options[p]}
-    return sum(ways.values())
-
-
-def pair_conflict_probability(masters, pattern, max_step, total_valid, pins):
-    """Chance that a random valid key B operates the core of a random valid key A.
-
-    The core is pinned with A as change key and `masters` above it, so B works
-    when, at every position, its cut equals A's cut or a master's cut.
-    Exact (dynamic programming over positions), no sampling.
-    """
-    digits = valid_digits(pattern, pins)
-
-    def allowed(p, a):
-        return {a, *(m[p] for m in masters)} & set(digits[p])
-
-    states = {(a, b): 1 for a in digits[0] for b in allowed(0, a)}
-    for p in range(1, pins):
-        new = {}
-        for (a0, b0), w in states.items():
-            for a in digits[p]:
-                if abs(a - a0) > max_step:
-                    continue
-                for b in allowed(p, a):
-                    if abs(b - b0) <= max_step:
-                        new[(a, b)] = new.get((a, b), 0) + w
-        states = new
-    return sum(states.values()) / total_valid ** 2
