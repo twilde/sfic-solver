@@ -665,3 +665,29 @@ in step (the minimum Python, the setup commands, the license and the list of ref
 extensions each did), because a list in prose is where the original gaps were. And
 reproductions in a review use obviously fake names, because a placeholder invented
 for a review was copied into a test and read like a real building.
+
+## D40. Reviews are done by a task the maintainer starts by hand
+
+The maintainer wanted one central session to review larger changes, so that every
+change gets a second pair of eyes (the same model, but a session that did not write
+the change), while keeping that session's checkout of `main` current for merging.
+That is a review agent: a trigger, a procedure, and limits on what it may do.
+
+The procedure is written down once, in docs/reviewing.md, so a local task and a
+cloud session read the same text, and CLAUDE.md keeps only the policy. The trigger
+is manual. A timer would start a session every few minutes to find nothing, which
+costs context and money, and the maintainer knows when they are working on a pull
+request; the review task is therefore started with "run now" and not on a schedule.
+It can be given a timer later without changing the procedure.
+
+It reviews only pull requests from the maintainer's own account, which includes
+those that cloud sessions open. A pull request from anyone else only produces a
+report, because reviewing it means checking it out and running its tests, and this
+repository is public. Dependabot keeps its own rule. The review itself never
+changes the pull request and never merges, but it does judge: each review opens
+with a verdict, Changes requested or Approved, and a re-review says which earlier
+requests are now met. Because the review comes from the same account as the pull
+request, GitHub's own buttons are unavailable and the verdict is in the text. Merging, and keeping the local `main`
+current, stay in the maintainer's central session, which follows the merge
+procedure from D39. The task needs no state of its own: a review records the head
+it covered, so "needs a review" means no review of ours at the current head.

@@ -124,7 +124,9 @@ first and explaining why.
   open and every Optional one has a disposition. If the user says to merge now,
   merge, then file an issue listing the threads still open and tell the user. In
   reproductions and examples use obviously fake names and values (`NOT A REAL
-  SYSTEM 4B`), because authors copy them into tests. See D39.
+  SYSTEM 4B`), because authors copy them into tests. The procedure, and the
+  review task the maintainer starts by hand, are in docs/reviewing.md. See D39,
+  D40.
 - **Merge procedure.** Before merging, check that the head on GitHub is the one
   that was reviewed and that CI is green, and test the pull request merged into
   current `main`. Pin the merge to the reviewed head
