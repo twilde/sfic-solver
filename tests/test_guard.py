@@ -171,6 +171,17 @@ def test_scan_extensions_are_tested_in_every_case_variant():
             assert probe.returncode == 0, name
 
 
+@pytest.mark.parametrize("doc", ["README.md", "CLAUDE.md", "CONTRIBUTING.md"])
+def test_docs_list_every_scan_extension(doc):
+    """The guard's list is written out in prose in several places; keep them in step.
+
+    D32 is a point-in-time log entry and is deliberately not checked.
+    """
+    text = (ROOT / doc).read_text()
+    missing = [ext for ext in guard.SCAN_EXTENSIONS if f"`{ext}`" not in text]
+    assert missing == [], f"{doc} does not list {missing} among the refused scan formats"
+
+
 def test_text_fixtures_are_marked_fake():
     for path in sorted(FIXTURES.rglob("*.txt")):
         first = path.read_text().splitlines()[0]
