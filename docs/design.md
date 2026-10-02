@@ -430,7 +430,9 @@ comma-separated list of change keys), several to a file when separated by lines
 of dashes, skipping the `FAKE` line of a test fixture. Its header labels sit in
 one table and match without regard to case, a chart that mixes the two layouts is
 refused, and every error says which chart and line and what kind of problem,
-never what was written there, because a chart is key data.
+never what was written there, because a chart is key data. Digits are ASCII only:
+`\d` and `str.isdigit` also accept characters such as `²`, which `int()` then
+rejects with a message that quotes them.
 
 `check_charts` (root script `check_charts.py`, installed as `sfic-check-charts`)
 pins each chart's keys with the pinning system it names and compares every

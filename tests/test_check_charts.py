@@ -144,6 +144,17 @@ def test_an_unknown_pinning_system_is_reported(tmp_path, capsys):
     assert "OK" not in out
 
 
+@pytest.mark.parametrize("digit", ["\u00b2", "\u0663"])
+def test_a_non_ascii_digit_is_an_unreadable_chart_not_a_traceback(tmp_path, capsys, digit):
+    path = tmp_path / "c.txt"
+    path.write_text(break_chart(LEGACY.read_text(), "T/D      4", f"T/D      {digit}"))
+    assert main([str(path)]) == 1
+    captured = capsys.readouterr()
+    assert "one number (or --) per chamber" in captured.out
+    assert digit not in captured.out + captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_a_pinning_system_named_like_a_building_is_not_echoed(tmp_path, capsys):
     path = tmp_path / "c.txt"
     path.write_text(break_chart(LEGACY.read_text(), "System = A2", "System = Maple Court 4B"))

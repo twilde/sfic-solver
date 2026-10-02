@@ -106,6 +106,18 @@ def test_unreadable_charts_are_refused_with_a_reason(text, reason):
         parse_charts(text)
 
 
+@pytest.mark.parametrize("digit", ["\u00b2", "\u0663", "\uff13"])    # ², ٣, full-width 3
+def test_only_ascii_digits_are_digits(digit):
+    """str.isdigit and \\d accept these; int() then raises with the character in its message."""
+    bad_header = TOOLS_HEADER.replace("5961634", f"596163{digit}")
+    bad_control = TOOLS_HEADER.replace("9743854", f"974385{digit}")
+    bad_cell = ROWS.replace("T/D      4", f"T/D      {digit}")
+    for text in (chart(bad_header), chart(bad_control), chart(TOOLS_HEADER, bad_cell)):
+        with pytest.raises(ChartError) as caught:
+            parse_charts(text)
+        assert digit not in str(caught.value)
+
+
 def test_errors_say_where_and_never_quote_the_chart():
     secret = "owner = 5555555\nnonsense about 7777777"
     with pytest.raises(ChartError) as caught:

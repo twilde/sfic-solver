@@ -25,6 +25,7 @@ RESERVED_LABELS = {KEY_SYSTEM, SYSTEM, CORE, DATE, CONTROL_KEY} | LEGACY_LABELS
 
 ROW_LABELS = ("t/d", "control", "master", "bottom")
 SEPARATOR = re.compile(r"^-{3,}\s*$")
+DIGITS = re.compile(r"[0-9]+")        # ASCII only: \d and str.isdigit() also take ² and ٣
 HEADER_LINE = re.compile(r"^(.+?)\s*=\s*(.*?)\s*$")
 FAKE_MARKER = "FAKE"
 
@@ -108,7 +109,7 @@ def parse_chart(start, lines, index):
             if label in fields:
                 raise ChartError("a header label is repeated", index, number)
             fields[label] = value
-        elif re.fullmatch(r"\d+", value):
+        elif DIGITS.fullmatch(value):
             keys.append((match.group(1).strip(), value))
         else:
             raise ChartError("a header line is neither a known label nor `name = bitting`",
@@ -132,7 +133,7 @@ def parse_chart(start, lines, index):
         raise ChartError("no operating keys in the header", index)
 
     control = fields[CONTROL_KEY]
-    if not all(re.fullmatch(r"\d+", bitting) and len(bitting) == len(control)
+    if not all(DIGITS.fullmatch(bitting) and len(bitting) == len(control)
                for bitting in [control, *[b for _, b in keys]]):
         raise ChartError("every key must be digits and as long as the control key", index)
 
@@ -142,7 +143,7 @@ def parse_chart(start, lines, index):
         if label.lower() not in ROW_LABELS:
             raise ChartError("a row does not start with T/D, Control, Master or Bottom",
                              index, number)
-        if len(cells) != len(control) or not all(c == "--" or c.isdigit() for c in cells):
+        if len(cells) != len(control) or not all(c == "--" or DIGITS.fullmatch(c) for c in cells):
             raise ChartError("a row does not have one number (or --) per chamber", index, number)
         rows.append((label.lower(), tuple(None if c == "--" else int(c) for c in cells)))
     order = [label for label, _ in rows]
