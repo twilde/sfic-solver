@@ -461,7 +461,7 @@ One pull request per step, each ready for review once CI is green.
 | 2 | This document and its log entry, agreed before any code | None |
 | 3 | The tool: `sfic-scan-charts` and `scan_charts.py`, in these commits: the `scan` extra and page loading (PDF and images) with the missing-dependency message and the pointer from D2 to the exception; cleaning, deskew, lines and tokens; the Tesseract wrapper and character-level reading; shape groups and voting; chart assembly, the checks and the writers; the command line | New command, optional dependencies |
 | 4 | The synthetic-image harness, and CI installing Tesseract and the extra | Tests only |
-| 5 | README ("scanning paper charts"), the log and TODO.md | Documentation |
+| 5 | README ("scanning paper charts", and its "dependency-free" wording with the one stated exception), CLAUDE.md's "standard library only" likewise, the pointer from D2, the log and TODO.md | Documentation |
 
 The package would hold the tool as `sfic_solver/scan_charts.py` with the command
 line, and the stages in a subpackage, `sfic_solver/scanning/`, so that the optional
@@ -471,6 +471,15 @@ helpers that render fake charts to images live with the tests.
 ## Decisions from review
 
 Review settled the questions that this document first left open.
+
+The exception to D2 is a decision, and it is the biggest one here: for this one
+feature the project stops being standard-library-only, with an optional `scan` extra
+(Pillow, numpy and pypdfium2) and Tesseract as a program found at run time. The
+maintainer approved the optional extra, the choice of pypdfium2 and the local
+Tesseract at the outset, and accepting this document accepts the exception, on the
+terms in "An exception to D2, and its limits". The README and CLAUDE.md say
+"standard library only" or "dependency-free" without qualification today, so when
+the tool lands they say it with this one stated exception.
 
 Pages carry handwritten notes in the margin, and charts are matched to cores by
 position: see "What the printouts look like" and "What the tool writes". No

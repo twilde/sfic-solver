@@ -620,5 +620,7 @@ and over PyMuPDF for its licence), and Tesseract an optional program found at ru
 time. This is an explicit exception to D2, bounded so that the core tools stay
 standard library only: nothing in the core imports the extra, a missing package or
 program gives a clear message and exit status 2, and the exception covers this
-feature alone. The design document states the terms; when the tool lands, D2 gets
-a line pointing at them.
+feature alone. The maintainer approved this at the outset, and accepting the design
+document accepts it. The document states the terms; when the tool lands, D2 gets a
+line pointing at them, and the README and CLAUDE.md say it where they now say
+"standard library only".
