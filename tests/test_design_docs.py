@@ -94,7 +94,7 @@ def test_core_pinning_example_charts_are_the_pins_for_their_keys():
 
 
 def test_core_pinning_legacy_example_chart_is_the_pins_for_its_keys():
-    """The old software's header: one master line and one comma-separated change keys line."""
+    """The legacy header of older keying software: one master line and one comma-separated change keys line."""
     text = (ROOT / "docs" / "designs" / "core-pinning.md").read_text()
     chart = re.search(r"```\n(System = A2\nControl Key = .*?)```", text, re.S).group(1)
     header, _, body = chart.strip().partition("\n\n")
