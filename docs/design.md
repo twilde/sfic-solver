@@ -24,6 +24,9 @@ for material that really is list-shaped (formats, ranges, a plan of commits).
 - [Core pinning for SFIC pinning systems (A2 first)](designs/core-pinning.md):
   pinning cores, control keys, a simulated lock, and moving beyond the parity
   pattern. Accepted (D25).
+- [Reading scanned pinning charts](designs/chart-scanning.md): a local tool that
+  turns scans of paper charts into the text layout `check_charts` reads, and
+  flags whatever it is unsure of. Accepted (D38).
 
 ## D1. Package layout, with root scripts kept as entry points
 
@@ -594,3 +597,30 @@ open it). A hand-written squash message may omit the trailer, and a session that
 is not forced to add one need not. Alternative considered: keep the rule and strip
 the links from every pull request, rejected as endless churn against a tool this
 project does not control.
+
+## D38. Scanned charts get a feature design document
+
+An owner whose pinning charts exist only on paper needs them as text before
+`check_charts` (D31) can run on them. The design for a local tool that does that is
+in [docs/designs/chart-scanning.md](designs/chart-scanning.md) (status: accepted,
+nothing built). What it records so far: the tool transcribes and never repairs, and
+never consults the pinner or the pinning rules to choose a reading, so that the
+conformance check stays falsifiable; it fails closed, writing the charts that
+passed every check to one file, those read completely that failed a chart-internal
+check to a second that `check_charts` can read, and the rest, with `??` where a cell
+could not be read, to a review file that `check_charts` refuses, and reports
+positions only; Tesseract (run locally, as a subprocess) reads each row of cells as a line,
+and its readings are used as votes that label groups of digit marks of the same
+shape on the document itself, because per-row agreement among its readings was
+shown to flag most charts yet still pass a systematic misreading; and the check
+that every chamber's pins add up to the stack total, the strongest chart-internal
+test, only ever flags. Scanning is an optional extra (`pip install -e ".[scan]"`:
+Pillow, numpy and pypdfium2, chosen over `pdftoppm` for needing no system install
+and over PyMuPDF for its licence), and Tesseract an optional program found at run
+time. This is an explicit exception to D2, bounded so that the core tools stay
+standard library only: nothing in the core imports the extra, a missing package or
+program gives a clear message and exit status 2, and the exception covers this
+feature alone. The maintainer approved this at the outset, and accepting the design
+document accepts it. The document states the terms; when the tool lands, D2 gets a
+line pointing at them, and the README and CLAUDE.md say it where they now say
+"standard library only".
