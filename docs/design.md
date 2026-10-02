@@ -480,3 +480,51 @@ written case-insensitively (`*.[jJ][pP][gG]`), because scanners and phones write
 as the example system file is. The list is of formats a scan can arrive in, not of
 every format; spreadsheets and word-processor files are still not planned. `.pdf`
 output (D25, step 7) will need the same guard, and already has it.
+
+## D33. How pull requests are merged, and how stacked ones work
+
+The first four pull requests used three merge methods, and the differences
+mattered. Squash and rebase merge both write new commits on `main`, so anything
+built on the original commits has to move. One pull request was stacked on a
+branch that was then squash-merged, and the next on one that was then
+rebase-merged, and each needed rebasing. Review replies that cited commit ids
+("fixed in e72ff02") pointed at commits that exist only inside the pull request,
+not on `main`. A merge commit keeps the original commits, so a stack built on
+them stays valid, and `git log --first-parent` still reads as one line per pull
+request.
+
+The rules follow from that. A merge commit is the default for a pull request
+whose commits are meant to be read one by one (this project asks for small,
+isolated commits, with a refactor in its own commit), and it is the only method
+for a pull request that has another stacked on it. Squash is for a pull request
+whose commits are iterative (revisions of a document, fixups), when nothing is
+stacked on it; its message is written by hand as one commit message in the
+project's style, without session trailers or key-history facts. Rebase merge
+stays available, for a focused pull request whose commits each stand alone, when
+nothing is stacked on it, no other branch is built on its commits and a straight
+line is wanted; it rewrites commit ids, so references to the branch's commits
+stop matching `main`. The maintainer chooses at merge time. A pull request's
+title is its line in the history, so it should read as a changelog entry.
+
+Stacking is allowed but not preferred. If the follow-up can wait for the base to
+merge, it waits. Otherwise the stack is one level deep: the upper pull request's
+base is the lower one's branch, it stays a draft, and its description says
+"Stacked on #N" and is corrected when that stops being true. The bottom merges
+first, as a merge commit, and "delete branch on merge" stays on, so GitHub
+retargets the upper pull request to `main` by itself. Nothing force-pushes a
+branch that has a pull request stacked on it; review findings on the lower pull
+request are fixed with new commits. After the base merges, the upper branch's
+author rebases it onto `main` (`git rebase origin/main`, or, if the base was
+squashed or rebase-merged, `git rebase --onto origin/main <old tip of the base>
+<branch>`), pushes with `--force-with-lease`, and says which commit is now on
+GitHub, because "rebased" has meant "rebased locally" before. Rewriting is safe
+here because only the upper branch's author uses it. Each stacked pull request is
+reviewed against its own base, so its diff shows only its work, and again after
+it is retargeted.
+
+Alternatives considered: a strictly linear history (squash and rebase merge
+only, with merge commits disallowed in the repository settings) is simpler to
+explain, but it gives up the per-commit history of a squashed pull request and
+makes every stack costly, so it was not chosen. Disabling rebase merge was also
+rejected, since the maintainer likes its clean history and wants the option.
+History already on `main` mixes the methods and is not rewritten.

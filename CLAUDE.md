@@ -89,6 +89,19 @@ first and explaining why.
   or build a competing copy of its work. Reading it, checking it out in a scratch
   worktree and running its tests are fine. If you think the branch itself needs
   changing, ask the user first. Merge only when the user says to.
+- **Merging.** The user chooses the method when they say to merge. The default is
+  a merge commit; squash an iterative pull request, with a hand-written message;
+  rebase merge a focused pull request whose commits each stand alone, only when
+  nothing is stacked on it. A pull request with another stacked on it is merged
+  with a merge commit and nothing else. Write pull request titles as changelog
+  lines. See D33.
+- **Stacked pull requests** are allowed but not preferred, and one level deep:
+  the upper one is a draft, says "Stacked on #N" and keeps that true. Never
+  force-push a branch that has a pull request stacked on it; fix review findings
+  with new commits. After the base merges, the upper branch's author rebases it
+  onto `main` (`git rebase --onto origin/main <old tip of the base>` if the base
+  was squashed or rebase-merged), pushes with `--force-with-lease` and confirms
+  the pushed head on GitHub. See D33.
 - **Dependabot** opens a weekly pull request for GitHub Actions updates. Merge
   it only when CI is green.
 - **Keep docs current.** README limitations, file-format notes and TODO.md

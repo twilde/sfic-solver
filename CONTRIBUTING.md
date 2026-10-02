@@ -70,6 +70,12 @@ pytest
 - If an AI tool helped write the change, please say so, for example with a
   `Co-Authored-By` trailer in the commit message. This project does the same.
 - Contributions are accepted under the project's [MIT license](LICENSE).
+- The maintainer chooses how a pull request is merged (merge commit, squash or
+  rebase), so write each commit to stand on its own and give the pull request a
+  title that reads as a changelog line.
+- Try not to depend on another unmerged pull request. If you must, base yours on
+  its branch, mark it a draft, say "Stacked on #N" in the description, and
+  rebase it onto `main` once the base has merged.
 - In the pull request, say what changed and why, and mention any behavior
   change. CI must pass: the tests on every supported Python version, and the
   data-file guard.
