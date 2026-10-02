@@ -12,23 +12,34 @@ import pytest
 
 from sfic_solver import pinning
 
+# Each name is one font and means that font: a test that asks for "liberation" gets
+# Liberation Mono or is skipped, never a stand-in. The macOS system fonts have names
+# of their own so that what they do shows up under their own name.
 FONT_CANDIDATES = {
     "liberation": ["/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
                    "/usr/share/fonts/liberation-mono/LiberationMono-Regular.ttf",
-                   "/usr/share/fonts/liberation/LiberationMono-Regular.ttf",
-                   "/Library/Fonts/Courier New.ttf", "/System/Library/Fonts/Courier.ttc"],
+                   "/usr/share/fonts/liberation/LiberationMono-Regular.ttf"],
     "dejavu": ["/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-               "/usr/share/fonts/dejavu/DejaVuSansMono.ttf",
-               "/System/Library/Fonts/Menlo.ttc"],
+               "/usr/share/fonts/dejavu/DejaVuSansMono.ttf"],
     "freemono": ["/usr/share/fonts/truetype/freefont/FreeMono.ttf"],
+    "courier": ["/System/Library/Fonts/Courier.ttc", "/Library/Fonts/Courier New.ttf"],
+    "menlo": ["/System/Library/Fonts/Menlo.ttc"],
 }
+# What a test gets when it does not care which monospaced font it draws with.
+DEFAULT_FONTS = ("liberation", "dejavu", "freemono", "courier", "menlo")
 
 
-def font_path(name="liberation"):
+def font_path(name):
+    """The file for the font called `name`, or None if this machine does not have it."""
     for candidate in FONT_CANDIDATES[name]:
         if Path(candidate).exists():
             return candidate
     return None
+
+
+def default_font():
+    """The first of DEFAULT_FONTS this machine has, or None."""
+    return next((name for name in DEFAULT_FONTS if font_path(name)), None)
 
 
 def have_tesseract():
@@ -36,8 +47,11 @@ def have_tesseract():
 
 
 def need_fonts(*names):
-    return pytest.mark.skipif(any(font_path(n) is None for n in names or ("liberation",)),
-                              reason="no monospaced font found for the test pages")
+    """Skip unless the named fonts are all here; with no names, unless any is."""
+    if names:
+        missing = [n for n in names if font_path(n) is None]
+        return pytest.mark.skipif(bool(missing), reason=f"no {', '.join(missing)} font")
+    return pytest.mark.skipif(default_font() is None, reason="no monospaced font found")
 
 
 def random_chart(rng, chambers=7):
@@ -85,7 +99,7 @@ def random_charts(count, seed=1, chambers=7):
     return [random_chart(rng, chambers) for _ in range(count)]
 
 
-def render(lines, font="liberation", pt=11, dpi=300, skew=0.0, blur=0.0, noise=0.0,
+def render(lines, font=None, pt=11, dpi=300, skew=0.0, blur=0.0, noise=0.0,
            speckle=0.0, shade=0.0, contrast=1.0, seed=0, page=(8.5, 11), margin=0.9,
            top=0.9):
     """The lines of text as a page image (PIL, mode "L") with controllable damage."""
@@ -95,7 +109,7 @@ def render(lines, font="liberation", pt=11, dpi=300, skew=0.0, blur=0.0, noise=0
     width, height = int(page[0] * dpi), int(page[1] * dpi)
     image = Image.new("L", (width, height), 255)
     draw = ImageDraw.Draw(image)
-    face = ImageFont.truetype(font_path(font), int(round(pt * dpi / 72)))
+    face = ImageFont.truetype(font_path(font or default_font()), int(round(pt * dpi / 72)))
     x, y, step = int(margin * dpi), int(top * dpi), int(face.size * 1.35)
     for line in lines:
         draw.text((x, y), line, font=face, fill=0)

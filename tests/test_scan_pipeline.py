@@ -20,7 +20,7 @@ from sfic_solver.scanning import assemble as asm  # noqa: E402
 from sfic_solver.scanning import clean, layout, ocr, output, pipeline  # noqa: E402
 from sfic_solver.scanning.pages import Page  # noqa: E402
 
-pytestmark = [need_fonts("liberation"),
+pytestmark = [need_fonts(),
               pytest.mark.skipif(not have_tesseract(), reason="Tesseract is not installed")]
 
 TITLE = "NOT A REAL SYSTEM 4B"

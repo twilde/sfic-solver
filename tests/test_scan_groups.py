@@ -8,7 +8,7 @@ pytest.importorskip("numpy")
 from scan_helpers import need_fonts, render  # noqa: E402
 from sfic_solver.scanning import clean, groups, layout  # noqa: E402
 
-pytestmark = need_fonts("liberation")
+pytestmark = need_fonts()
 
 ROWS = ["0123456789 3 8 1 0", "9876543210 5 5 2 7", "1357902468 4 6 1 1",
         "2468013579 0 9 3 8", "5050505050 6 4 2 2", "7171717171 9 9 8 3"]

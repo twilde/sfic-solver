@@ -77,7 +77,7 @@ def digit_row(page, index):
     return box, found.glyph_height, blank, len(glyphs), wanted
 
 
-pytestmark = need_fonts("liberation")
+pytestmark = need_fonts()
 
 
 @needs_tesseract

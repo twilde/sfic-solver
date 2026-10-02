@@ -119,3 +119,19 @@ def test_reading_pages_without_the_packages_says_so(monkeypatch):
     monkeypatch.setattr(pages, "missing_packages", lambda: ["Pillow"])
     with pytest.raises(scanning.MissingDependency):
         list(pages.iter_pages([]))
+
+
+def test_a_named_test_font_is_never_a_stand_in_for_another():
+    # Review: on a Mac the tests named "liberation" and "dejavu" silently drew with
+    # Courier New and Menlo, so a failure there could not be told from a failure with
+    # the font the test names. Each name now means its own font, or is skipped.
+    from scan_helpers import FONT_CANDIDATES, default_font, font_path
+    expected = {"liberation": "Liberation", "dejavu": "DejaVu", "freemono": "FreeMono",
+                "courier": "Courier", "menlo": "Menlo"}
+    assert set(FONT_CANDIDATES) == set(expected)
+    for name, word in expected.items():
+        for candidate in FONT_CANDIDATES[name]:
+            assert word in candidate, (name, candidate)
+        found = font_path(name)
+        assert found is None or word in found
+    assert default_font() is None or font_path(default_font())

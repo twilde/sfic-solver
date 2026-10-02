@@ -133,10 +133,10 @@ def parse(path):
     return charts.parse_charts(path.read_text())
 
 
-pytestmark_run = [need_fonts("liberation")]
+pytestmark_run = [need_fonts()]
 
 
-@need_fonts("liberation")
+@need_fonts()
 def test_a_run_with_a_flagged_chart_exits_1_and_writes_two_files(cli_run):
     assert cli_run["code"] == 1
     work = cli_run["work"]
@@ -144,7 +144,7 @@ def test_a_run_with_a_flagged_chart_exits_1_and_writes_two_files(cli_run):
     assert not (work / "result.failed.txt").exists()
 
 
-@need_fonts("liberation")
+@need_fonts()
 def test_the_accepted_file_holds_the_clean_charts_as_drawn_and_check_charts_agrees(cli_run):
     accepted = parse(cli_run["work"] / "result.txt")
     assert len(accepted) == 4
@@ -160,7 +160,7 @@ def test_the_accepted_file_holds_the_clean_charts_as_drawn_and_check_charts_agre
     assert run.returncode == 0 and "OK" in run.stdout
 
 
-@need_fonts("liberation")
+@need_fonts()
 def test_the_review_file_is_refused_by_check_charts_and_names_its_problem(cli_run):
     text = (cli_run["work"] / "result.review.txt").read_text()
     assert "??" in text
@@ -170,20 +170,20 @@ def test_the_review_file_is_refused_by_check_charts_and_names_its_problem(cli_ru
     assert "row 2 (Control) does not have one cell per chamber" in cli_run["out"]
 
 
-@need_fonts("liberation")
+@need_fonts()
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX file modes")
 def test_the_files_are_private(cli_run):
     for name in ("result.txt", "result.review.txt"):
         assert stat.S_IMODE((cli_run["work"] / name).stat().st_mode) == 0o600
 
 
-@need_fonts("liberation")
+@need_fonts()
 def test_nothing_was_written_to_the_temporary_directory_and_no_socket_was_opened(cli_run):
     assert list(cli_run["quiet"].iterdir()) == []
     assert "socket" not in cli_run["err"]               # an attempt would have raised
 
 
-@need_fonts("liberation")
+@need_fonts()
 def test_the_report_has_positions_and_no_digit_names_or_paths(cli_run):
     out = cli_run["out"]
     assert "input 1, page 1, chart 1: accepted" in out
