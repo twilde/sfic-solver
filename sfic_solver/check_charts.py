@@ -92,8 +92,8 @@ def main(argv=None):
     if not files:
         ap.error("no .txt chart files found")
 
-    totals = {"files": len(files), "charts": 0, "agree": 0, "chambers": 0, "bad": 0}
-    unreadable = 0
+    n = {"files": len(files), "compared": 0, "agree": 0, "disagree": 0, "chambers": 0,
+         "bad": 0, "unchecked": 0, "unreadable": 0}      # unchecked: charts; unreadable: files
     if args.details:
         print("--details shows pin sizes: this is key data, do not share it.\n")
     for file_number, path in enumerate(files, 1):
@@ -101,40 +101,41 @@ def main(argv=None):
             parsed = charts.parse_charts(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError):
             print(f"file {file_number}: cannot be read")
-            unreadable += 1
+            n["unreadable"] += 1
             continue
         except charts.ChartError as err:
             print(f"file {file_number}: {err}")
-            unreadable += 1
+            n["unreadable"] += 1
             continue
         for chart_number, chart in enumerate(parsed, 1):
-            totals["charts"] += 1
-            totals["chambers"] += chart.chambers
             try:
                 problems = check_chart(chart)
             except ValueError as err:
                 print(f"file {file_number}, chart {chart_number}: {err}")
-                unreadable += 1
+                n["unchecked"] += 1
                 continue
+            n["compared"] += 1
+            n["chambers"] += chart.chambers
             if not problems:
-                totals["agree"] += 1
+                n["agree"] += 1
                 continue
-            totals["bad"] += len(problems)
+            n["disagree"] += 1
+            n["bad"] += len(problems)
             words = {"differs": "differs", "unpinnable": "cannot be pinned",
                      "layout": "has master rows that do not fill from the bottom",
                      "invalid": "has a cut the pinning system does not have"}
             print(f"file {file_number}, chart {chart_number}: "
-                  + "; ".join(f"chamber {n} {words[kind]}" for n, kind, _ in problems))
+                  + "; ".join(f"chamber {c} {words[kind]}" for c, kind, _ in problems))
             if args.details:
                 for number, kind, detail in problems:
                     if detail:
                         print(f"    chamber {number}: {detail}")
 
-    disagree = totals["charts"] - totals["agree"] - unreadable
-    print(f"\nChecked {totals['files']} file(s), {totals['charts']} chart(s), "
-          f"{totals['chambers']} chamber(s): {totals['agree']} chart(s) agree with the pinner, "
-          f"{disagree} do not ({totals['bad']} chamber(s)), {unreadable} unreadable.")
-    ok = disagree == 0 and unreadable == 0
+    print(f"\nChecked {n['files']} file(s), {n['compared']} chart(s), {n['chambers']} chamber(s): "
+          f"{n['agree']} chart(s) agree with the pinner, {n['disagree']} do not "
+          f"({n['bad']} chamber(s)); {n['unchecked']} chart(s) could not be checked; "
+          f"{n['unreadable']} file(s) could not be read.")
+    ok = n["disagree"] == 0 and n["unchecked"] == 0 and n["unreadable"] == 0
     print("OK" if ok else "DISAGREEMENTS: the pinner's rules do not match these charts")
     return 0 if ok else 1
 

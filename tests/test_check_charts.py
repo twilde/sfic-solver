@@ -73,7 +73,9 @@ def test_a_wrong_pin_is_reported_by_position_only(tmp_path, capsys):
     assert main([str(path)]) == 1
     out = capsys.readouterr().out
     assert "file 1, chart 2: chamber 4 differs" in out
-    assert "2 chart(s) agree with the pinner, 1 do not (1 chamber(s)), 0 unreadable" in out
+    assert ("Checked 1 file(s), 3 chart(s), 21 chamber(s): 2 chart(s) agree with the pinner, "
+            "1 do not (1 chamber(s)); 0 chart(s) could not be checked; "
+            "0 file(s) could not be read.") in out
     assert "DISAGREEMENTS" in out
     assert_no_key_data(out)
 
@@ -123,7 +125,9 @@ def test_an_unreadable_chart_is_reported_without_quoting_it(tmp_path, capsys):
     assert main([str(path)]) == 1
     out = capsys.readouterr().out
     assert "file 1: chart 1: every key must be digits and as long as the control key" in out
-    assert "0 chart(s) agree" in out or "1 unreadable" in out
+    assert ("Checked 1 file(s), 0 chart(s), 0 chamber(s): 0 chart(s) agree with the pinner, "
+            "0 do not (0 chamber(s)); 0 chart(s) could not be checked; "
+            "1 file(s) could not be read.") in out
     assert_no_key_data(out)
 
 
@@ -132,8 +136,26 @@ def test_an_unknown_pinning_system_is_reported(tmp_path, capsys):
     path.write_text(break_chart(LEGACY.read_text(), "System = A2", "System = A9"))
     assert main([str(path)]) == 1
     out = capsys.readouterr().out
-    assert "unknown pinning system" in out and "1 unreadable" in out
+    assert "unknown pinning system" in out
+    assert ("Checked 1 file(s), 2 chart(s), 14 chamber(s): 2 chart(s) agree with the pinner, "
+            "0 do not (0 chamber(s)); 1 chart(s) could not be checked; "
+            "0 file(s) could not be read.") in out
     assert "OK" not in out
+
+
+def test_an_unreadable_file_beside_a_disagreeing_chart_is_counted_separately(tmp_path, capsys):
+    unreadable = tmp_path / "a.txt"
+    unreadable.write_text(break_chart(LEGACY.read_text(), "Control Key = 9743854",
+                                      "Control Key = 974385"))
+    disagreeing = tmp_path / "b.txt"
+    disagreeing.write_text(break_chart(TOOLS.read_text(), "Bottom   3  1  0  1  6  5  2",
+                                       "Bottom   3  1  0  2  6  5  2"))
+    assert main([str(unreadable), str(disagreeing)]) == 1
+    out = capsys.readouterr().out
+    assert ("Checked 2 file(s), 3 chart(s), 21 chamber(s): 2 chart(s) agree with the pinner, "
+            "1 do not (1 chamber(s)); 0 chart(s) could not be checked; "
+            "1 file(s) could not be read.") in out
+    assert "-1" not in out
 
 
 def test_check_chart_returns_where_and_what():
