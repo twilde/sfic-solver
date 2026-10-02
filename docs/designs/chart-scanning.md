@@ -196,10 +196,17 @@ is also the reason the tool takes a whole directory at once.
 The prototype's results across image quality are in the next table. They come from
 fake charts rendered by the prototype itself, and say nothing about real scans; the
 test harness (step 4) is where they become tests, and the README documents only
-what that harness proves.
+what that harness proves. The criterion is a number: zero accepted-wrong charts in
+at least 1,000 random charts for every condition inside the documented range of
+image quality, which bounds the true rate below 0.3% at 95% confidence, and the
+README claims exactly that and no more. A thousand charts at two to three seconds
+each is far too slow for every CI run, so the harness has two tiers: CI runs a small
+sample per condition (some tens of charts) and asserts zero wrong charts and a
+minimum accepted, and the full run, marked slow and run on demand and before the
+README's documented range changes, is the one that supports the claim.
 
 Each row is 18 random fake charts (three runs of six, the votes pooled within a
-run), rendered at 300 dpi and 11 point in a monospaced font unless the row says
+run), except the last two, which use 12 charts each and say so; rendered at 300 dpi and 11 point in a monospaced font unless the row says
 otherwise, with the prototype's pipeline and all the checks above. "Wrong" means a
 chart that was accepted and differs from the one rendered.
 
@@ -221,7 +228,9 @@ chart that was accepted and differs from the one rendered.
 
 Two things stand out. The failure that does occur, as the image degrades, is
 flagging, which is the intended direction, and no wrong chart was accepted in any
-row; the sample is small, which is why the harness will run many more. And
+row. The sample is small: about 200 charts in all, and zero wrong in n trials bounds
+the true rate only at about 3 in n (at 95% confidence), so here at about 1.5%. The
+harness is where that becomes a number worth claiming. And
 degraded images cost something in a way the table understates: a flagged chart
 costs a look at the paper, so a scanner setting that gives 12 charts of 18 is a
 setting to change. On four cores the prototype took two to three seconds per chart.
