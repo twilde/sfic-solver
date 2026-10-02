@@ -1,4 +1,4 @@
-"""Feature design documents follow the convention in D24 of docs/design.md."""
+"""The design documents follow the conventions in D24 and D41 of docs/decisions.md."""
 import re
 
 import pytest
@@ -25,7 +25,7 @@ def test_design_document_has_a_title_and_a_status(path):
 
 @pytest.mark.parametrize("path", DESIGNS, ids=lambda p: p.name)
 def test_design_document_is_indexed_in_the_log(path):
-    log = (ROOT / "docs" / "design.md").read_text()
+    log = (ROOT / "docs" / "decisions.md").read_text()
     assert f"(designs/{path.name})" in log
 
 
@@ -78,3 +78,102 @@ def test_core_pinning_legacy_example_chart_is_the_pins_for_its_keys():
     keys = [fields["Master Key"], *re.split(r"[,\s]+", fields["Change Keys"])]
     assert len(keys) == 3
     assert_chart_is_the_pins_for_its_keys("legacy", keys, fields["Control Key"], parse_rows(body))
+
+
+# The decision log is short and append-only; docs/design.md describes the present (D41).
+
+LOG = ROOT / "docs" / "decisions.md"
+DESIGN = ROOT / "docs" / "design.md"
+MAX_ENTRY_WORDS = 150
+
+
+def log_entries():
+    """(number, heading, body lines) for each '## Dn.' entry of the log, in order."""
+    entries = []
+    for line in LOG.read_text().splitlines():
+        heading = re.fullmatch(r"## D(\d+)\. (.+)", line)
+        if heading:
+            entries.append((int(heading.group(1)), heading.group(2), []))
+        elif entries:
+            entries[-1][2].append(line)
+    return entries
+
+
+def github_anchors(path):
+    """The anchors GitHub makes for the headings of a Markdown file; a repeated heading
+    gets -1, -2 and so on."""
+    anchors, seen = set(), {}
+    for line in path.read_text().splitlines():
+        heading = re.fullmatch(r"#{1,6} (.+)", line)
+        if heading:
+            slug = re.sub(r"[^\w\- ]", "", heading.group(1).lower()).replace(" ", "-")
+            anchors.add(slug if slug not in seen else f"{slug}-{seen[slug]}")
+            seen[slug] = seen.get(slug, 0) + 1
+    return anchors
+
+
+def entry_words(body):
+    """Words in an entry's prose: everything before its Detail: block, which comes last."""
+    detail = next((i for i, l in enumerate(body) if l.startswith("Detail:")), len(body))
+    return len(" ".join(body[:detail]).split())
+
+
+def test_entry_word_count_skips_only_the_detail_block():
+    body = ["", "one two three", "    four five", "```", "six", "```", "",
+            "Detail: [x](design.md#y),", "    [z](design.md#w)."]
+    assert entry_words(body) == 8        # indented and fenced lines count (fences too), Detail does not
+
+
+def test_github_anchors_number_repeated_headings(tmp_path):
+    doc = tmp_path / "doc.md"
+    doc.write_text("# Title\n\n## Same\n\n## Same, again?\n\n## Same\n\n## Same\n")
+    assert github_anchors(doc) == {"title", "same", "same-again", "same-1", "same-2"}
+
+
+def test_log_entries_are_numbered_in_order_without_gaps():
+    numbers = [n for n, _, _ in log_entries()]
+    assert numbers == list(range(1, len(numbers) + 1))
+
+
+@pytest.mark.parametrize("entry", log_entries(), ids=lambda e: f"D{e[0]}")
+def test_log_entry_is_succinct(entry):
+    number, _, body = entry
+    words = entry_words(body)
+    assert words <= MAX_ENTRY_WORDS, (
+        f"D{number} has {words} words; move the reasoning into docs/design.md "
+        f"and keep the entry to {MAX_ENTRY_WORDS}")
+
+
+@pytest.mark.parametrize("entry", log_entries(), ids=lambda e: f"D{e[0]}")
+def test_log_entry_points_at_the_reasoning_or_says_it_is_superseded(entry):
+    number, _, body = entry
+    text = "\n".join(body)
+    if re.search(r"^Status: Superseded by ", text, re.M):
+        return
+    assert "Detail: [" in text, f"D{number} needs a Detail: line linking to design.md"
+
+
+def test_log_links_resolve():
+    for target in re.findall(r"\]\(([^)]+)\)", LOG.read_text()):
+        path, _, anchor = target.partition("#")
+        if path.startswith("http"):
+            continue
+        assert (LOG.parent / path).exists(), f"{target} does not exist"
+        if anchor:
+            assert anchor in github_anchors(LOG.parent / path), f"{target} has no such heading"
+
+
+def test_status_lines_point_at_later_entries():
+    numbers = {n for n, _, _ in log_entries()}
+    for number, _, body in log_entries():
+        for line in body:
+            if line.startswith("Status:"):
+                assert re.fullmatch(r"Status: (Superseded|Amended) by D\d+[^.]*\.", line), line
+                for cited in map(int, re.findall(r"D(\d+)", line)):
+                    assert cited in numbers and cited > number, f"D{number}: {line}"
+
+
+def test_design_document_cites_only_logged_decisions():
+    numbers = {n for n, _, _ in log_entries()}
+    cited = {int(n) for n in re.findall(r"\bD(\d+)\b", DESIGN.read_text())}
+    assert cited <= numbers

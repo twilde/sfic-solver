@@ -6,10 +6,10 @@
 - `--avoid-file` for the generator.
 - Generate the `cores` list from an exported CSV of the key matrix.
 - After 2026-11-19 (`ubuntu-latest` fully on Ubuntu 26.04), replace the pinned
-  runner images in CI with `ubuntu-latest` (see D14/D15 in docs/design.md).
+  runner images in CI with `ubuntu-latest` (see D14/D15 in docs/decisions.md).
 - Configurable keyway rules (cut depth range, an explicit allowed-cut set per
   pin) so the tools work for other systems. The pin count is already
-  configurable (D22 in docs/design.md); the rest is covered by the pinning
+  configurable (D22 in docs/decisions.md); the rest is covered by the pinning
   system records in docs/designs/core-pinning.md.
 - Core pinning (docs/designs/core-pinning.md): steps 1 to 3 are done (the
   key-space object, the pinning library, the `.txt` guard and the conformance
