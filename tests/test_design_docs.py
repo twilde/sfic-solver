@@ -100,14 +100,34 @@ def log_entries():
 
 
 def github_anchors(path):
-    """The anchors GitHub makes for the headings of a Markdown file."""
-    anchors = set()
+    """The anchors GitHub makes for the headings of a Markdown file; a repeated heading
+    gets -1, -2 and so on."""
+    anchors, seen = set(), {}
     for line in path.read_text().splitlines():
         heading = re.fullmatch(r"#{1,6} (.+)", line)
         if heading:
             slug = re.sub(r"[^\w\- ]", "", heading.group(1).lower()).replace(" ", "-")
-            anchors.add(slug)
+            anchors.add(slug if slug not in seen else f"{slug}-{seen[slug]}")
+            seen[slug] = seen.get(slug, 0) + 1
     return anchors
+
+
+def entry_words(body):
+    """Words in an entry's prose: everything before its Detail: block, which comes last."""
+    detail = next((i for i, l in enumerate(body) if l.startswith("Detail:")), len(body))
+    return len(" ".join(body[:detail]).split())
+
+
+def test_entry_word_count_skips_only_the_detail_block():
+    body = ["", "one two three", "    four five", "```", "six", "```", "",
+            "Detail: [x](design.md#y),", "    [z](design.md#w)."]
+    assert entry_words(body) == 8        # indented and fenced lines count (fences too), Detail does not
+
+
+def test_github_anchors_number_repeated_headings(tmp_path):
+    doc = tmp_path / "doc.md"
+    doc.write_text("# Title\n\n## Same\n\n## Same, again?\n\n## Same\n\n## Same\n")
+    assert github_anchors(doc) == {"title", "same", "same-again", "same-1", "same-2"}
 
 
 def test_log_entries_are_numbered_in_order_without_gaps():
@@ -118,8 +138,7 @@ def test_log_entries_are_numbered_in_order_without_gaps():
 @pytest.mark.parametrize("entry", log_entries(), ids=lambda e: f"D{e[0]}")
 def test_log_entry_is_succinct(entry):
     number, _, body = entry
-    prose = [l for l in body if not l.startswith("Detail:") and not l.startswith("    ")]
-    words = len(" ".join(prose).split())
+    words = entry_words(body)
     assert words <= MAX_ENTRY_WORDS, (
         f"D{number} has {words} words; move the reasoning into docs/design.md "
         f"and keep the entry to {MAX_ENTRY_WORDS}")
