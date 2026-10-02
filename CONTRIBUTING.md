@@ -75,8 +75,9 @@ reliably (issue #10), so the OCR tests skip there. On a Mac,
   `secrets` or `random.SystemRandom`; `--seed` exists only for reproducible
   tests.
 - **Update the docs in the same change:** the README (format, limitations), the
-  decision log in `docs/decisions.md` when you make a design decision, and the
-  feature's design document in `docs/designs/` if it has one.
+  decision log in `docs/decisions.md` (a short entry) when you make a design
+  decision, `docs/design.md` where the design changes, and the feature's design
+  document in `docs/designs/` if it has one.
 - **Match the surrounding code**: naming, comment density and idiom.
 - **Markdown:** do not wrap a line so that it starts with `+`, `-` or a number
   and a period; it renders as a list. A test checks every Markdown file.

@@ -295,9 +295,10 @@ flags them, and confirm the solver leaves known keys untouched and produces a
 system that passes the checker. Test fixtures use obviously fake bittings.
 
 To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md). Open items are in
-[TODO.md](TODO.md). Why things are built the way they are is in the decision
-log, [docs/decisions.md](docs/decisions.md), and the feature design documents it links
-to in [docs/designs/](docs/designs/). To report a security problem, see
+[TODO.md](TODO.md). Why things are built the way they are is in
+[docs/design.md](docs/design.md); the decisions behind it are listed in the log,
+[docs/decisions.md](docs/decisions.md), and the larger features have design
+documents in [docs/designs/](docs/designs/). To report a security problem, see
 [SECURITY.md](SECURITY.md).
 
 ## License
