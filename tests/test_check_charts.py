@@ -170,15 +170,15 @@ def test_a_non_ascii_digit_is_an_unreadable_chart_not_a_traceback(tmp_path, caps
     assert "Traceback" not in captured.err
 
 
-def test_a_pinning_system_named_like_a_building_is_not_echoed(tmp_path, capsys):
+def test_a_pinning_system_name_is_not_echoed(tmp_path, capsys):
     path = tmp_path / "c.txt"
-    path.write_text(break_chart(LEGACY.read_text(), "System = A2", "System = Maple Court 4B"))
+    path.write_text(break_chart(LEGACY.read_text(), "System = A2", "System = NOT A REAL SYSTEM 4B"))
     assert main([str(path)]) == 1
     out = capsys.readouterr().out
-    assert "Maple" not in out and "4B" not in out
+    assert "NOT A REAL" not in out and "4B" not in out
     assert "names a pinning system the tools do not have" in out
     assert main([str(path), "--details"]) == 1               # the owner can still see it
-    assert "Maple Court 4B" in capsys.readouterr().out
+    assert "NOT A REAL SYSTEM 4B" in capsys.readouterr().out
 
 
 def test_an_unexpected_error_is_reported_without_quoting_the_chart(tmp_path, capsys, monkeypatch):
