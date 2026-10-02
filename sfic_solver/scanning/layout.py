@@ -105,6 +105,7 @@ class Layout:
     gap: float                   # the width that separates tokens, in pixels
     too_small: bool              # the text is too small to read reliably
     outside: list = field(default_factory=list)    # (x0, y0, x1, y1) of ink outside the block
+    mask: object = None          # the ink mask the lines were found in: large ink removed
 
 
 def components(mask):
@@ -330,4 +331,4 @@ def analyse(prepared):
     for line in lines:
         line.tokens, gone = split_outside(line.tokens, left, height)
         outside.extend((t.x0, t.y0, t.x1, t.y1) for t in gone)
-    return Layout(lines, height, gap, height < MIN_GLYPH_HEIGHT, outside)
+    return Layout(lines, height, gap, height < MIN_GLYPH_HEIGHT, outside, mask)

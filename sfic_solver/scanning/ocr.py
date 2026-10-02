@@ -29,14 +29,27 @@ TIMEOUT = 120
 CHAR = re.compile(r"<span class='ocrx_cinfo' title='[^']*'>([^<]*)</span>")
 
 
-def source_arrays(prepared):
-    """The two arrays crops are cut from: {"g": flattened grey, "b": cleaned B&W}."""
+def source_arrays(prepared, mask=None):
+    """The two arrays crops are cut from: {"g": flattened grey, "b": cleaned B&W}.
+
+    `mask` is the ink that is print (the layout's, with pen strokes removed); the ink
+    in `prepared.mask` that is not in it is painted out of both arrays, so that what
+    was removed as not being print never reaches the recogniser.
+    """
     import numpy as np
     from PIL import Image, ImageFilter
 
-    black_on_white = np.where(prepared.mask, 0, 255).astype(np.uint8)
+    ink = prepared.mask if mask is None else mask
+    gray = prepared.gray
+    if mask is not None:
+        removed = prepared.mask & ~mask
+        if removed.any():
+            grown = np.asarray(Image.fromarray(removed.astype(np.uint8) * 255)
+                               .filter(ImageFilter.MaxFilter(5))) > 0
+            gray = np.where(grown, 255, gray).astype(np.float32)
+    black_on_white = np.where(ink, 0, 255).astype(np.uint8)
     smoothed = Image.fromarray(black_on_white).filter(ImageFilter.GaussianBlur(0.8))
-    return {"g": prepared.gray, "b": np.asarray(smoothed, dtype=np.float32)}
+    return {"g": gray, "b": np.asarray(smoothed, dtype=np.float32)}
 
 
 def crop_png(array, box, height, scale, blank=(), tail=None):

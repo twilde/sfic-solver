@@ -75,6 +75,11 @@ def random_chart(rng, chambers=7):
     return lines, truth
 
 
+def row_line(label, cells):
+    """One row of a chart as text, in the layout the keying software prints."""
+    return f"{label:<8}" + "".join(f"{c:>3}" for c in cells)
+
+
 def random_charts(count, seed=1, chambers=7):
     rng = random.Random(seed)
     return [random_chart(rng, chambers) for _ in range(count)]

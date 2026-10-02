@@ -246,3 +246,18 @@ def test_commas_are_found_in_every_font(font, seed):
     digits = [g for t in after for g in t.glyphs if g.kind == layout.MARK]
     assert len(commas) == len(truth["change"]) - 1
     assert len(digits) == sum(len(k) for k in truth["change"])
+
+
+def test_ink_removed_as_not_print_is_painted_out_of_what_the_recogniser_sees():
+    from sfic_solver.scanning import ocr
+    lines, _ = chart()
+    image = render(lines)
+    add_strokes(image, [(60, 330, 200, 700)])
+    prepared = clean.prepare(image)
+    found = layout.analyse(prepared)
+    assert found.outside
+    arrays = ocr.source_arrays(prepared, found.mask)
+    for x0, y0, x1, y1 in found.outside:
+        assert arrays["g"][y0:y1, x0:x1].min() == 255        # painted white
+        assert arrays["b"][y0:y1, x0:x1].min() > 250
+    assert ocr.source_arrays(prepared)["g"].min() < 255      # the plain arrays are untouched
