@@ -238,10 +238,30 @@ flagged, with the position of the first thing that failed.
 | Every bitting is digits and as long as the control bitting | A dropped or extra digit in a header |
 | The rows are `T/D`, `Control`, one or more `Master`, then `Bottom`, each with the chamber count of cells | A missing or merged row or cell |
 | Every mark belongs to a group that is large enough and pure enough | Misreadings, and digits the recogniser or the shapes confuse |
+| No two groups carry the same label, and every label is a digit | A whole group of one digit read consistently as another: its marks vote together, so purity and size cannot see it, but the digit it was taken for now has two groups |
 | Every cell is within the range for its row, and `--` appears only in master rows, filled from the bottom | A digit read as the wrong digit that lands outside what a chart can contain |
 | Every chamber's pins add up to the stack total of the system the header names | A digit read as a different digit that stays in range: nearly every single-digit error breaks the sum |
 
-The last row is the strongest, and it is chart-internal: it does not say the pins
+The uniqueness check on group labels exists because group voting is only as good as
+the recogniser's mistakes are scattered. The finding above is that the confusion is
+by glyph: if Tesseract reads a small `3` as `8` for every `3` on the page, the group
+of `3`s is perfectly pure, large and unanimous, and every one of its marks is read
+as `8`. The real `8`s form another group, also labelled `8`, and that is what gives
+it away: a printout has one shape per digit, so two groups with one label mean that
+at least one of them is mislabelled, and the tool flags every mark in both. In the
+prototype, ten groups formed on clean renders, one per digit, but the acceptance rule
+did not require it, so this is a rule to add and not a description of what the
+prototype did. It has a cost: noise can split one digit into two groups, and a
+correct run then flags itself. That is the right way round for a rule that is meant
+to fail closed, and the harness decides whether merging near-identical groups
+earns back the lost acceptance, again only as far as it keeps the no-wrong-chart
+property. The check cannot tell which of two same-labelled groups is wrong and does
+not try; and a digit that is mislabelled without colliding (a `3` group labelled `8`
+in a run with no real `8`s) is the case it cannot see, which the column sums and
+`check_charts` are for, and which the header digits, covered by no sum, are exposed
+to.
+
+The last row of the table above is the strongest, and it is chart-internal: it does not say the pins
 are right for the keys, only that they are a possible stack. It cannot detect two
 errors that cancel, nor an error in a header bitting, which no row repeats. That
 is why this tool is the first of two stages and not the whole answer. After
