@@ -567,11 +567,11 @@ still a list of formats a scan can arrive in and not of every image format.
 When D32 and CLAUDE.md said that tools reading scans "run locally, never through a
 cloud service", that was a design decision and not a note about the guard, and it
 belongs in the log. A scan of a chart is the chart: the pin sizes can be read off
-it, so any service that receives the image receives the key data, and what is
-sent to an outside service may be kept, cached or indexed even if it is later
-deleted. A cloud OCR service is typically more accurate, but it would receive the
-whole chart, and that alone rules it out. The alternatives are a local engine (Tesseract, run as a
-subprocess, is the candidate) and transcription by hand, which stays the fallback
+it, so any service that receives the image receives the key data, and what is sent
+to an outside service may be kept, cached or indexed even if it is later deleted. A
+cloud OCR service is typically more accurate, but it would receive the whole chart,
+and that alone rules it out. The alternatives are a local engine (Tesseract, run as
+a subprocess, is the candidate) and transcription by hand, which stays the fallback
 for whatever a local engine cannot read with confidence. The same rule covers
 debugging: a tool that reads scans reports positions only, and nobody is asked to
 paste, upload or describe a scan. The feature's design document weighs the
