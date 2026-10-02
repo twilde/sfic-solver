@@ -9,7 +9,8 @@ pytest.importorskip("numpy")
 
 from PIL import Image  # noqa: E402
 
-from scan_helpers import have_tesseract, need_fonts, random_chart, render  # noqa: E402
+from scan_helpers import (have_tesseract, need_fonts, random_chart, render,  # noqa: E402
+                          require_ocr_font)
 from sfic_solver.scanning import MissingDependency, clean, layout, ocr  # noqa: E402
 
 needs_tesseract = pytest.mark.skipif(not have_tesseract(), reason="Tesseract is not installed")
@@ -61,6 +62,7 @@ def recogniser():
 @pytest.fixture(scope="module")
 def page():
     """A clean fake chart, prepared, with its layout and truth."""
+    require_ocr_font()
     lines, truth = random_chart(random.Random(11))
     prepared = clean.prepare(render(lines))
     return prepared, layout.analyse(prepared), truth, ocr.source_arrays(prepared)
@@ -152,6 +154,7 @@ def test_a_mark_pasted_after_a_row_is_read_and_dropped(recogniser, page):
 
 @needs_tesseract
 def test_the_last_digit_of_a_row_is_read_more_reliably_with_something_after_it(recogniser):
+    require_ocr_font()
     # Tesseract misreads the last character of a line (a final 3 as 8, a final 0 as 9
     # or nothing). Over the rows of a few charts the sentinel makes the last digit right
     # at least as often, and the rows where it matters, much more often.

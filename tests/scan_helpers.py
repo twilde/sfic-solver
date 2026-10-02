@@ -25,8 +25,15 @@ FONT_CANDIDATES = {
     "courier": ["/System/Library/Fonts/Courier.ttc", "/Library/Fonts/Courier New.ttf"],
     "menlo": ["/System/Library/Fonts/Menlo.ttc"],
 }
-# What a test gets when it does not care which monospaced font it draws with.
+# What a test gets when it does not care which monospaced font it draws with. The good
+# fonts come first, so a machine that has any of them never draws with the others.
 DEFAULT_FONTS = ("liberation", "dejavu", "freemono", "courier", "menlo")
+# The tests that read digits with Tesseract (test_scan_ocr, test_scan_pipeline and the
+# run in test_scan_charts) need one of these: fonts whose commas the layout finds. With
+# only Courier New or Menlo (macOS), whose thin comma is the weakness tracked in issue
+# #10, those tests skip rather than fail; CI has the good fonts and runs them. The
+# layout and grouping tests need no particular font and run with whatever is here.
+OCR_FONTS = ("liberation", "dejavu", "freemono")
 
 
 def font_path(name):
@@ -40,6 +47,23 @@ def font_path(name):
 def default_font():
     """The first of DEFAULT_FONTS this machine has, or None."""
     return next((name for name in DEFAULT_FONTS if font_path(name)), None)
+
+
+def ocr_font_here():
+    """True if this machine has a font the OCR tests can draw with (see OCR_FONTS)."""
+    return default_font() in OCR_FONTS
+
+
+def require_ocr_font():
+    """Skip the calling test or fixture unless there is a font for the OCR tests."""
+    if not ocr_font_here():
+        pytest.skip("the OCR tests need Liberation Mono, DejaVu Sans Mono or FreeMono "
+                    "(a thin-comma font such as Courier New is issue #10)")
+
+
+need_ocr_font = pytest.mark.skipif(
+    not ocr_font_here(), reason="the OCR tests need Liberation Mono, DejaVu Sans Mono or "
+                                "FreeMono (a thin-comma font such as Courier New is issue #10)")
 
 
 def have_tesseract():

@@ -89,7 +89,8 @@ def test_the_root_script_runs_as_a_command():
 
 # --- a whole run on a PDF made at test time ------------------------------------------
 
-from scan_helpers import have_tesseract, need_fonts, random_chart, render  # noqa: E402
+from scan_helpers import (have_tesseract, need_fonts, random_chart, render,  # noqa: E402
+                          require_ocr_font)
 
 
 def erase_cell(image, line_index, cell_index):
@@ -111,6 +112,7 @@ def cli_run(tmp_path_factory):
     pytest.importorskip("pypdfium2")
     if not have_tesseract():
         pytest.skip("Tesseract is not installed")
+    require_ocr_font()
     work = tmp_path_factory.mktemp("cli")
     quiet = tmp_path_factory.mktemp("tmp")                 # must stay empty
     truths, images = [], []

@@ -13,14 +13,14 @@ pytest.importorskip("numpy")
 
 from PIL import Image  # noqa: E402
 
-from scan_helpers import (add_strokes, have_tesseract, need_fonts, random_chart,  # noqa: E402
-                          render, row_line)
+from scan_helpers import (add_strokes, have_tesseract, need_fonts, need_ocr_font,  # noqa: E402
+                          random_chart, render, row_line)
 from sfic_solver import charts, check_charts  # noqa: E402
 from sfic_solver.scanning import assemble as asm  # noqa: E402
 from sfic_solver.scanning import clean, layout, ocr, output, pipeline  # noqa: E402
 from sfic_solver.scanning.pages import Page  # noqa: E402
 
-pytestmark = [need_fonts(),
+pytestmark = [need_fonts(), need_ocr_font,
               pytest.mark.skipif(not have_tesseract(), reason="Tesseract is not installed")]
 
 TITLE = "NOT A REAL SYSTEM 4B"

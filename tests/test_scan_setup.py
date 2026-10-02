@@ -135,3 +135,15 @@ def test_a_named_test_font_is_never_a_stand_in_for_another():
         found = font_path(name)
         assert found is None or word in found
     assert default_font() is None or font_path(default_font())
+
+
+def test_the_ocr_tests_never_draw_with_a_thin_comma_font_when_a_good_one_is_here():
+    # Review: on a Mac with only Courier New and Menlo the OCR tests failed. They now
+    # skip there. Where any good font exists it is the default, so they run.
+    from scan_helpers import DEFAULT_FONTS, OCR_FONTS, default_font, font_path, ocr_font_here
+    assert set(OCR_FONTS) < set(DEFAULT_FONTS)
+    assert DEFAULT_FONTS[:len(OCR_FONTS)] == OCR_FONTS          # good fonts come first
+    if any(font_path(name) for name in OCR_FONTS):
+        assert default_font() in OCR_FONTS and ocr_font_here()
+    else:
+        assert not ocr_font_here()
