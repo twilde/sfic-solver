@@ -64,15 +64,15 @@ issue. The owner looks at the paper.
 
 The design targets one kind of printout and is honest that it has not seen a real
 one. The charts are plain fixed-width type: lines of text and rows of numbers
-separated by spaces, with no table lines drawn between them, as in the legacy
-layout of core-pinning.md. They arrive as PDFs from a scanner, flat and nearly
-straight, at 200 to 300 dpi, and the first platform supported is macOS, though
-nothing in the design is specific to it. A page is one chart or more than one. The header is four lines
-(`System`, `Control Key`, `Master Key`, a `Change Keys` line of comma-separated
-bittings), followed by the rows `T/D`, `Control`, one or more `Master` and
-`Bottom`, one number or `--` per chamber. Photographs, bordered tables and other
-fonts are not ruled out, but they are not what the design is tuned for, and the
-tool's answer to a page it cannot read is to say so, not to guess.
+separated by spaces, with no table lines drawn between them, as in the legacy layout
+of core-pinning.md. They arrive as PDFs from a scanner, flat and nearly straight, at
+200 to 300 dpi, and the first platform supported is macOS, though nothing in the
+design is specific to it. A page is one chart or more than one. The header is four
+lines (`System`, `Control Key`, `Master Key`, a `Change Keys` line of
+comma-separated bittings), followed by the rows `T/D`, `Control`, one or more
+`Master` and `Bottom`, one number or `--` per chamber. Photographs, bordered tables
+and other fonts are not ruled out, but they are not what the design is tuned for,
+and the tool's answer to a page it cannot read is to say so, not to guess.
 
 A page may also carry handwriting, typically notes in the margin that say which
 core or system a chart is for. Handwriting is never read: a recogniser built for
@@ -170,28 +170,28 @@ them, which looked like the natural rule, flags far too many cells (most charts
 had at least one) while still passing a systematic error that every rendition
 shares. It was only the column-sum check that stopped such a chart.
 
-What does work is to stop asking Tesseract to be right about every glyph, and to
-use the one thing a printout has in abundance: every `3` on the page looks like
-every other `3`. The tool cuts out each digit mark, scales it to a fixed size and
-groups the marks by shape. A page of charts has thousands of marks and ten shapes.
+What does work is to stop asking Tesseract to be right about every glyph, and to use
+the one thing a printout has in abundance: every `3` on the page looks like every
+other `3`. The tool cuts out each digit mark, scales it to a fixed size and groups
+the marks by shape. A page of charts has thousands of marks and ten shapes.
 Tesseract's readings (all the renditions of all the rows in which a mark appears)
 are then used as votes, and each *group* gets the label that most of its members'
-votes name. A mark is read as its group's label. A single misreading is outvoted
-by the dozens of other `3`s on the document; a group in which the votes disagree
-too much, or that has too few members to vote, is flagged and so is every mark in
-it. A mark is flagged as well when its own votes, taken alone, mostly name a
-different digit from its group's label, which is how a mark that was grouped with a
-lookalike would otherwise slip through. This is a classifier trained on the document itself, with Tesseract only as the
-source of labels, and it has two properties that matter here. It is independent of
-the recogniser's mistakes in the way renditions were not, since a mark's reading
-comes from the whole group's votes and not from its own context. And it fails in a
-visible way: if two digits look alike enough to be grouped together, the group's
-votes split and the group is flagged, instead of the marks being quietly read as
-the same digit. In the prototype, ten groups formed on clean renders, one for each
-digit, each at least 98% pure by the votes, and every cell of the sample came out
-right where per-row unanimity had flagged most charts. Votes are pooled across
-all the pages of a run, so a larger batch makes the groups better, not worse; this
-is also the reason the tool takes a whole directory at once.
+votes name. A mark is read as its group's label. A single misreading is outvoted by
+the dozens of other `3`s on the document; a group in which the votes disagree too
+much, or that has too few members to vote, is flagged and so is every mark in it. A
+mark is flagged as well when its own votes, taken alone, mostly name a different
+digit from its group's label, which is how a mark that was grouped with a lookalike
+would otherwise slip through. This is a classifier trained on the document itself,
+with Tesseract only as the source of labels, and it has two properties that matter
+here. It is independent of the recogniser's mistakes in the way renditions were not,
+since a mark's reading comes from the whole group's votes and not from its own
+context. And it fails in a visible way: if two digits look alike enough to be
+grouped together, the group's votes split and the group is flagged, instead of the
+marks being quietly read as the same digit. In the prototype, ten groups formed on
+clean renders, one for each digit, each at least 98% pure by the votes, and every
+cell of the sample came out right where per-row unanimity had flagged most charts.
+Votes are pooled across all the pages of a run, so a larger batch makes the groups
+better, not worse; this is also the reason the tool takes a whole directory at once.
 
 The prototype's results across image quality are in the next table. They come from
 fake charts rendered by the prototype itself, and say nothing about real scans; the
@@ -206,9 +206,10 @@ minimum accepted, and the full run, marked slow and run on demand and before the
 README's documented range changes, is the one that supports the claim.
 
 Each row is 18 random fake charts (three runs of six, the votes pooled within a
-run), except the last two, which use 12 charts each and say so; rendered at 300 dpi and 11 point in a monospaced font unless the row says
-otherwise, with the prototype's pipeline and all the checks above. "Wrong" means a
-chart that was accepted and differs from the one rendered.
+run), except the last two, which use 12 charts each and say so; rendered at 300 dpi
+and 11 point in a monospaced font unless the row says otherwise, with the
+prototype's pipeline and all the checks above. "Wrong" means a chart that was
+accepted and differs from the one rendered.
 
 | Image | Accepted and right | Flagged | Wrong |
 | --- | --- | --- | --- |
@@ -270,11 +271,11 @@ in a run with no real `8`s) is the case it cannot see, which the column sums and
 `check_charts` are for, and which the header digits, covered by no sum, are exposed
 to.
 
-The last row of the table above is the strongest, and it is chart-internal: it does not say the pins
-are right for the keys, only that they are a possible stack. It cannot detect two
-errors that cancel, nor an error in a header bitting, which no row repeats. That
-is why this tool is the first of two stages and not the whole answer. After
-accepting a chart, `check_charts` recomputes every row from the header, so a
+The last row of the table above is the strongest, and it is chart-internal: it does
+not say the pins are right for the keys, only that they are a possible stack. It
+cannot detect two errors that cancel, nor an error in a header bitting, which no row
+repeats. That is why this tool is the first of two stages and not the whole answer.
+After accepting a chart, `check_charts` recomputes every row from the header, so a
 header digit read wrongly shows up there as a disagreement at its chamber, and the
 owner, told the position, looks at that chamber and that header on the paper. A
 disagreement at a chamber of a chart that passed every check here is therefore
@@ -325,24 +326,25 @@ There are three outputs and a report, and the difference between them is what
   the rest of the file. The owner finishes the review file by hand, looking at the
   page named in the report, and checks the result like the others.
 
-The report lists, per input and page, the charts accepted and flagged, and for
-each flag its position (row and chamber, or the header line and digit) and its kind
+The report lists, per input and page, the charts accepted and flagged, and for each
+flag its position (row and chamber, or the header line and digit) and its kind
 (unreadable, a count that does not match, the votes did not agree, a check that
 failed). It lists pages skipped as blank, lines ignored, and a count of marks in
 groups too small to vote, and ends with a line that says how many charts were
 accepted, how many failed a check and how many need review, and the exit status is 1
-if any did not pass, as with `check_charts`. None of it contains a digit read from the page.
+if any did not pass, as with `check_charts`. None of it contains a digit read from
+the page.
 
 By default the files are written next to the input, with the input's name and the
-extensions `.txt`, `.failed.txt` and `.review.txt`, since the owner chose that directory and it is
-outside this repository; `-o` chooses another place. The tool will not overwrite an
-existing file without being told to, and it writes nothing else: there are no
-debugging images, because an image of a page is key data in a place the owner did
-not choose. That includes temporary files. Pages are rendered in memory, and each
-crop is handed to Tesseract over its standard input (`tesseract stdin stdout`), so
-that no image of a page ever exists as a file. The three outputs hold key data, and
-SECURITY.md says to treat such files like a password file, so they are created
-readable by their owner alone (mode `0600`), not with the default.
+extensions `.txt`, `.failed.txt` and `.review.txt`, since the owner chose that
+directory and it is outside this repository; `-o` chooses another place. The tool
+will not overwrite an existing file without being told to, and it writes nothing
+else: there are no debugging images, because an image of a page is key data in a
+place the owner did not choose. That includes temporary files. Pages are rendered in
+memory, and each crop is handed to Tesseract over its standard input (`tesseract
+stdin stdout`), so that no image of a page ever exists as a file. The three outputs
+hold key data, and SECURITY.md says to treat such files like a password file, so
+they are created readable by their owner alone (mode `0600`), not with the default.
 
 ## Dependencies and platforms
 
@@ -413,21 +415,21 @@ resolutions and sizes, with skew, blur, noise, speckle, uneven lighting and fain
 ink, and as PDFs by way of Pillow and pypdfium2. For each, the test runs the tool
 and then `check_charts` on the accepted file, and asserts two things: charts in the
 documented range of quality come out accepted and OK, and no accepted chart ever
-differs from the one rendered. The second assertion is the one that matters, and
-the harness runs it on many random charts, not only the fixtures. Corrupted images
-(a digit painted over, a column smudged, a row erased, a page rotated too far,
+differs from the one rendered. The second assertion is the one that matters, and the
+harness runs it on many random charts, not only the fixtures. Corrupted images (a
+digit painted over, a column smudged, a row erased, a page rotated too far,
 resolution too low) must be flagged, never accepted with a wrong value. Tests are
 skipped cleanly when Tesseract or the extra is not installed, and CI installs both
-so that they run there. The privacy promises are tests where Python can check them. One test runs the tool
-with `TMPDIR` pointing at an empty directory and asserts that it is still empty
-afterwards, which holds only if no temporary file, image or otherwise, was written.
-One blocks `socket` in the test process and runs the tool, so that any attempt by the
-Python code to open a connection fails the test. One checks that the three outputs
-are created with mode `0600`. What cannot be checked from inside Python is the
-Tesseract subprocess and the native PDF library: for them "no files, no network" is
-a design rule, kept by how they are called (images over standard input, nothing in
-the command line that names a file or a host), and the document says so rather than
-claiming a test.
+so that they run there. The privacy promises are tests where Python can check them.
+One test runs the tool with `TMPDIR` pointing at an empty directory and asserts that
+it is still empty afterwards, which holds only if no temporary file, image or
+otherwise, was written. One blocks `socket` in the test process and runs the tool,
+so that any attempt by the Python code to open a connection fails the test. One
+checks that the three outputs are created with mode `0600`. What cannot be checked
+from inside Python is the Tesseract subprocess and the native PDF library: for them
+"no files, no network" is a design rule, kept by how they are called (images over
+standard input, nothing in the command line that names a file or a host), and the
+document says so rather than claiming a test.
 
 The limits of the exception to D2 are tested too: one test
 imports every core module with the scanning packages blocked, and one runs the
