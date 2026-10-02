@@ -382,22 +382,28 @@ against the design's gap rule written out separately, exhaustively for one
 chamber, against the Locksmith Ledger's worked example, and against the example
 charts in the design document.
 
-## D29. The simulated lock models the physics, not the answer
+## D29. The simulated lock checks the pins from pins alone
 
 `lock.Lock` is a pin stack per chamber and nothing more: it knows no change keys,
-masters or control keys, and answers which shear lines a key lines up. Its
-geometry is the physical one, a deeper cut lifting the
-stack less (cut 0 the most, cut 9 the least), with the operating shear line at the
-height where bottom pin #n meets cut n and the control line a further control
-offset out, so "a boundary lines up when the pins below it total the cut number"
-comes out of the model and is not assumed by it. That is what makes it an
-independent check. It deliberately does not use the pinner's `Chamber.boundaries`
-or the key-level `operates`, and it ignores the adjacent-cut limit, which belongs
-to the keys and not to the lock. The tests compare it with the key-level counting
-for every key of random three-chamber cores, with the Ledger's example, and with
-the example charts in the design document, and show that splitting a gap into two
-pins creates a working key nobody intended. `joint_on_line` says which joint is on
-a shear line in a chamber, which is what explanations and a later visualizer need.
-It also shows the control cross-operation the checker will report: a key cut like
-a core's control bitting lines up the control line.
+masters or control keys, and answers which shear lines a key lines up. Its geometry
+is physical in form, a deeper cut lifting the stack less (cut 0 the most, cut 9 the
+least), with the operating shear line at the height where bottom pin #n meets cut n
+and the control line a further control offset out. Review pointed out that this is
+less independent than it first read: in the arithmetic the lift cancels, a joint
+being on the operating line exactly when the pins below it total the cut, so the
+lock models nothing the pinner's rule does not also encode, and the calibration
+(pin #n with cut n) is an input that it cannot check. What it does check, from the
+pins alone, is the pinner's construction (the gaps, the partial sums, the driver
+making up the total) and the key-level counting, and it does not use the pinner's
+`Chamber.boundaries` or the key-level `operates`. It ignores the adjacent-cut
+limit, which belongs to the keys and not to the lock.
 
+The tests compare it with the key-level counting for every key of random
+three-chamber cores, with the Ledger's example and with the example charts in the
+design document, and show that splitting a gap into two pins creates a working key
+nobody intended. Because the algebra alone would hide a sign slip in the lift, they
+also place the stack at hand-worked absolute heights (`joint_heights`) against
+shear lines written down separately. `joint_on_line` says which joint is on a shear
+line in a chamber, which is what explanations and a later visualizer need. It also
+shows the control cross-operation the checker will report: a key cut like a core's
+control bitting lines up the control line.

@@ -1,19 +1,25 @@
 """A simulated lock, built from pin stacks alone.
 
 A lock is a pin stack per chamber and nothing else: it knows nothing of change
-keys, masters or control keys, only which shear lines a key lines up. That
-makes it an independent check on the pinner and on the key-level counting, and
-its geometry (stacks, joints, lift, which line is aligned where) is what a
-visualizer would draw.
+keys, masters or control keys, only which shear lines a key lines up. Built from
+the pins alone, it checks the pinner's construction (the gaps, the partial sums,
+the driver making up the total) and the key-level counting against one rule, the
+calibration that bottom pin #n goes with cut n. It does not derive that
+calibration and cannot catch a mistake in it. Its geometry (stacks, joints, lift,
+which line is aligned where) is what a visualizer would draw.
 
-The geometry is physical. A cut is a depth, so a deeper cut lifts the stack by
-less: cut 0 gives the most lift, `depths - 1` the least. Heights are measured
-in the pinning system's increments. The operating shear line is `depths - 1`
-above the stack's resting position at the deepest cut, which is calibrated so
-that bottom pin #n goes with cut n, and the control shear line is
-`control_offset` further out. A line is aligned in a chamber when a joint between
-two pins sits exactly on it; a key operates the lock (or its control) when every
-chamber is aligned.
+The geometry is physical in form. A cut is a depth, so a deeper cut lifts the stack
+by less: cut 0 gives the most lift, `depths - 1` the least. Heights are measured
+in the pinning system's increments, from the stack's resting position at the
+deepest cut. The operating shear line is `depths - 1` above that, which is the
+calibration, and the control shear line is `control_offset` further out. A joint
+between two pins sits at the key's lift plus the pins below it, and a line is
+aligned in a chamber when a joint sits exactly on it; a key operates the lock (or
+its control) when every chamber is aligned. In the arithmetic the lift cancels (a
+joint is on the operating line when the pins below it total the cut), so the lock
+models nothing the pinner's rule does not also encode; `joint_heights` exposes
+the absolute heights so that the tests can check them against hand-worked
+numbers.
 """
 from itertools import accumulate
 
@@ -43,12 +49,17 @@ class Lock:
             return self.system.depths - 1 + self.system.control_offset
         raise ValueError(f"unknown shear line {line!r}")
 
+    def joint_heights(self, position, cut):
+        """The absolute height of each joint between pins in this chamber when a key
+        with this cut is in: the key's lift plus the pins below the joint."""
+        return tuple(self.lift(cut) + reached
+                     for reached in accumulate(self.stacks[position][:-1]))
+
     def joint_on_line(self, position, cut, line):
         """The joint (1 = between the first two pins) that sits on the shear line in
         this chamber when a key with this cut is in, or None if a pin straddles it."""
-        height = self.shear_height(line) - self.lift(cut)       # height within the stack
-        for joint, reached in enumerate(accumulate(self.stacks[position][:-1]), 1):
-            if reached == height:
+        for joint, height in enumerate(self.joint_heights(position, cut), 1):
+            if height == self.shear_height(line):
                 return joint
         return None
 
