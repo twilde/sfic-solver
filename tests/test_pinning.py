@@ -6,7 +6,7 @@ import pytest
 
 from sfic_solver import pinning
 from sfic_solver.pinning import A2, Chamber, PinningError, pin_chamber, pin_core
-from test_design_docs import example_charts
+from helpers import example_charts
 
 
 def test_the_ledgers_worked_example():

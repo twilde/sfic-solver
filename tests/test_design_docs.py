@@ -4,6 +4,7 @@ import re
 import pytest
 
 from conftest import ROOT
+from helpers import example_charts, parse_rows
 
 DESIGNS = sorted((ROOT / "docs" / "designs").glob("*.md"))
 STATUSES = {"Draft", "Accepted", "Implemented", "Superseded"}
@@ -28,24 +29,6 @@ def test_design_document_is_indexed_in_the_log(path):
     assert f"(designs/{path.name})" in log
 
 
-def example_charts():
-    """The charts in the core pinning document: (header keys, control, rows by label)."""
-    text = (ROOT / "docs" / "designs" / "core-pinning.md").read_text()
-    block = re.search(r"```\n(Key System = .*?)```", text, re.S).group(1)
-    charts = []
-    for chart in re.split(r"\n-{10,}\n", block):
-        header, _, body = chart.strip().partition("\n\n")
-        fields = dict(re.findall(r"^(.+?) = (.+)$", header, re.M))
-        assert header.splitlines()[:5] == [
-            f"{label} = {fields[label]}"
-            for label in ("Key System", "System", "Core", "Date", "Control Key")]
-        control = fields["Control Key"]
-        reserved = {"Key System", "System", "Core", "Date", "Control Key"}
-        keys = [v for k, v in fields.items() if k not in reserved]
-        charts.append((fields, keys, control, parse_rows(body)))
-    return charts
-
-
 def test_core_pinning_document_has_example_charts():
     charts = example_charts()
     assert [c[0]["Core"] for c in charts] == [
@@ -60,14 +43,6 @@ def test_core_pinning_unit_charts_name_their_unit_in_the_core_line():
     for fields, *_ in unit_charts:
         unit = next(k for k in fields if k.startswith("unit:"))
         assert f"({unit})" in fields["Core"]
-
-
-def parse_rows(body):
-    rows = []
-    for line in body.strip().splitlines():
-        label, *cells = line.split()
-        rows.append((label, [None if c == "--" else int(c) for c in cells]))
-    return rows
 
 
 def assert_chart_is_the_pins_for_its_keys(where, keys, control, rows):
