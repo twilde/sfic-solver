@@ -340,3 +340,18 @@ and is identical. Two small tidy-ups came with it: `count_valid` was a second co
 of `operating_set_size` fed with the allowed cuts, so it is now the same call, and
 a `KeySpace` refuses a pattern whose length is not the pin count, where the old
 functions would have silently compared the shorter of the two.
+
+## D27. Pinning systems are records in a registry
+
+Step 2 of core pinning (D25) starts with the numbers that define A2. A
+`PinningSystem` is a frozen record of the name, the increment, the cut depth
+count, the stack total, the bottom and other pin number ranges and the control
+offset, and `pinning.SYSTEMS` maps names to records, with `get_system` finding
+one by name in any case and refusing an unknown name with the list of known ones.
+A2 is the only entry. A3 and A4 have a stack total and a control offset in the
+Locksmith Ledger guide but no pin ranges, so they stay out until a source gives
+all the numbers. The record refuses nonsense (inverted ranges, a control line
+that would fall outside the stack) so that a mistyped future entry fails when it
+is defined and not when a chart looks wrong. The record is data, not logic: the
+pinner reads these numbers and nothing is hard-coded to A2.
+
