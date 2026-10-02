@@ -332,8 +332,8 @@ any weight or algorithm for files that do not opt in (D6).
 
 An owner whose pinning charts exist only on paper needs them as text before
 `check_charts` can run on them. [designs/chart-scanning.md](designs/chart-scanning.md)
-(accepted) designs a local tool for that, and `sfic-scan-charts` is built through
-its step 3. What it commits to:
+(accepted) designs a local tool for that, and `sfic-scan-charts` is built, with its
+test harness (step 4); the README section is step 5. What it commits to:
 
 The tool transcribes and never repairs. It never consults the pinner or the
 pinning rules to choose a reading, because a tool that quietly "fixes" what it
@@ -350,6 +350,20 @@ on the document itself. Per-row agreement among Tesseract's readings was shown t
 flag most charts yet still pass a systematic misreading, which the votes on
 shapes catch. The check that every chamber's pins add up to the stack total is
 the strongest chart-internal test, and it only ever flags.
+
+**It is tested on charts drawn at test time.** No scan is ever committed or
+described, so the tests draw charts that the pinner computes from random fake
+bittings and read them with the real pipeline (`tests/scan_harness.py`). What every
+condition must show is that no chart is accepted that differs from the one drawn;
+how many are accepted is a second, softer assertion. A small seeded sample per
+condition always runs (image damage, fonts, a cell or row erased or inked over,
+pages too poor to read, margin notes, a PDF), and takes about six minutes because a
+chart costs six or seven seconds. The 1,000-chart run that would support a claim in
+the README is a slow tier, `pytest --runslow`, run by hand and not yet made. In a
+sample of 120 clean and degraded charts nothing wrong was accepted, and about one
+chart in twelve was flagged by the dissent check even on a clean image
+([issue #12](https://github.com/twilde/sfic-solver/issues/12)); the
+figures and what the harness covers are in the design document.
 
 **Scans are processed locally, always.** A scan of a chart is the chart: the pin
 sizes can be read off it, so any service that receives the image receives the key
@@ -459,8 +473,8 @@ early and on our terms. Runners are pinned rather than `ubuntu-latest` because
 not the kind of failure to take by surprise. Once the rollout finishes (by
 2026-11-19) the pins can be replaced by `ubuntu-latest`, which is on the TODO
 list. The test jobs install Tesseract and the fonts the scanning tests draw with
-and the `scan` extra, so those tests run in CI and skip elsewhere, and a last step
-runs the installed commands. Action versions are tracked by major tag and chosen
+and the `scan` extra, so those tests, the quality tests included, run in every CI
+job and skip elsewhere, and a last step runs the installed commands. Action versions are tracked by major tag and chosen
 to run on Node 24 (D14, D15).
 
 **Dependabot** opens one grouped pull request a week for GitHub Actions only,

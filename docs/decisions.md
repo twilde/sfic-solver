@@ -412,3 +412,15 @@ long forms are in the git history before it. Alternatives rejected: one file per
 (D24) and keeping the long entries and fixing contradictions by hand.
 
 Detail: [design.md, "How the documentation fits together"](design.md#how-the-documentation-fits-together).
+
+## D42. The scanner is tested on drawn charts in two tiers
+
+A tool that reads paper charts cannot be tested on real ones, so tests draw random
+fake charts and read them with the real pipeline. The always-on tier reads three
+charts per image condition and asserts that none is accepted wrong and that most are
+accepted; the slow tier (`--runslow`, 1,000 charts per condition, hours) is what could
+support a claim in the README, and has not yet been run. The design had planned tens of
+charts per condition in CI, but a chart costs six to seven seconds, so three it is.
+
+Detail: [design.md, "Reading scanned charts"](design.md#reading-scanned-charts),
+[designs/chart-scanning.md](designs/chart-scanning.md).
