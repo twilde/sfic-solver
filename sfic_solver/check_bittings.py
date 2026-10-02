@@ -41,6 +41,8 @@ def main(argv=None):
 
     if args.pins is not None and args.pins < 1:
         ap.error("--pins must be at least 1")
+    if args.max_step < 1:
+        ap.error("--max-step must be at least 1")
     if args.pins is not None:
         pins = args.pins
     elif args.pattern:

@@ -518,14 +518,16 @@ first line saying so).
 The new code is mostly new modules beside the existing ones: the pinning system
 record and its registry, the pinner (cuts for one core in, pins out, or a
 specific reason it cannot be built), the simulated lock, and a chart renderer.
-The config loader gains the `pinning` field, a `control` entry on each core
-(naming one key from `control_keys`), an optional name for the system, and the
-`retired_cores` list described above, and validates them like the rest. The
-checker, when a pinning system is set, adds to its report which cores cannot be
-pinned and why (the chamber and the gap), any key that operates a core's control
-shear line, and the retired-core consistency check. A new command, in the same
-style as the others (`sfic-pin-system`, with a root script), prints the pinning
-chart for every core in the layout above.
+The config loader gains the `pinning` field (and refuses a pinning system whose
+cut depth count differs from the key space's, since both default to 10 but are
+separate numbers), a `control` entry on each core (naming one key from
+`control_keys`), an optional name for the system, and the `retired_cores` list
+described above, and validates them like the rest. The checker, when a pinning
+system is set, adds to its report which cores cannot be pinned and why (the
+chamber and the gap), any key that operates a core's control shear line, and
+the retired-core consistency check. A new command, in the same style as the
+others (`sfic-pin-system`, with a root script), prints the pinning chart for
+every core in the layout above.
 
 Two of the changes are not additive and need agreement. The first is that
 pinnability becomes a hard rule for the solver alongside cross-operation and

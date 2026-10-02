@@ -43,9 +43,19 @@ class KeySpace:
     depths: int = DEFAULT_DEPTHS
 
     def __post_init__(self):
-        if self.pattern is not None and len(self.pattern) != self.pins:
-            raise ValueError(f"pattern has {len(self.pattern)} characters "
-                             f"but the key space has {self.pins} pins")
+        for name in ("pins", "max_step", "depths"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValueError(f"{name} must be a whole number of at least 1, got {value!r}")
+        if self.depths > 10:
+            raise ValueError(f"depths must be at most 10 (a bitting is one digit per cut), "
+                             f"got {self.depths}")
+        if self.pattern is not None:
+            if not isinstance(self.pattern, str) or set(self.pattern) - {"E", "O"}:
+                raise ValueError(f"pattern must be E or O for each pin, got {self.pattern!r}")
+            if len(self.pattern) != self.pins:
+                raise ValueError(f"pattern has {len(self.pattern)} characters "
+                                 f"but the key space has {self.pins} pins")
 
     def is_bitting(self, text):
         """True if `text` is a string of exactly `pins` digits, each a legal depth."""

@@ -123,6 +123,28 @@ def test_key_space_rejects_a_pattern_of_the_wrong_length():
         model.KeySpace(7, "EOE")
 
 
+@pytest.mark.parametrize("kwargs, message", [
+    ({"pins": 0}, "pins must be a whole number of at least 1"),
+    ({"pins": -3}, "pins must be a whole number of at least 1"),
+    ({"pins": 7.0}, "pins must be a whole number of at least 1"),
+    ({"pins": True}, "pins must be a whole number of at least 1"),
+    ({"max_step": 0}, "max_step must be a whole number of at least 1"),
+    ({"depths": 0}, "depths must be a whole number of at least 1"),
+    ({"depths": 11}, "depths must be at most 10"),
+    ({"pins": 3, "pattern": "EOX"}, "pattern must be E or O for each pin"),
+    ({"pins": 3, "pattern": "eoe"}, "pattern must be E or O for each pin"),
+    ({"pins": 3, "pattern": ["E", "O", "E"]}, "pattern must be E or O for each pin"),
+])
+def test_key_space_refuses_nonsense_at_construction(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        model.KeySpace(**kwargs)
+
+
+def test_key_space_accepts_the_smallest_sensible_values():
+    space = model.KeySpace(pins=1, pattern="E", max_step=1, depths=1)
+    assert space.digits == ((0,),) and space.total_valid == 1
+
+
 def test_key_space_is_immutable_and_hashable():
     space = model.KeySpace(7, "OOEOEOE", 5)
     with pytest.raises(AttributeError):
