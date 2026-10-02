@@ -33,10 +33,10 @@ class Builder:
         return asm.Cell(False, self.digits(text, unreadable))
 
     def records(self, truth, system="A2", drop=(), swap=None, unreadable=None,
-                cells_changed=None, extra_cell=None):
+                cells_changed=None, extra_cell=None, start=1):
         unreadable = unreadable or {}
         out = []
-        number = 0
+        number = start - 1
 
         def line(kind, **kw):
             nonlocal number
@@ -62,8 +62,8 @@ class Builder:
             out.append(line(label, cells=built))
         return out
 
-    def page(self, records):
-        return asm.PageRecord(1, 1, records)
+    def page(self, records, ignored=()):
+        return asm.PageRecord(1, 1, records, ignored=list(ignored))
 
     def run(self, truth, **kw):
         records = self.records(truth, **kw)
@@ -174,16 +174,70 @@ def test_a_key_of_the_wrong_length_goes_to_review(truth):
     assert any("different length" in f for f in chart.flags)
 
 
-def test_two_charts_on_a_page_are_numbered_and_lines_before_the_first_are_orphans():
+def test_two_charts_on_a_page_are_numbered():
     builder = Builder()
     first = random_chart(random.Random(1))[1]
     second = random_chart(random.Random(2))[1]
-    records = ([asm.LineRecord(1, "Bottom", cells=[])] + builder.records(first)
-               + builder.records(second))
-    drafts, orphans = asm.split_charts(records)
-    assert len(drafts) == 2 and orphans == [1]
+    records = builder.records(first) + builder.records(second, start=20)
+    assert len(asm.split_charts(records)) == 2
     found = asm.assemble(builder.page(records), asm.Resolved(builder.marks))
     assert [c.number for c in found] == [1, 2] and [c.status for c in found] == [asm.ACCEPTED] * 2
+
+
+def test_lines_before_the_first_system_line_are_a_chart_to_review_not_nothing():
+    # The reviewer's reproduction: a chart whose System line was not recognised, so its
+    # other lines come first, followed by a System line of an invented unknown system.
+    records = [asm.LineRecord(1, charts.CONTROL_KEY), asm.LineRecord(2, charts.MASTER_KEY),
+               asm.LineRecord(3, "T/D"),
+               asm.LineRecord(4, charts.SYSTEM, system="NOT A REAL SYSTEM 4B")]
+    found = asm.assemble(asm.PageRecord(1, 1, records), asm.Resolved([]))
+    assert len(found) == 2
+    orphans = found[0]
+    assert orphans.status == asm.REVIEW
+    assert any("System header line is missing" in f for f in orphans.flags)
+    assert (orphans.first_line, orphans.last_line) == (1, 3)
+    assert found[1].status == asm.REVIEW
+
+
+def test_a_page_whose_first_system_line_was_ignored_cannot_come_out_clean():
+    # Two good charts, but the first one's System line was misread and is ignored.
+    builder = Builder()
+    first = random_chart(random.Random(31))[1]
+    second = random_chart(random.Random(32))[1]
+    one = builder.records(first, start=1)
+    two = builder.records(second, start=20)
+    records = one[1:] + two                      # the first System line is not there
+    found = asm.assemble(builder.page(records, ignored=[1]), asm.Resolved(builder.marks))
+    assert [c.status for c in found] == [asm.REVIEW, asm.ACCEPTED]
+    assert any("System header line is missing" in f for f in found[0].flags)
+
+
+def test_a_missed_system_line_between_charts_flags_the_chart_that_swallows_the_next():
+    builder = Builder()
+    first = random_chart(random.Random(33))[1]
+    second = random_chart(random.Random(34))[1]
+    records = builder.records(first) + builder.records(second, start=20)[1:]   # no System
+    found = asm.assemble(builder.page(records, ignored=[20]), asm.Resolved(builder.marks))
+    assert len(found) == 1 and found[0].status == asm.REVIEW
+
+
+def test_a_line_that_was_not_recognised_inside_a_chart_sends_it_to_review(truth):
+    builder = Builder()
+    records = builder.records(truth)
+    inside = records[6].number                     # a row of the chart
+    found = asm.assemble(builder.page(records, ignored=[inside]), asm.Resolved(builder.marks))
+    [chart] = found
+    assert chart.status == asm.REVIEW
+    assert any(f"line {inside}" in f and "inside this chart" in f for f in chart.flags)
+
+
+def test_a_title_above_and_a_page_number_below_a_chart_do_not_spoil_it(truth):
+    builder = Builder()
+    records = builder.records(truth, start=3)       # lines 1 and 2: a title block
+    below = records[-1].number + 1                  # and a page number after the last row
+    found = asm.assemble(builder.page(records, ignored=[1, 2, below]),
+                         asm.Resolved(builder.marks))
+    assert [c.status for c in found] == [asm.ACCEPTED]
 
 
 def test_flags_name_positions_and_never_a_value(truth):

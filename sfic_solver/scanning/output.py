@@ -79,7 +79,9 @@ def chart_lines(chart):
     if chart.status == assemble.ACCEPTED:
         return [f"{where}: accepted"]
     head = "failed a check" if chart.status == assemble.FAILED else "needs review"
-    return [f"{where}: {head}"] + [f"    {flag}" for flag in chart.flags]
+    span = [f"    (lines {chart.first_line} to {chart.last_line} of the page)"] \
+        if chart.first_line else []
+    return [f"{where}: {head}"] + span + [f"    {flag}" for flag in chart.flags]
 
 
 def report(scan, version=""):

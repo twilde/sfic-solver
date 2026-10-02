@@ -110,3 +110,13 @@ def test_blank_pages_small_text_missing_charts_ignored_lines_and_margins_are_rep
 def test_a_run_that_found_nothing_is_not_ok():
     lines, ok = output.report(make_scan([asm.PageRecord(1, 1, blank=True)], []))
     assert not ok and "0 chart(s) accepted" in "\n".join(lines)
+
+
+def test_a_flagged_chart_says_which_lines_of_the_page_it_covers():
+    flagged = chart(asm.REVIEW, flags=["the System header line is missing"])
+    flagged.first_line, flagged.last_line = 1, 3
+    lines, ok = output.report(make_scan([asm.PageRecord(1, 1)], [flagged]))
+    assert "    (lines 1 to 3 of the page)" in lines and not ok
+    # an accepted chart needs no position, and a chart with no span says nothing of one
+    assert not any("lines" in l for l in output.chart_lines(chart(asm.ACCEPTED)))
+    assert not any("of the page)" in l for l in output.chart_lines(chart(asm.REVIEW)))

@@ -77,6 +77,8 @@ class Chart:
     status: str
     text: str
     flags: List[str]
+    first_line: int = 0        # the lines of the page it spans, for the report
+    last_line: int = 0
 
 
 class Resolved:
@@ -94,16 +96,16 @@ class Resolved:
 
 def split_charts(records):
     """Group a page's classified lines into chart drafts: a chart starts at a System
-    line and runs to the next. Lines before the first System line belong to none."""
-    drafts, orphans = [], []
+    line and runs to the next. Lines before the first System line are a draft of their
+    own, which has no System line and so goes to review: they are a chart whose System
+    line was not recognised, and dropping them would drop the chart without a trace."""
+    drafts = []
     for record in records:
-        if record.kind == charts.SYSTEM:
+        if record.kind == charts.SYSTEM or not drafts:
             drafts.append([record])
-        elif drafts:
-            drafts[-1].append(record)
         else:
-            orphans.append(record.number)
-    return drafts, orphans
+            drafts[-1].append(record)
+    return drafts
 
 
 def read_digits(marks, resolved):
@@ -131,7 +133,7 @@ def cell_text(cell, resolved):
 
 def assemble(page, resolved, first_number=1):
     """The Charts on a page, in order, from its PageRecord and resolved marks."""
-    drafts, _ = split_charts(page.lines)
+    drafts = split_charts(page.lines)
     return [chart_from(page, number, draft, resolved)
             for number, draft in enumerate(drafts, first_number)]
 
@@ -141,12 +143,23 @@ def chart_from(page, number, draft, resolved):
     headers = {r.kind: r for r in draft if r.kind in HEADER_ORDER}
     rows = [r for r in draft if r.kind not in HEADER_ORDER]
     complete = True
+    first, last = draft[0].number, draft[-1].number
+
+    # A line the page has inside this chart's lines that was not recognised is
+    # something printed in the chart that was not read (a dropped row, say). A title
+    # above the chart or a page number below it is outside, and only reported.
+    for number in page.ignored:
+        if first < number < last:
+            flags.append(f"line {number} of the page, inside this chart, was not recognised")
+            complete = False
 
     # --- structure -------------------------------------------------------------
     order = [r.kind for r in draft if r.kind in HEADER_ORDER]
     for name in HEADER_ORDER:
         if name not in headers:
-            flags.append(f"the {name.title()} header line is missing")
+            where = f" (the lines of the page from {first} to {last} have no System line " \
+                    f"above them)" if name == charts.SYSTEM else ""
+            flags.append(f"the {name.title()} header line is missing{where}")
             complete = False
     if complete and order != list(HEADER_ORDER):
         flags.append("the header lines are not in the order System, Control Key, "
@@ -224,7 +237,7 @@ def chart_from(page, number, draft, resolved):
         flags.extend(problems)
         status = FAILED if problems else ACCEPTED
     return Chart(page.source, page.number, number, status,
-                 format_chart(header_text, row_cells), flags)
+                 format_chart(header_text, row_cells), flags, first, last)
 
 
 def check_chart(system, row_cells):

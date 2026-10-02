@@ -556,6 +556,19 @@ it (its characters dropped again); the two fail in different places and all the
 usable readings vote. That doubles the Tesseract calls: in the tests a chart takes
 about six seconds on four cores, not the two to three the prototype took.
 
+A line that is not recognised is judged by where it sits. A line that is neither a
+header line nor a row is "ignored" and reported, but it must never be how a chart
+disappears, and a rule that any ignored line fails the run would fail every page with
+a title or a page number. So position decides. An ignored line *inside* a chart's
+lines (between its first and last recognised line) is something printed in the chart
+that was not read, such as a dropped row, and the chart goes to review. Recognised
+lines above the first System line of a page are a chart whose System line was not
+recognised, and they are a chart of their own, in review, with no System line, and
+not nothing. A title above a chart or a page number below it is outside every chart
+and only reported. A System line that is missed between two charts makes the second
+chart's header lines follow the first chart's rows, which the structure check refuses,
+so the first chart goes to review as well.
+
 The equals sign is found by structure and not by look. Fonts draw it as two bars, a
 wider pair, or a single bar that blurs flat, so it is a single flat glyph narrower
 than a `--` cell, after one or two label words and before a value.
