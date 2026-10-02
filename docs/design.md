@@ -441,8 +441,14 @@ files, or `SFIC_CHARTS` when given no path, and does nothing when it has neither
 The report holds counts and positions (file, chart and chamber, numbered in the
 order given) and no key, core or building name, bitting or pin size, so it is safe
 to quote in an issue, and a test checks that on a deliberately wrong chart.
-`--details` adds the pin sizes and the pinner's reasons for the owner's own
-use, and says not to share them. The exit status is 1 for any disagreement or
+Every message is fixed text: a chart that names a pinning system the tools do not
+have is reported as exactly that, without the name (a chart's `System` line is
+chart content, and could hold anything), and a last-resort handler turns any
+unexpected error into a fixed message, so that a future slip cannot quote a chart.
+`--details` adds the pin sizes, the system name and the underlying errors for the
+owner's own use, and says not to share them. The summary counts compared, agreeing
+and disagreeing charts, charts that could not be checked and files that could not
+be read separately, so that one kind of failure cannot skew another's count. The exit status is 1 for any disagreement or
 unreadable chart. It has been tested on fake charts computed independently of the
 pinner; whether it agrees with real charts is for their owner to find out
 locally, which is the point of the step.

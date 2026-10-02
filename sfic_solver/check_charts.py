@@ -29,6 +29,15 @@ from . import charts, pinning
 ENV_VAR = "SFIC_CHARTS"
 
 
+class Uncheckable(Exception):
+    """A chart that cannot be compared at all. `reason` is safe to print; `detail` may
+    quote the chart and is shown only with --details."""
+
+    def __init__(self, reason, detail=""):
+        super().__init__(reason)
+        self.reason, self.detail = reason, detail
+
+
 def check_chart(chart):
     """Where the pinner disagrees with a chart: a list of (chamber, kind, detail).
 
@@ -37,7 +46,10 @@ def check_chart(chart):
     bottom) or "invalid" (a cut the pinning system does not have). detail holds
     the pin sizes, which are key data.
     """
-    system = pinning.get_system(chart.system)
+    try:
+        system = pinning.get_system(chart.system)
+    except ValueError as err:
+        raise Uncheckable("names a pinning system the tools do not have", str(err)) from None
     keys = [[int(c) for c in bitting] for _, bitting in chart.keys]
     control = [int(c) for c in chart.control]
     problems = []
@@ -107,11 +119,21 @@ def main(argv=None):
             print(f"file {file_number}: {err}")
             n["unreadable"] += 1
             continue
+        except ValueError as err:          # last resort: whatever it was, do not quote it
+            print(f"file {file_number}: could not be read (unexpected content)")
+            if args.details:
+                print(f"    {err}")
+            n["unreadable"] += 1
+            continue
         for chart_number, chart in enumerate(parsed, 1):
             try:
                 problems = check_chart(chart)
-            except ValueError as err:
-                print(f"file {file_number}, chart {chart_number}: {err}")
+            except (Uncheckable, ValueError) as err:   # ValueError: last resort, never quoted
+                reason = err.reason if isinstance(err, Uncheckable) else "could not be checked"
+                detail = err.detail if isinstance(err, Uncheckable) else str(err)
+                print(f"file {file_number}, chart {chart_number}: {reason}")
+                if args.details and detail:
+                    print(f"    {detail}")
                 n["unchecked"] += 1
                 continue
             n["compared"] += 1

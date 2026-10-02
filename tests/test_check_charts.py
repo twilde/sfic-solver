@@ -136,11 +136,54 @@ def test_an_unknown_pinning_system_is_reported(tmp_path, capsys):
     path.write_text(break_chart(LEGACY.read_text(), "System = A2", "System = A9"))
     assert main([str(path)]) == 1
     out = capsys.readouterr().out
-    assert "unknown pinning system" in out
+    assert "file 1, chart 1: names a pinning system the tools do not have" in out
+    assert "A9" not in out and "known systems" not in out
     assert ("Checked 1 file(s), 2 chart(s), 14 chamber(s): 2 chart(s) agree with the pinner, "
             "0 do not (0 chamber(s)); 1 chart(s) could not be checked; "
             "0 file(s) could not be read.") in out
     assert "OK" not in out
+
+
+def test_a_pinning_system_named_like_a_building_is_not_echoed(tmp_path, capsys):
+    path = tmp_path / "c.txt"
+    path.write_text(break_chart(LEGACY.read_text(), "System = A2", "System = Maple Court 4B"))
+    assert main([str(path)]) == 1
+    out = capsys.readouterr().out
+    assert "Maple" not in out and "4B" not in out
+    assert "names a pinning system the tools do not have" in out
+    assert main([str(path), "--details"]) == 1               # the owner can still see it
+    assert "Maple Court 4B" in capsys.readouterr().out
+
+
+def test_an_unexpected_error_is_reported_without_quoting_the_chart(tmp_path, capsys, monkeypatch):
+    path = tmp_path / "c.txt"
+    path.write_text(LEGACY.read_text())
+    secret = "ValueError text with 9743854 in it"
+
+    def explode(chart):
+        raise ValueError(secret)
+    monkeypatch.setattr("sfic_solver.check_charts.check_chart", explode)
+    assert main([str(path)]) == 1
+    out = capsys.readouterr().out
+    assert "file 1, chart 1: could not be checked" in out
+    assert "9743854" not in out and "ValueError" not in out
+    assert "3 chart(s) could not be checked" in out
+    assert main([str(path), "--details"]) == 1
+    assert secret in capsys.readouterr().out
+
+
+def test_an_unexpected_error_while_reading_is_reported_without_quoting(tmp_path, capsys,
+                                                                       monkeypatch):
+    path = tmp_path / "c.txt"
+    path.write_text(LEGACY.read_text())
+
+    def explode(text):
+        raise ValueError("secret 9743854")
+    monkeypatch.setattr("sfic_solver.charts.parse_charts", explode)
+    assert main([str(path)]) == 1
+    out = capsys.readouterr().out
+    assert "file 1: could not be read (unexpected content)" in out
+    assert "secret" not in out and "9743854" not in out
 
 
 def test_an_unreadable_file_beside_a_disagreeing_chart_is_counted_separately(tmp_path, capsys):
