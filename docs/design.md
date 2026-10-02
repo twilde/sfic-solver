@@ -306,7 +306,7 @@ data record, not code; MACS stays a system parameter; and the work opts in per
 system file so that existing files keep their meaning. The real constraint on
 bittings is that two operating cuts in one chamber of one core must not differ
 by exactly one (and a control cut of 0 cannot share a chamber with an operating
-cut of 9), which is weaker than parity; the maintainer has seen real odd-sized
+cut of 9), which is weaker than parity; real systems use odd-sized
 master pins, so that rule is the default and the `pattern` field stays only for
 owners who want the conservative style. The retired keys of a rekey are evidence
 about unit keys nobody has decoded, since the old cores had to be pinnable, and
@@ -315,7 +315,7 @@ the old pinning is described generically, as a list of retired cores shaped like
 the current ones. Charts name the key system, the core, the unit and the date, so
 they are key data, and the data-file guard grows to `.txt` and `.pdf` as the
 features that read or write them are built. The conformance reader also takes
-the legacy layout of the maintainer's old software (one master line and one
+the legacy layout of older keying software (one master line and one
 comma-separated list of change keys), which the tools never write.
 Pinnability as a hard rule in the solver, and the new residual-risk population,
 are flagged there for agreement before they are built.

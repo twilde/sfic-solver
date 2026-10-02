@@ -153,11 +153,11 @@ notes that a 6-pin A2 master key system "will generate 4096 change keys". That i
 4 to the sixth power: with the master at cut 1, the change cuts at each position
 are 3, 5, 7 and 9. The gap rule alone allows 3 through 9, seven cuts at each
 position and 117,649 change keys for the same master. So the published practice
-is narrower than the pins require. The maintainer has seen a real system with
-odd-sized master pins and cannot see why the article holds back; it may simply be
-conservative, or following an even-and-odd convention of its own. Either way the
-pins say what is possible, so the design takes the hardware rule as the default.
-Two keys in one chamber of one core are fine if their cuts are equal (the pin
+is narrower than the pins require. Real systems use odd-sized master pins (the
+maintainer has seen them), so it is unclear why the article holds back; it may
+simply be conservative, or following an even-and-odd convention of its own. Either
+way the pins say what is possible, so the design takes the hardware rule as the
+default. Two keys in one chamber of one core are fine if their cuts are equal (the pin
 between them is simply omitted, which is why a gap of 0 is allowed) or differ by
 2 or more, and are not fine if they differ by exactly 1, because no pin that short
 exists. The same holds for a control pin. The existing `pattern` field stays for
@@ -183,10 +183,10 @@ allows. If the unit keys already exist, the master has to be found to fit them.
 With many unrelated keys the chance that a random master fits them all collapses
 (a fifth per key, so a vanishing fraction for a hundred), and even a master found
 to fit the decoded ones may clash with a unit key not yet decoded. Parity would
-make that safe, if every undecoded key were known to follow the pattern, but in
-the building this tool was originally built for there are no original records: the
-unit keys follow what was possible, and nobody can say they follow a parity
-pattern. So parity cannot be the assumption that completes the check here. The
+make that safe, if every undecoded key were known to follow the pattern, but in a
+building that was rekeyed without original records the unit keys follow whatever
+was possible, and nobody can say they follow a parity pattern. So parity cannot be
+the assumption that completes the check there. The
 retired keys can, as the next section describes. Where every key under a master is
 known, the tools check the gap rule per core and need no assumption at all. And in
 a new system the order of generation flips: choose the masters first, then draw
@@ -196,27 +196,27 @@ that parity leaves.
 
 ## What the retired keys tell us
 
-A rekey starts from a building whose original keys are known. In this one the old
-system had a single master and a single control, which together covered the units
-and the common areas, and they are held as `retired_keys`. The tools already use
+A rekey starts from a building whose original keys are known. Take an old system
+with a single master and a single control, which together covered the units and
+the common areas: they are held as `retired_keys`. The tools already use
 them to make sure that the new cores refuse them. They also hold information,
 because the old cores were physically pinned, and a core can only be pinned if no
 two of its keys differ by exactly one in any chamber. So every unit key that sat
 in an old core with the old master, decoded or not, avoids that master's cut plus
 or minus one at every position. That needs no guess about how the unit keys were
 chosen. It rests only on the old cores having been pinned as the old hierarchy
-says, which is a fact about the building and not about its history. The old
+says, which is a fact about the old installation and not about its history. The old
 control key adds a weaker constraint of the same kind: it excludes a unit cut of 9
 wherever the old control's cut is 0.
 
-Other buildings will have had other histories, such as several masters, an area
-master above a unit master, or separate controls for units and common areas, so
-the description of the old pinning is generic and not built around this one. A
+Buildings differ in their histories: several masters, an area master above a unit
+master, or separate controls for units and common areas, so the description of the
+old pinning is generic and not built around any one building. A
 system file may carry a `retired_cores` list in the same shape as `cores`: a
 name, the keys that were the change keys (names, or wildcards such as `unit:*` so
 that undecoded unit keys are covered), the retired keys pinned above them as
-`masters`, and the retired `control` key. This building needs one entry, and a
-richer history is simply more entries. A sketch, with invented names:
+`masters`, and the retired `control` key. The single-master history above needs one
+entry, and a richer history is simply more entries. A sketch, with invented names:
 
 ```json
 "retired_cores": [
@@ -354,10 +354,10 @@ model on all the keys a small lock can have. These run in the test suite on fake
 bittings. The second layer is published worked examples, such as the one in the
 Locksmith Ledger guide, which have known answers and can be committed.
 
-The third layer is real charts. The maintainer holds pinning charts for a set of
-proposals for a real system, kept outside this repository. They were set aside
-because a better generation method came along, not because they were invalid, so
-every one of them is a valid pinning with valid bittings. That makes them
+The third layer is real charts. An owner may hold pinning charts for a real
+system, kept outside this repository, perhaps including proposals that were set
+aside for reasons other than being invalid. Every such chart is a valid pinning
+with valid bittings. That makes them
 excellent positive cases and no negative ones: from each chart's header (the
 control key and the other keys of the core) the tools must reproduce every row of
 pins exactly. Since a chart's pin sizes reveal the bittings, nothing derived from
@@ -374,9 +374,9 @@ are right, and says nothing about whether the rules are too permissive: a model
 that wrongly allowed a gap of 1 would pass, because no valid chart contains one.
 That risk rests on one confirmed fact, that no pin shorter than 2 exists outside
 the bottom family, which is all the gap rule depends on. The opposite risk, rules
-that are too strict, is checked from two sides: the maintainer has seen real
-odd-sized master pins, and the retired-key check described above tests the rules
-against the real decoded unit keys.
+that are too strict, is checked from two sides: real systems use odd-sized master
+pins, and the retired-key check described above tests the rules against decoded
+keys from a real system.
 
 The fourth layer is humility in the output. Until a pinning has passed the
 conformance script against real charts, anything the tools print about pinning is
@@ -385,10 +385,10 @@ manufacturer's software remains the authority.
 
 ### The chart layout
 
-The maintainer's real charts come from an older piece of software and are
-single-core charts. A chart is a header, a blank line, and then one row per layer
-of pins from the top of the stack down, one column per chamber, and the tools
-print the same rows, so that output can be compared with a chart by eye. The
+Real charts come from older keying software and are single-core charts. A chart
+is a header, a blank line, and then one row per layer of pins from the top of the
+stack down, one column per chamber, and the tools print the same rows, so that
+output can be compared with a chart by eye. The
 headers differ. A real chart's header gives `System = A2`, the control key, the
 master key and a single `Change Keys` line of comma-separated bittings (the legacy
 layout, shown below). The tools' charts instead list one `name = bitting` line for
@@ -465,7 +465,7 @@ Control 18 16  8 12 18 14 12
 Bottom   1  1  6  1  0  1  2
 ```
 
-The legacy layout, as the maintainer's old software writes it, has exactly four
+The legacy layout, as older keying software writes it, has exactly four
 header lines: `System`, `Control Key`, `Master Key` and a single `Change Keys` line
 listing every change key, separated by commas. It has no key system name, no core
 name and no date, and its keys are known only by their roles. Every key on the
@@ -577,9 +577,9 @@ solver or integer programme to find stacks. The A2 pinning turns out to be force
 a dependency would break the standard-library-only rule (D2).
 
 A fourth, which was the first design, is to keep parity as the assumption that
-completes the check for undecoded unit keys. It fails for this building, where
-nothing can be said about how the unit keys were cut, which is why the retired
-cores took its place.
+completes the check for undecoded unit keys. It fails for a building with no
+original records, where nothing can be said about how the unit keys were cut,
+which is why the retired cores took its place.
 
 A fifth is to keep this in a separate repository. The pinner needs the same
 bittings, hierarchy, counting and checks as the existing tools, so splitting would
