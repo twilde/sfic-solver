@@ -454,8 +454,11 @@ unexpected error into a fixed message, so that a future slip cannot quote a char
 `--details` adds the pin sizes, the system name and the underlying errors for the
 owner's own use, and says not to share them. The summary counts compared, agreeing
 and disagreeing charts, charts that could not be checked and files that could not
-be read separately, so that one kind of failure cannot skew another's count. The exit status is 1 for any disagreement or
-unreadable chart. It has been tested on fake charts computed independently of the
-pinner; whether it agrees with real charts is for their owner to find out
-locally, which is the point of the step.
+be read separately, so that one kind of failure cannot skew another's count. The
+closing line says DISAGREEMENTS only when a chart really disagrees, and a neutral
+PROBLEMS when the only trouble is a file or chart that could not be read or
+checked, so that quoting it never reports something the output does not show. The
+exit status is 1 for any of them. It has been tested on fake charts computed
+independently of the pinner; whether it agrees with real charts is for their owner
+to find out locally, which is the point of the step.
 

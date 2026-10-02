@@ -128,6 +128,8 @@ def test_an_unreadable_chart_is_reported_without_quoting_it(tmp_path, capsys):
     assert ("Checked 1 file(s), 0 chart(s), 0 chamber(s): 0 chart(s) agree with the pinner, "
             "0 do not (0 chamber(s)); 0 chart(s) could not be checked; "
             "1 file(s) could not be read.") in out
+    assert out.rstrip().endswith("PROBLEMS: some charts could not be read or checked")
+    assert "DISAGREEMENTS" not in out
     assert_no_key_data(out)
 
 
@@ -141,7 +143,8 @@ def test_an_unknown_pinning_system_is_reported(tmp_path, capsys):
     assert ("Checked 1 file(s), 2 chart(s), 14 chamber(s): 2 chart(s) agree with the pinner, "
             "0 do not (0 chamber(s)); 1 chart(s) could not be checked; "
             "0 file(s) could not be read.") in out
-    assert "OK" not in out
+    assert out.rstrip().endswith("PROBLEMS: some charts could not be read or checked")
+    assert "DISAGREEMENTS" not in out and "OK" not in out
 
 
 def test_a_utf8_byte_order_mark_is_fine(tmp_path, capsys):
@@ -225,6 +228,7 @@ def test_an_unreadable_file_beside_a_disagreeing_chart_is_counted_separately(tmp
             "1 do not (1 chamber(s)); 0 chart(s) could not be checked; "
             "1 file(s) could not be read.") in out
     assert "-1" not in out
+    assert out.rstrip().endswith("DISAGREEMENTS: the pinner's rules do not match these charts")
 
 
 def test_check_chart_returns_where_and_what():

@@ -162,7 +162,12 @@ def main(argv=None):
           f"({n['bad']} chamber(s)); {n['unchecked']} chart(s) could not be checked; "
           f"{n['unreadable']} file(s) could not be read.")
     ok = n["disagree"] == 0 and n["unchecked"] == 0 and n["unreadable"] == 0
-    print("OK" if ok else "DISAGREEMENTS: the pinner's rules do not match these charts")
+    if ok:
+        print("OK")
+    elif n["disagree"]:
+        print("DISAGREEMENTS: the pinner's rules do not match these charts")
+    else:
+        print("PROBLEMS: some charts could not be read or checked")
     return 0 if ok else 1
 
 
