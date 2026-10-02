@@ -499,7 +499,7 @@ isolated commits, with a refactor in its own commit), and it is the only method
 for a pull request that has another stacked on it. Squash is for a pull request
 whose commits are iterative (revisions of a document, fixups), when nothing is
 stacked on it; its message is written by hand as one commit message in the
-project's style, without session trailers or key-history facts. Rebase merge
+project's style, without key-history facts (a session trailer is harmless, D37). Rebase merge
 stays available, for a focused pull request whose commits each stand alone, when
 nothing is stacked on it, no other branch is built on its commits and a straight
 line is wanted; it rewrites commit ids, so references to the branch's commits
@@ -577,3 +577,20 @@ debugging: a tool that reads scans reports positions only, and nobody is asked t
 paste, upload or describe a scan. The feature's design document weighs the
 alternatives in full when it is agreed.
 
+## D37. Session trailers and links are accepted
+
+An earlier rule in CLAUDE.md said commits and pull request text should carry no
+`Claude-Session:` trailer and no link to a claude.ai session, because they point
+at private conversations. Cloud sessions add both automatically, and the
+instructions of their harness take priority over this repository's, so every
+pull request from those sessions broke the rule and cost a review comment and a
+cleanup. The rule is dropped. A session link needs the owner's login to open and
+exposes only a session identifier, so accepting it costs little. What remains is
+the care that keeps it that way: the conversation behind a link may discuss the
+real building and its keys, so nothing from a conversation is copied into a
+commit or pull request, and sharing stays off for any session that discussed real
+key data (if sharing were ever enabled, the link in a public repository would
+open it). A hand-written squash message may omit the trailer, and a session that
+is not forced to add one need not. Alternative considered: keep the rule and strip
+the links from every pull request, rejected as endless churn against a tool this
+project does not control.
