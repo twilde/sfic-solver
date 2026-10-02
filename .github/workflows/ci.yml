@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0          # the history check needs every commit
-      - name: Only system.example.json and tests/fixtures/ may be tracked (.json, .csv, .txt)
+      - name: Only system.example.json and tests/fixtures/ may be tracked (.json, .csv, .txt), and no PDF or image
         run: python3 scripts/check_no_stray_data.py --tracked
       - name: ...and none may ever have been committed
         run: python3 scripts/check_no_stray_data.py --history
