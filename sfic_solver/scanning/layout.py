@@ -6,13 +6,15 @@ token from a gap between tokens comes from the page's own gaps, not from a const
 because a dash is narrow and the gap inside `--` is nearly as wide as the gap
 between two digits.
 
-Ink outside the printed block (handwriting in a margin, say) is split off as
-`outside` and reported; it never reaches the recogniser. Printed lines are flush
-left, so a token entirely left of that edge is outside; on the right, the first gap
-wider than any gap inside a printed line starts the margin. Lines are found from
-rows dense enough to be print, so that notes running down a margin cannot join the
-lines of text. Ink inside the block is left alone, and fails the checks later if it
-does not belong.
+Ink that is not print is split off as `outside` and reported; it never reaches the
+recogniser. A pen stroke is one connected blob much larger than a character, so any
+component far larger than a glyph is removed first, wherever it is (handwriting
+running down a margin, and with it anything it touches, which fails closed: the
+chart is flagged for the cells that went missing). Small marks that remain are
+placed by position: printed lines are flush left, so a token entirely left of that
+edge is outside, and on the right the first gap wider than any gap inside a printed
+line starts the margin. Small ink inside the block is left alone, and fails the
+checks later if it does not belong.
 """
 from dataclasses import dataclass, field
 
@@ -23,8 +25,13 @@ MIN_LINE_SHARE = 0.4
 MARGIN_GAP_HEIGHTS = 9
 # A token this close to the flush-left edge (in glyph heights) is still on it.
 LEFT_SLACK = 0.5
-# Rows with less than this share of the busiest row's ink are not part of a line.
-LINE_SHARE = 0.25
+# A connected component taller than this many typical component heights, or wider than
+# WIDE_COMPONENT, is not a character (a pen stroke, a ruled line) and is removed.
+TALL_COMPONENT = 2.5
+WIDE_COMPONENT = 5.0
+# Components smaller than this many pixels are specks and do not count towards the
+# typical size.
+MIN_COMPONENT_PIXELS = 12
 # At least this many lines must share a left edge for there to be a flush-left edge.
 MIN_ALIGNED_LINES = 3
 # When looking for the gap that separates tokens, only gaps up to this many glyph
@@ -100,6 +107,76 @@ class Layout:
     outside: list = field(default_factory=list)    # (x0, y0, x1, y1) of ink outside the block
 
 
+def components(mask):
+    """Connected components of ink (8-connected), found on run lengths without scipy:
+    a list of (x0, y0, x1, y1, pixels, runs), the box exclusive at x1 and y1, with
+    `runs` the (y, x0, x1) of each row's stretch of ink in the component."""
+    import numpy as np
+
+    padded = np.zeros((mask.shape[0], mask.shape[1] + 2), np.int8)
+    padded[:, 1:-1] = mask
+    change = np.diff(padded, axis=1)
+    run_y, run_start = np.nonzero(change == 1)
+    _, run_end = np.nonzero(change == -1)           # exclusive; same order as the starts
+    count = len(run_y)
+    parent = list(range(count))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    ys, starts, ends = run_y.tolist(), run_start.tolist(), run_end.tolist()
+    first_in_row = {}
+    for index in range(count - 1, -1, -1):
+        first_in_row[ys[index]] = index
+    for row, first in first_in_row.items():
+        above = first_in_row.get(row - 1)
+        if above is None:
+            continue
+        a = above
+        b = first
+        while b < count and ys[b] == row:
+            while a < count and ys[a] == row - 1 and ends[a] < starts[b]:
+                a += 1
+            probe = a
+            while probe < count and ys[probe] == row - 1 and starts[probe] <= ends[b]:
+                root_a, root_b = find(probe), find(b)
+                if root_a != root_b:
+                    parent[root_a] = root_b
+                probe += 1
+            b += 1
+    grouped = {}
+    for index in range(count):
+        grouped.setdefault(find(index), []).append(index)
+    found = []
+    for members in grouped.values():
+        x0 = min(starts[i] for i in members)
+        x1 = max(ends[i] for i in members)                 # exclusive, like every box here
+        y0, y1 = ys[members[0]], ys[members[-1]] + 1       # runs are in row order
+        pixels = sum(ends[i] - starts[i] for i in members)
+        found.append((x0, y0, x1, y1, pixels, [(ys[i], starts[i], ends[i]) for i in members]))
+    return found
+
+
+def remove_large(mask):
+    """(mask without components far larger than a character, [their boxes])."""
+    found = components(mask)
+    sizes = sorted((c[3] - c[1], c[2] - c[0]) for c in found if c[4] >= MIN_COMPONENT_PIXELS)
+    if not sizes:
+        return mask, []
+    height = sorted(h for h, _ in sizes)[len(sizes) // 2]
+    typical = max(height, 1)
+    cleaned, removed = mask.copy(), []
+    for x0, y0, x1, y1, pixels, runs in found:
+        if (y1 - y0) > TALL_COMPONENT * typical or (x1 - x0) > WIDE_COMPONENT * typical:
+            for y, a, b in runs:
+                cleaned[y, a:b] = False
+            removed.append((x0, y0, x1, y1))
+    return cleaned, removed
+
+
 def runs(profile, minimum=0):
     """The (start, end) of each stretch where profile exceeds `minimum`."""
     import numpy as np
@@ -162,9 +239,9 @@ def classify_glyphs(mask, glyphs, height):
         h, w = glyph.height, glyph.width
         if h <= 0.3 * height and w >= 1.2 * h:
             glyph.kind = DASH
-        elif h <= 0.45 * height and w <= 0.5 * height:
+        elif h <= 0.6 * height and w <= 0.35 * height:
             glyph.kind = DOT
-        elif 0.25 * height <= h <= 0.7 * height and 0.5 * h <= w <= 1.6 * h:
+        elif 0.25 * height <= h <= 0.7 * height and 0.5 * h <= w <= 2.2 * h:
             band = mask[glyph.y0:glyph.y1, glyph.x0:glyph.x1].any(axis=1)
             if len(runs(band.astype(int))) == 2:
                 glyph.kind = EQUALS
@@ -210,12 +287,27 @@ def split_outside(tokens, left, height):
     return inside, outside
 
 
+def find_equals(line, height):
+    """The index of the token that is the equals sign in `Label words = value`, or None.
+
+    By structure and not by look, since fonts draw it differently (two bars, or one
+    that blurs flat): a single flat glyph, narrower than a `--` cell, after one or two
+    label words and followed by a value.
+    """
+    for index, token in enumerate(line.tokens[:3]):
+        if index >= 1 and len(token.glyphs) == 1 and len(line.tokens) > index + 1:
+            glyph = token.glyphs[0]
+            if glyph.kind in (EQUALS, DASH) and glyph.width <= height:
+                return index
+    return None
+
+
 def analyse(prepared):
     """The Layout of a cleaned page (or None for a blank one)."""
     if prepared.blank:
         return None
-    mask = prepared.mask
-    spans, _ = find_lines(mask, LINE_SHARE)
+    mask, removed = remove_large(prepared.mask)
+    spans, _ = find_lines(mask)
     if not spans:
         return None
     per_line = [glyphs_in(mask, a, b) for a, b in spans]
@@ -234,7 +326,7 @@ def analyse(prepared):
         tokens.append(Token(current))
         lines.append(Line(a, b, tokens))
     left = flush_left(lines, height)
-    outside = []
+    outside = list(removed)
     for line in lines:
         line.tokens, gone = split_outside(line.tokens, left, height)
         outside.extend((t.x0, t.y0, t.x1, t.y1) for t in gone)
