@@ -59,6 +59,10 @@ def test_allowed(path):
     "chart.heif",
     "chart.bmp",
     "chart.webp",
+    "IMG_0003.DNG",
+    "photos/chart.avif",
+    "chart.JP2",
+    "scan.gif",
     "tests/fixtures/scan.pdf",          # no fixture exception for scans
     "tests/fixtures/charts/page.png",
     "tests/fixtures/charts/page.JPG",
@@ -133,6 +137,10 @@ def test_fixtures_are_marked_fake():
     ("page.heif", True),
     ("page.bmp", True),
     ("page.webp", True),
+    ("IMG_0003.DNG", True),
+    ("page.avif", True),
+    ("page.jp2", True),
+    ("page.GIF", True),
     ("tests/fixtures/charts/page.png", True),    # unlike text fixtures
     ("tests/fixtures/scan.pdf", True),
 ])
@@ -161,6 +169,17 @@ def test_scan_extensions_are_tested_in_every_case_variant():
             if probe.returncode not in (0, 1):
                 pytest.skip("git not available")
             assert probe.returncode == 0, name
+
+
+@pytest.mark.parametrize("doc", ["README.md", "CLAUDE.md", "CONTRIBUTING.md"])
+def test_docs_list_every_scan_extension(doc):
+    """The guard's list is written out in prose in several places; keep them in step.
+
+    D32 is a point-in-time log entry and is deliberately not checked.
+    """
+    text = (ROOT / doc).read_text()
+    missing = [ext for ext in guard.SCAN_EXTENSIONS if f"`{ext}`" not in text]
+    assert missing == [], f"{doc} does not list {missing} among the refused scan formats"
 
 
 def test_text_fixtures_are_marked_fake():

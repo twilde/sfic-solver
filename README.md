@@ -260,9 +260,9 @@ A real system file contains real bittings. **Never commit one.** `.gitignore`
 ignores every `*.json`, `*.csv` and `*.txt` (system files, exports of your key
 matrix and pinning charts) except `system.example.json` and the fake fixtures
 under `tests/fixtures/`. It also ignores every PDF and image (`.pdf`, `.png`,
-`.jpg`, `.jpeg`, `.tif`, `.tiff`, `.heic`, `.heif`, `.bmp`, `.webp`), with no
-exception, since scans and photos of charts are key data and a picture cannot be
-marked as fake. Two guards enforce it:
+`.jpg`, `.jpeg`, `.tif`, `.tiff`, `.heic`, `.heif`, `.dng`, `.avif`, `.jp2`,
+`.gif`, `.bmp`, `.webp`), with no exception, since scans and photos of charts
+are key data and a picture cannot be marked as fake. Two guards enforce it:
 
 - a pre-commit hook (`git config core.hooksPath .githooks`) that rejects any
   other staged `.json`, `.csv` or `.txt`, and any staged PDF or image;

@@ -551,6 +551,32 @@ considered: always committing directly (no place to review new wording, and no
 warning to a session editing the same files) and always opening a pull request
 (a review step for edits whose wording is already agreed).
 
+## D35. The scan formats in the guard grow to cover more camera and web formats
+
+Review of D32 pointed out formats that phones and scanners also write and that the
+list lacked: `.dng` (a raw photograph, such as an iPhone's ProRAW), `.avif`, `.jp2`
+(JPEG 2000) and `.gif`. A scan exported or renamed to one of them would have passed
+every layer, so the guard, `.gitignore` (case-insensitively, as before) and the
+documentation now refuse them too, and the existing test that runs every listed
+extension in three cases against both the guard and `git check-ignore` covers them
+without change. D32 said the list grows as formats appear, and this is that; it is
+still a list of formats a scan can arrive in and not of every image format.
+
+## D36. Tools that read scans of charts run locally
+
+When D32 and CLAUDE.md said that tools reading scans "run locally, never through a
+cloud service", that was a design decision and not a note about the guard, and it
+belongs in the log. A scan of a chart is the chart: the pin sizes can be read off
+it, so any service that receives the image receives the key data, and what is sent
+to an outside service may be kept, cached or indexed even if it is later deleted. A
+cloud OCR service is typically more accurate, but it would receive the whole chart,
+and that alone rules it out. The alternatives are a local engine (Tesseract, run as
+a subprocess, is the candidate) and transcription by hand, which stays the fallback
+for whatever a local engine cannot read with confidence. The same rule covers
+debugging: a tool that reads scans reports positions only, and nobody is asked to
+paste, upload or describe a scan. The feature's design document weighs the
+alternatives in full when it is agreed.
+
 ## D37. Session trailers and links are accepted
 
 An earlier rule in CLAUDE.md said commits and pull request text should carry no
