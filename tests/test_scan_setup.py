@@ -147,3 +147,23 @@ def test_the_ocr_tests_never_draw_with_a_thin_comma_font_when_a_good_one_is_here
         assert default_font() in OCR_FONTS and ocr_font_here()
     else:
         assert not ocr_font_here()
+
+
+def test_the_font_requirements_are_written_down_and_match_ci():
+    # The same fact is in the test helpers, CONTRIBUTING.md and the CI workflow.
+    import re
+    from conftest import ROOT
+    from scan_helpers import OCR_FONTS
+    words = {"liberation": "Liberation Mono", "dejavu": "DejaVu Sans Mono", "freemono": "FreeMono"}
+    assert set(OCR_FONTS) == set(words)
+    contributing = (ROOT / "CONTRIBUTING.md").read_text()
+    for name in OCR_FONTS:
+        assert words[name] in contributing
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    packages = re.search(r"apt-get install -y ([^\n]+)", ci).group(1).split()
+    assert "tesseract-ocr" in packages
+    for package in packages:
+        if package.startswith("fonts-"):
+            assert package in contributing
+    assert "Tesseract" in (ROOT / "README.md").read_text()
+    assert "scanning-tests-optional" in (ROOT / "README.md").read_text()

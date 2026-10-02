@@ -285,6 +285,10 @@ git config core.hooksPath .githooks
 pytest
 ```
 
+The tests of the chart scanner need Tesseract and a monospaced font with clear
+commas, and are skipped without them; see "Scanning tests" in
+[CONTRIBUTING.md](CONTRIBUTING.md#scanning-tests-optional).
+
 The tests compare the counting maths against brute-force enumeration, check
 the generator's constraints, plant cross-operations and confirm the checker
 flags them, and confirm the solver leaves known keys untouched and produces a
