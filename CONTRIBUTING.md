@@ -79,6 +79,10 @@ pytest
 - In the pull request, say what changed and why, and mention any behavior
   change. CI must pass: the tests on every supported Python version, and the
   data-file guard.
+- Review comments are labelled **Should fix** or **Optional**. Please reply to
+  each thread: fixed (say in which commit), will follow up (say where), or
+  declined (say why). A pull request merges when nothing labelled Should fix is
+  still open.
 
 ## Reporting problems
 
