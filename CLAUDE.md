@@ -28,6 +28,12 @@ Treat everything committed as if strangers will read it. The repo is public.
   bittings away. They follow every rule above, in any format, including a chart
   re-typed or "anonymised" from a real one. Tests may only use charts that are
   computed from fake bittings.
+- Facts about the real building's key history are covered too, even with no
+  names or bittings in them: whether it was rekeyed, what the old system looked
+  like, which records exist or are missing, what charts or software the
+  maintainer holds. Write design reasoning as general scenarios ("a building
+  rekeyed without original records"), never as facts about this one. This applies
+  to commit messages and pull request text as well as files.
 - Real system files live outside this repo. Do not go looking for them. If you
   find any `.json` or `.csv` other than `system.example.json` and files under
   `tests/fixtures/`, stop and ask before reading it.
@@ -66,7 +72,9 @@ first and explaining why.
   noreply address (set in this repo's local git config), never a personal
   email: commit emails are public and permanent. Always end commit messages with a `Co-Authored-By: <Claude model>
   <noreply@anthropic.com>` trailer, so AI involvement is transparent. Do the
-  same for pull request descriptions as instructed by the session.
+  same for pull request descriptions as instructed by the session. Do not add
+  `Claude-Session:` trailers or links to claude.ai sessions to commits or pull
+  request text: they point at private conversations.
 - **Dependabot** opens a weekly pull request for GitHub Actions updates. Merge
   it only when CI is green.
 - **Keep docs current.** README limitations, file-format notes and TODO.md
