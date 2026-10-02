@@ -7,7 +7,7 @@ import pytest
 from sfic_solver import model
 from sfic_solver.lock import CONTROL, OPERATING, Lock
 from sfic_solver.pinning import A2, Chamber, PinningError, pin_core
-from test_design_docs import example_charts
+from helpers import example_charts
 
 
 def lock_for(keys, control):
