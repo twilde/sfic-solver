@@ -486,16 +486,16 @@ Bottom   5  5  2  1  2  3  4
 ```
 
 The reader for the conformance script accepts both layouts, one chart or several
-separated by lines of dashes, and tells them apart by their labels. In the tools'
-layout it reads `Key System`, `System`, `Core`, `Date` and `Control Key`, and takes
-every other `name = bitting` line as an operating key. In the legacy layout it
-reads `System`, `Control Key`, `Master Key` and `Change Keys`, splitting the last
-on commas and spaces. A chart that mixes the two is refused. These labels are
-therefore reserved, and when a pinning system is set a system file that names a key
-`Core` or `Change Keys` would have to be refused. The legacy labels are as the
-maintainer described them and have not been checked against a real chart here, so
-the reader keeps its labels in one table (matched without regard to case) to make
-a different spelling a one-line change.
+separated by lines of dashes, and tells them apart by their labels. A label may be
+followed by `=` or `:`. In the tools' layout it reads `Key System`, `System`,
+`Core`, `Date` and `Control Key`, and takes every other `name = bitting` line as an
+operating key. In the legacy layout it reads `System`, `Control Key`, `Master Key`
+and `Change Keys`, splitting the last on commas and spaces. A chart that mixes the
+two is refused. These labels are therefore reserved, and when a pinning system is
+set a system file that names a key `Core` or `Change Keys` would have to be
+refused. The legacy labels are as the maintainer described them and have not been
+checked against a real chart here, so the reader keeps its labels in one table
+(matched without regard to case) to make a different spelling a one-line change.
 
 ## Charts are key data
 

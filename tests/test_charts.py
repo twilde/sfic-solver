@@ -60,6 +60,31 @@ def test_charts_are_separated_by_dashes_and_the_fake_line_is_skipped():
     assert parse_charts("") == [] and parse_charts("FAKE only\n") == []
 
 
+def test_a_colon_may_separate_a_label_from_its_value():
+    colons = (LEGACY_HEADER.replace("System =", "System:").replace("Control Key =", "Control Key:")
+              .replace("Master Key =", "Master Key:").replace("Change Keys =", "Change Keys:"))
+    parsed = parse_charts(chart(colons))[0]
+    assert parsed.layout == "legacy" and [b for _, b in parsed.keys] == [
+        "5961634", "5721276", "9565698"]
+    assert parsed.control == "9743854"
+
+
+@pytest.mark.parametrize("line", ["unit:101 = 3101658", "unit:101: 3101658", "unit:101 : 3101658"])
+def test_a_key_name_may_contain_a_colon_whichever_separator_is_used(line):
+    header = TOOLS_HEADER + "\n" + line
+    keys = dict(parse_charts(chart(header))[0].keys)
+    assert keys["unit:101"] == "3101658"
+
+
+def test_split_header_line_edge_cases():
+    from sfic_solver.charts import split_header_line
+    assert split_header_line("Change Keys = 1, 2") == ("Change Keys", "1, 2")
+    assert split_header_line("Change Keys: 1, 2") == ("Change Keys", "1, 2")
+    assert split_header_line("a = b: c") == ("a", "b: c")           # '=' wins over a later ':'
+    assert split_header_line("just words") is None
+    assert split_header_line("= 5") is None and split_header_line(": 5") is None
+
+
 def test_a_byte_order_mark_is_ignored():
     parsed = parse_charts("\ufeff" + chart(LEGACY_HEADER))
     assert [len(c.keys) for c in parsed] == [3] and parsed[0].system == "A2"

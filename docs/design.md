@@ -428,7 +428,7 @@ either layout from the design (the tools' own, with `name = bitting` lines, and
 the legacy one of older keying software, with a master line and a
 comma-separated list of change keys), several to a file when separated by lines
 of dashes, skipping the `FAKE` line of a test fixture. Its header labels sit in
-one table and match without regard to case, a chart that mixes the two layouts is
+one table, match without regard to case and may be followed by `=` or `:`, a chart that mixes the two layouts is
 refused, and every error says which chart and line and what kind of problem,
 never what was written there, because a chart is key data. Digits are ASCII only:
 `\d` and `str.isdigit` also accept characters such as `²`, which `int()` then

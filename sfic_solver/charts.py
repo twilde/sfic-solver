@@ -8,7 +8,8 @@ chamber. Two header layouts are read:
   the legacy layout   System, Control Key, Master Key and one Change Keys line of
                       comma-separated bittings (older keying software)
 
-Several charts may share a file, separated by a line of dashes. A chart is key
+A label and its value may be separated by `=` or `:`. Several charts may share a file,
+separated by a line of dashes. A chart is key
 data, so nothing here puts a chart's content in an error message: errors say
 where (chart and line number) and what kind of problem, never what was written.
 """
@@ -26,8 +27,24 @@ RESERVED_LABELS = {KEY_SYSTEM, SYSTEM, CORE, DATE, CONTROL_KEY} | LEGACY_LABELS
 ROW_LABELS = ("t/d", "control", "master", "bottom")
 SEPARATOR = re.compile(r"^-{3,}\s*$")
 DIGITS = re.compile(r"[0-9]+")        # ASCII only: \d and str.isdigit() also take ² and ٣
-HEADER_LINE = re.compile(r"^(.+?)\s*=\s*(.*?)\s*$")
 FAKE_MARKER = "FAKE"
+
+
+def split_header_line(text):
+    """(label, value) of a header line written `label = value` or `label: value`, else None.
+
+    A line with an `=` splits at the first one (labels never contain `=`, but a key's
+    name may contain `:`, as in `unit:101 = 3101658`); a line with only colons splits
+    at the last one, so `unit:101: 3101658` still reads as a key named `unit:101`.
+    """
+    if "=" in text:
+        label, _, value = text.partition("=")
+    elif ":" in text:
+        label, _, value = text.rpartition(":")
+    else:
+        return None
+    label, value = label.strip(), value.strip()
+    return (label, value) if label else None
 
 
 class ChartError(ValueError):
@@ -101,16 +118,18 @@ def parse_chart(start, lines, index):
 
     fields, keys = {}, []
     for number, text in header:
-        match = HEADER_LINE.match(text)
-        if not match:
-            raise ChartError("a header line is not `label = value`", index, number)
-        label, value = match.group(1).strip().lower(), match.group(2)
+        parts = split_header_line(text)
+        if parts is None:
+            raise ChartError("a header line is not `label = value` (or `label: value`)",
+                             index, number)
+        name, value = parts
+        label = name.lower()
         if label in RESERVED_LABELS:
             if label in fields:
                 raise ChartError("a header label is repeated", index, number)
             fields[label] = value
         elif DIGITS.fullmatch(value):
-            keys.append((match.group(1).strip(), value))
+            keys.append((name, value))
         else:
             raise ChartError("a header line is neither a known label nor `name = bitting`",
                              index, number)
