@@ -43,18 +43,28 @@ plug, and, a fixed distance further out, the **control** shear line, which the
 control key aligns to turn the whole core so that it can be installed or removed.
 
 Everything is measured in increments of 0.0125 inch, the A2 step, and every cut
-and every pin has a whole-number size. A key cut of depth 4 means the key lifts
-the stack until the boundary between two pins sits at height 4 above where it
-started, so that the boundary lines up with the operating shear line. A pin is
-named by a number of increments, and a stack of pins has a boundary at each
-**partial sum** of those numbers: the first boundary at the length of the bottom
-pin, the next at the bottom pin plus the next pin, and so on. A key operates a
-chamber when its cut equals the height of one of the boundaries. That is the whole
-mechanism, and it is why a core "accepts the change key's cut or any master's cut"
-at each position: each of those cuts is a boundary in the stack. (Bottom pins also
-have a fixed base length: even a #0 is a real pin, 0.110 inch long, the least
-that clears the shear line for the deepest cut. The base never enters the
-arithmetic, which is done entirely in pin numbers.)
+and every pin has a whole-number size. A cut is a depth, numbered from 0, no cut
+at all, to 9, the deepest. A deeper cut leaves less metal under the pin, so it
+lifts the stack by less: cut 0 gives the most lift and cut 9 the least, and each
+step deeper loses one increment of lift. The pins make up the difference. For a
+key to turn the plug, the boundary between two pins has to sit exactly on the
+operating shear line, and the lower the key sits, the more pin has to be below
+that boundary to get it there. So a key of cut c lines a boundary up with the
+operating shear line when the pins below that boundary add up to c. That is why
+cut numbers and pin numbers share one scale although the lifts they produce run
+in opposite directions: bottom pin #n goes with cut n, and a cut of 4 needs 4
+increments more pin below the boundary than a cut of 0 does.
+
+A pin is named by its number of increments, and a stack of pins has a boundary at
+each **partial sum** of those numbers: the first at the number of the bottom pin,
+the next at the bottom pin plus the next pin, and so on. In this document the **height** of a boundary means
+that total, the pin numbers beneath it. It is a place in the stack, and not how
+far a key lifts. A key operates a chamber when its cut equals the height of one of
+the boundaries. That is the whole mechanism, and it is why a core "accepts the
+change key's cut or any master's cut" at each position: each of those cuts is a
+boundary in the stack. (Bottom pins also have a fixed base length: even a #0 is a
+real pin, 0.110 inch long. The base never enters the arithmetic, which is done
+entirely in pin numbers.)
 
 A word about masters and change keys, because the terminology misleads. Master,
 change key, sub-master and the rest describe how a hierarchy is used, but the
@@ -69,11 +79,12 @@ charts treat all of its keys alike, so a chart row labelled "Master" is only a
 pin layer, and its pin may belong to any of the keys. This document says
 **operating keys** of a core when it means all of them.
 
-The control shear line is 0.125 inch beyond the operating one, which is 10
-increments. So a boundary at height 10 + c lines up with the control shear line
-when the control key's cut at that chamber is c. Operating keys reach heights 0 to
-9 and control keys reach 10 to 19, and the two ranges never overlap, which is why
-one stack can serve both.
+The control shear line is a further 0.125 inch out, which is 10 increments, so the
+stack needs 10 more pin below the boundary there. A boundary at height 10 + c lines
+up with the control shear line for a control key whose cut at that chamber is c.
+Operating cuts therefore match boundaries at heights 0 to 9 and control cuts match
+boundaries at heights 10 to 19. The two ranges never overlap, which is why one
+stack can serve both.
 
 The A2 rules we are working from are these. The maintainer confirmed them, and
 the published description we have (see Sources) agrees with the stack total and
@@ -92,13 +103,15 @@ the control offset.
 Take one chamber of a core whose change key has cut 3, whose master has cut 7 and
 whose control key has cut 5. The boundaries must be at heights 3 and 7 for the
 operating shear line, and at 15 (which is 10 + 5) for the control one. The pins,
-from the bottom, are therefore a 3 (the change key's height), a 4 (the distance
+from the bottom, are therefore a 3 (the change key's cut), a 4 (the distance
 from 3 to 7, which is the master pin), an 8 (from 7 to 15, the control pin), and an 8
 to bring the stack up to 23 (the driver, the top pin). They add up to 23, the
 bottom pin is within 0 to 9, and the other three are within 2 to 19, so the
 chamber can be built. The Locksmith Ledger's own worked example (a master cut of
 1, a change key cut of 5 and a control cut of 3) comes out the same way, as pins
-of 1, 4, 8 and 10, the numbers in the article.
+of 1, 4, 8 and 10, the numbers in the article. (The article calls the cut of 1 the
+"highest" cut, which fits the picture above: it is the shallowest, the one that
+lifts the stack most, and so needs the least pin below its boundary.)
 
 Two practical rules from the maintainer make the pinning forced, meaning that
 given the cuts there is one legal stack or none. A gap between two boundaries is
@@ -297,7 +310,7 @@ The simulated lock earns its keep in three ways. It is an oracle for the test
 suite and, later, for anyone changing the pinner. It is a way of explaining
 results, since a lock can say which chamber and which boundary made a key work.
 And, as a further step that this document does not plan in detail, its geometry
-(stacks, boundaries, the heights a given key lifts to, which shear lines align) is
+(stacks, boundaries, how far a given key lifts them, which shear lines line up) is
 exactly what a visualizer needs. If the lock exposes those, a drawing of a core
 and a key lifting its pins is a rendering exercise and needs no more maths. That
 would be its own design document.
