@@ -19,6 +19,31 @@ def test_a_deeper_cut_lifts_the_stack_less():
     assert [lock.lift(c) for c in range(10)] == [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 
 
+@pytest.mark.parametrize("cut, joints, on_operating, on_control", [
+    # Stack (1, 4, 8, 10) with the operating line at 9 and the control line at 19.
+    # Joints sit at the key's lift (9 - cut) plus 1, 5 and 13: hand-worked, so a
+    # sign slip in the lift would change every row.
+    (0, (10, 14, 22), None, None),
+    (1, (9, 13, 21), 1, None),
+    (3, (7, 11, 19), None, 3),
+    (5, (5, 9, 17), 2, None),
+    (9, (1, 5, 13), None, None),
+])
+def test_joints_sit_at_hand_worked_physical_heights(cut, joints, on_operating, on_control):
+    lock = Lock(A2, [(1, 4, 8, 10)])
+    assert (lock.shear_height(OPERATING), lock.shear_height(CONTROL)) == (9, 19)
+    assert lock.joint_heights(0, cut) == joints
+    assert lock.joint_on_line(0, cut, OPERATING) == on_operating
+    assert lock.joint_on_line(0, cut, CONTROL) == on_control
+
+
+def test_a_shallower_cut_raises_every_joint_by_the_difference_in_lift():
+    lock = Lock(A2, [(2, 4, 5, 12)])
+    for cut in range(9):
+        deeper, shallower = lock.joint_heights(0, cut + 1), lock.joint_heights(0, cut)
+        assert [s - d for s, d in zip(shallower, deeper)] == [1, 1, 1]
+
+
 def test_the_ledgers_example_lock():
     lock = Lock(A2, [(1, 4, 8, 10)])           # master cut 1, change cut 5, control cut 3
     assert lock.operates((1,)) and lock.operates((5,))
