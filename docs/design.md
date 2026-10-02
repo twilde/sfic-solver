@@ -333,13 +333,19 @@ derived values (the allowed cuts per pin, the count of valid bittings) are worke
 out once and cached. `Config.space` replaces `Config.pins`, `pattern` and
 `max_step`, and the tools read it from there.
 
-This changes no behavior. The depth count is new as a parameter, but it defaults
-to 10, the only value any file can use today. The output of all four tools,
-including seeded solver runs, was compared with the output from before the change
-and is identical. Two small tidy-ups came with it: `count_valid` was a second copy
+There is no behavior change for any valid file. The depth count is new as a
+parameter, but it defaults to 10, the only value any file can use today. The
+output of all four tools, including seeded solver runs, was compared with the
+output from before the change and is identical. Two small tidy-ups came with it: `count_valid` was a second copy
 of `operating_set_size` fed with the allowed cuts, so it is now the same call, and
 a `KeySpace` refuses a pattern whose length is not the pin count, where the old
-functions would have silently compared the shorter of the two.
+functions would have silently compared the shorter of the two. Review of the
+change asked for the rest of its validation, since `KeySpace` is now the library
+entry point and the pinning code will build one too: it also refuses a pin count,
+adjacent-cut limit or depth count below 1, a depth count above 10 (a bitting is
+one digit per cut) and a pattern with anything but E and O. The one command that
+could reach that, `check_bittings --max-step 0`, was silently accepted before and
+is now a usage error like the same option in `gen_bittings`.
 
 ## D27. Pinning systems are records in a registry
 

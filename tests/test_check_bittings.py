@@ -103,6 +103,14 @@ def test_min_diff_above_the_pin_count_is_a_usage_error():
     assert "--min-diff 4 is more than the 3 pins" in proc.stderr
 
 
+@pytest.mark.parametrize("max_step", [0, -1])
+def test_max_step_must_be_positive(max_step):
+    proc = run_script("check_bittings", "--max-step", max_step, "a=0123456")
+    assert proc.returncode == 2
+    assert "--max-step must be at least 1" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
 @pytest.mark.parametrize("pins", [0, -1])
 def test_pins_must_be_positive(pins):
     proc = run_script("check_bittings", "--pins", pins, "a=012")
