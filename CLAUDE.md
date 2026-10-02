@@ -84,6 +84,13 @@ first and explaining why.
   should pass CI before it lands, for files another session is editing, and
   whenever the user asks. Say which route you are taking, and why, in one line.
   See D34.
+- **No open questions in a pull request.** Do not open a pull request, draft or
+  not, that contains open questions or exists to ask the user for a decision;
+  settle those in chat first. To get something reviewed before then, push the
+  commits to a branch with no pull request and give the user the branch, a
+  commit link or a compare link. A design document may still say what nobody can
+  know yet (details that can only be settled while building), but not questions
+  waiting for the user's answer.
 - **Commit identity and attribution.** Commit as the user, using their GitHub
   noreply address (set in this repo's local git config), never a personal
   email: commit emails are public and permanent. Always end commit messages with a `Co-Authored-By: <Claude model>
