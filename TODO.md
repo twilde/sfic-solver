@@ -23,9 +23,10 @@
   phrases, commit identity and trailers, and the data-file guard over the whole
   history. It is code, so it needs a short design first (D24).
 - Scanning paper charts (docs/designs/chart-scanning.md, accepted; D38): the tool is
-  built (step 3). Still to do: step 4, the synthetic-image harness with the quality
-  matrix and the 1,000-chart criterion, including the macOS system fonts (issue #10:
-  commas are not found in thin fonts such as Courier New); and step 5, the README
+  built (step 3) and so is the harness (step 4). Still to do: run the slow tier to
+  completion (`pytest --runslow tests/test_scan_harness.py -s`, about two hours a
+  condition), and the dissent check that flags about one clean chart in twelve
+  (issue #12); make the thin macOS fonts read (issue #10); and step 5, the README
   ("scanning paper charts", the command in the tools table, and the "dependency-free"
   wording with the one stated exception), CLAUDE.md's "standard library only"
   likewise, and the log. Step 5 has to land before a release mentions the tool.

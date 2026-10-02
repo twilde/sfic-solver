@@ -199,11 +199,14 @@ test harness (step 4) is where they become tests, and the README documents only
 what that harness proves. The criterion is a number: zero accepted-wrong charts in
 at least 1,000 random charts for every condition inside the documented range of
 image quality, which bounds the true rate below 0.3% at 95% confidence, and the
-README claims exactly that and no more. A thousand charts at two to three seconds
-each is far too slow for every CI run, so the harness has two tiers: CI runs a small
-sample per condition (some tens of charts) and asserts zero wrong charts and a
+README claims exactly that and no more. A thousand charts at six or seven seconds
+each is far too slow for every CI run, so the harness has two tiers: the tests that
+always run read three charts per condition and assert zero wrong charts and a
 minimum accepted, and the full run, marked slow and run on demand and before the
-README's documented range changes, is the one that supports the claim.
+README's documented range changes, is the one that supports the claim. (Built, the
+tool is slower than the prototype, so "some tens of charts per condition" in CI came
+to three, and 1,000 charts per condition to nearly two hours; see "What the harness
+showed".)
 
 Each row is 18 random fake charts (three runs of six, the votes pooled within a
 run), except the last two, which use 12 charts each and say so; rendered at 300 dpi
@@ -581,6 +584,59 @@ harness (step 4) to measure; the end-to-end tests here only show that clean page
 accepted as drawn, that a missing cell, a changed digit, a blank page, a page without
 a chart and margin strokes each end up where the design says, and that nothing
 accepted ever differs from the chart that was drawn.
+
+## What the harness showed
+
+The harness is `tests/scan_harness.py` and `tests/test_scan_harness.py` (step 4). It
+draws random fake charts with a controlled amount of damage, reads them with the real
+pipeline in runs of six (votes pooled within a run) and sorts each chart into
+accepted and right, flagged, or accepted and wrong. The tests that always run read
+three charts per condition, with seeds fixed so that a failure repeats: the ten
+conditions of the table above, two further good fonts, three kinds of corruption (a
+cell erased, a cell inked over, a row erased), two pages too poor to read (rotated
+past what is straightened, 100 dpi), notes in the margin clear of the block and
+touching a row, a PDF, and, where a Mac's own fonts are installed, those. They
+take about six minutes, because a chart costs six or seven seconds. The slow tier,
+`pytest --runslow tests/test_scan_harness.py -s`, reads `SFIC_HARNESS_CHARTS` charts
+(default 1,000) per condition and prints one table row for each; that is about two
+hours a condition on four cores. It has not been run to completion, so **the
+README can claim nothing from it yet**, and the claim in step 5 is limited to what
+that run, once made, shows.
+
+What a run of 12 charts per condition, 120 in all, showed on the built pipeline:
+
+| Image | Accepted and right | Flagged | Wrong |
+| --- | --- | --- | --- |
+| Clean | 11 | 1 | 0 |
+| 200 dpi | 12 | 0 | 0 |
+| 9 point | 12 | 0 | 0 |
+| Skewed by 3 degrees | 11 | 1 | 0 |
+| Blurred (Gaussian, sigma 1.5 px) | 11 | 1 | 0 |
+| Uneven lighting (40% darker at one corner) | 11 | 1 | 0 |
+| Ink at half strength | 11 | 1 | 0 |
+| Salt-and-pepper speckle on 3% of pixels | 11 | 1 | 0 |
+| Gaussian noise, sigma 15 | 10 | 2 | 0 |
+| Gaussian noise, sigma 35 | 12 | 0 | 0 |
+
+No chart was accepted wrong, and zero wrong in 120 charts bounds the true rate only
+below about 2.5%, so this is a sample and not the claim. What it does show is that
+about one chart in twelve is flagged even when the image is clean. The cause, in the
+clean case that was looked at, is the dissent check: the last mark of a row (here the
+last chamber of the Bottom row) was read differently by enough of the readings that
+its group's vote was split, and the chart went to review with "its own readings
+disagree with its shape's". That is the tool failing in the intended direction, and
+the sentinel after each row (above) reduced it without removing it. Loosening the
+dissent threshold, or reading the last mark a further way, would change the
+algorithm, so neither is done here; the slow run is what would show their effect on
+wrong charts, and the question is tracked in issue #12.
+
+The corruption tests assert what the design asked: a cell erased, a cell inked over
+and a row erased are flagged every time, in every chart of the sample, and a page too
+poor to read is flagged or read right, never read wrong. Margin notes clear of the
+printed block change nothing, and notes touching a row never make a wrong chart. For
+Courier New and Menlo (issue #10) the test asserts only that nothing wrong is
+accepted: many charts go to review there, which is the intended direction, and
+making those fonts read is a separate piece of work.
 
 ## What cannot be known yet
 

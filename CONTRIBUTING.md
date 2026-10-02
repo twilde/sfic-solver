@@ -61,7 +61,9 @@ and a monospaced font with clear commas: Liberation Mono, DejaVu Sans Mono or
 FreeMono (on Debian/Ubuntu: `sudo apt-get install fonts-liberation
 fonts-dejavu-core`, which is what CI installs). Courier New and Menlo, the
 fonts a Mac has by default, are not enough: their commas are too thin to read
-reliably (issue #10), so the OCR tests skip there. On a Mac,
+reliably (issue #10), so the OCR tests skip there. The quality tests in
+`tests/test_scan_harness.py` take about six minutes; `--runslow` adds their
+1,000-chart runs, which take hours and are for the maintainer. On a Mac,
 `brew install --cask font-liberation-mono` (or font-dejavu) fixes that.
 
 ## Making changes
