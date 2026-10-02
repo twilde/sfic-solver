@@ -449,8 +449,9 @@ that can be quoted in an issue without a single digit.
 
 ## Alternatives considered
 
-Cloud OCR is the more accurate by default and is ruled out by the privacy rules
-without discussion: a scan of a chart is key data and is not sent anywhere.
+Cloud OCR is typically more accurate, but it would receive the whole chart, and that
+alone rules it out under the privacy rules (D36): a scan of a chart is key data and is
+not sent anywhere.
 
 A pure-Python recogniser would keep the project dependency-free. The group-voting
 idea above comes close to one, since once the groups are labelled the page is
