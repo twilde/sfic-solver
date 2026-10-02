@@ -1,4 +1,4 @@
-"""Feature design documents follow the convention in D24 of docs/design.md."""
+"""Feature design documents follow the convention in D24 of docs/decisions.md."""
 import re
 
 import pytest
@@ -25,7 +25,7 @@ def test_design_document_has_a_title_and_a_status(path):
 
 @pytest.mark.parametrize("path", DESIGNS, ids=lambda p: p.name)
 def test_design_document_is_indexed_in_the_log(path):
-    log = (ROOT / "docs" / "design.md").read_text()
+    log = (ROOT / "docs" / "decisions.md").read_text()
     assert f"(designs/{path.name})" in log
 
 

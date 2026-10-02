@@ -8,7 +8,7 @@ only on paper can run the conformance check without retyping them. It is written
 before any code, to be discussed and changed. It builds on the chart layouts and
 the privacy rules in [core-pinning.md](core-pinning.md) ("The chart layout",
 "Verification" and "Charts are key data"), and, once agreed, will be summarised in
-the decision log ([D38 in design.md](../design.md)).
+the decision log ([D38 in decisions.md](../decisions.md)).
 
 ## Why do this
 

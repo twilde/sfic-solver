@@ -58,7 +58,7 @@ def test_no_accidental_lists_from_wrapped_prose():
 
 def test_markdown_files_are_found():
     names = {p.name for p in markdown_files()}
-    assert {"README.md", "CLAUDE.md", "TODO.md", "design.md"} <= names
+    assert {"README.md", "CLAUDE.md", "TODO.md", "decisions.md"} <= names
 
 
 def test_license_is_mit_and_declared_consistently():

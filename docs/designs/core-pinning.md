@@ -10,7 +10,7 @@ consequence, letting the physical pinning rules rather than the parity pattern
 decide which bittings can be built. It is written before any code, to be
 discussed and changed, and has been revised three times with the maintainer's
 answers to its questions. Decisions that survive discussion will be summarised in
-the log ([D25 in design.md](../design.md)).
+the log ([D25 in decisions.md](../decisions.md)).
 
 ## Why do this
 

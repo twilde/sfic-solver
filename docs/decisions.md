@@ -295,7 +295,7 @@ paragraph stay in the log alone.
 
 Alternatives considered: splitting the log into one file per decision (the ADR
 style) would make it harder to read as a story and would break every reference
-to `docs/design.md` (CLAUDE.md, CONTRIBUTING.md, the pull request template);
+to `docs/decisions.md` (CLAUDE.md, CONTRIBUTING.md, the pull request template);
 writing every feature into the log would make it unreadable. Existing entries are
 unchanged: they already read as short narratives, and rewriting history helps
 nobody.
