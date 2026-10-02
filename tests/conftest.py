@@ -10,6 +10,20 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures"
 
 
+def pytest_addoption(parser):
+    parser.addoption("--runslow", action="store_true", default=False,
+                     help="also run the slow tests (the scanner's 1,000-chart runs)")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        return
+    skip = pytest.mark.skip(reason="slow: run with --runslow")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip)
+
+
 def run_script(name, *args, cwd=None):
     """Run a root-level command (e.g. "check_system") as a user would."""
     return subprocess.run([sys.executable, str(ROOT / f"{name}.py"), *map(str, args)],

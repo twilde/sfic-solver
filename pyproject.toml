@@ -34,3 +34,4 @@ version = {attr = "sfic_solver.__version__"}
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["slow: the scanner's full-size quality runs, only with --runslow (tests/test_scan_harness.py)"]
