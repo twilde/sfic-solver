@@ -550,3 +550,15 @@ which and why in one line, so the choice is never a surprise. Alternatives
 considered: always committing directly (no place to review new wording, and no
 warning to a session editing the same files) and always opening a pull request
 (a review step for edits whose wording is already agreed).
+
+## D35. The scan formats in the guard grow to cover more camera and web formats
+
+Review of D32 pointed out formats that phones and scanners also write and that the
+list lacked: `.dng` (a raw photograph, such as an iPhone's ProRAW), `.avif`, `.jp2`
+(JPEG 2000) and `.gif`. A scan exported or renamed to one of them would have passed
+every layer, so the guard, `.gitignore` (case-insensitively, as before) and the
+documentation now refuse them too, and the existing test that runs every listed
+extension in three cases against both the guard and `git check-ignore` covers them
+without change. D32 said the list grows as formats appear, and this is that; it is
+still a list of formats a scan can arrive in and not of every image format.
+

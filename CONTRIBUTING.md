@@ -18,7 +18,7 @@ commit message. The project is public, and so is its history.
 - `.gitignore`, a pre-commit hook and CI all refuse to commit `.json`, `.csv` or
   `.txt` files other than `system.example.json` and the fixtures, and every PDF
   or image (`.pdf`, `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.heic`, `.heif`,
-  `.bmp`, `.webp`) without exception, since a picture cannot be marked as fake.
+  `.dng`, `.avif`, `.jp2`, `.gif`, `.bmp`, `.webp`) without exception, since a picture cannot be marked as fake.
   Tests that need images make them when they run. Please do not bypass the
   guards (`--no-verify`, `git add -f`).
 

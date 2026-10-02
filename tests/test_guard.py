@@ -59,6 +59,10 @@ def test_allowed(path):
     "chart.heif",
     "chart.bmp",
     "chart.webp",
+    "IMG_0003.DNG",
+    "photos/chart.avif",
+    "chart.JP2",
+    "scan.gif",
     "tests/fixtures/scan.pdf",          # no fixture exception for scans
     "tests/fixtures/charts/page.png",
     "tests/fixtures/charts/page.JPG",
@@ -133,6 +137,10 @@ def test_fixtures_are_marked_fake():
     ("page.heif", True),
     ("page.bmp", True),
     ("page.webp", True),
+    ("IMG_0003.DNG", True),
+    ("page.avif", True),
+    ("page.jp2", True),
+    ("page.GIF", True),
     ("tests/fixtures/charts/page.png", True),    # unlike text fixtures
     ("tests/fixtures/scan.pdf", True),
 ])

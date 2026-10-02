@@ -9,7 +9,8 @@ bittings and must never be committed. Two kinds of file are refused:
                                   bittings
   scans and PDFs (.pdf, .png,     refused everywhere, fixtures included: a picture
   .jpg, .jpeg, .tif, .tiff,       cannot carry a FAKE marker or be reviewed in a
-  .heic, .heif, .bmp, .webp)      diff, and tests make their images when they run
+  .heic, .heif, .dng, .avif,      diff, and tests make their images when they run
+  .jp2, .gif, .bmp, .webp)
 
 Usage:
     scripts/check_no_stray_data.py --staged     # files staged for commit (pre-commit hook)
@@ -24,7 +25,7 @@ import sys
 
 DATA_EXTENSIONS = (".json", ".csv", ".txt")
 SCAN_EXTENSIONS = (".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".heic", ".heif",
-                   ".bmp", ".webp")
+                   ".dng", ".avif", ".jp2", ".gif", ".bmp", ".webp")
 ALLOWED_EXACT = {"system.example.json"}
 ALLOWED_PREFIX = "tests/fixtures/"
 

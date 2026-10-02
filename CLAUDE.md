@@ -42,7 +42,8 @@ Treat everything committed as if strangers will read it. The repo is public.
 - Real system files live outside this repo. Do not go looking for them. If you
   find any `.json`, `.csv` or `.txt` other than `system.example.json` and files
   under `tests/fixtures/`, or any `.pdf` or image (`.png`, `.jpg`, `.jpeg`, `.tif`,
-  `.tiff`, `.heic`, `.heif`, `.bmp`, `.webp`) anywhere, stop and ask before
+  `.tiff`, `.heic`, `.heif`, `.dng`, `.avif`, `.jp2`, `.gif`, `.bmp`, `.webp`)
+  anywhere, stop and ask before
   reading it.
 - Example and fixture data must be random or obviously fake, with generic names.
 - `.gitignore`, the pre-commit hook and CI all enforce the data-file rule.
