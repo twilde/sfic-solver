@@ -35,8 +35,8 @@ Treat everything committed as if strangers will read it. The repo is public.
   rekeyed without original records"), never as facts about this one. This applies
   to commit messages and pull request text as well as files.
 - Real system files live outside this repo. Do not go looking for them. If you
-  find any `.json` or `.csv` other than `system.example.json` and files under
-  `tests/fixtures/`, stop and ask before reading it.
+  find any `.json`, `.csv` or `.txt` other than `system.example.json` and files
+  under `tests/fixtures/`, stop and ask before reading it.
 - Example and fixture data must be random or obviously fake, with generic names.
 - `.gitignore`, the pre-commit hook and CI all enforce the data-file rule.
   Never bypass them (`--no-verify`, `git add -f`).

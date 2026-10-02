@@ -19,6 +19,7 @@ Standard library only. Python 3.11 or newer.
 | `./check_bittings.py` | `sfic-check-bittings` | Quick check of a few `NAME=BITTING` values: format, parity, adjacent-cut limit, pairwise closeness. |
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
+| `./check_charts.py` | `sfic-check-charts` | Checks that the tools' pinning rules reproduce pinning charts from your keying software (`.txt` files kept outside this repository). Reports positions only, never key data. |
 
 The pin count is 7 unless the system file says otherwise (`pins`, or the length
 of `pattern`); `gen_bittings.py` takes it from the pattern's length and
@@ -256,13 +257,13 @@ OK
 ## Privacy
 
 A real system file contains real bittings. **Never commit one.** `.gitignore`
-ignores every `*.json` and `*.csv` (system files and exports of your key matrix)
-except `system.example.json` and the fake fixtures under `tests/fixtures/`, and
-two guards enforce it:
+ignores every `*.json`, `*.csv` and `*.txt` (system files, exports of your key
+matrix and pinning charts) except `system.example.json` and the fake fixtures
+under `tests/fixtures/`, and two guards enforce it:
 
 - a pre-commit hook (`git config core.hooksPath .githooks`) that rejects any
-  other staged `.json` or `.csv`;
-- a CI job that fails if any other `.json` or `.csv` is tracked or appears
+  other staged `.json`, `.csv` or `.txt`;
+- a CI job that fails if any other `.json`, `.csv` or `.txt` is tracked or appears
   anywhere in the history.
 
 Keep real files in a directory outside the repository. A pinning chart counts as

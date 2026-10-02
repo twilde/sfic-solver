@@ -13,10 +13,11 @@ commit message. The project is public, and so is its history.
 
 - Reproduce problems with `system.example.json` or invented values.
 - Test fixtures live in `tests/fixtures/`, use random or obviously fake
-  bittings, and carry a `_comment` starting with `FAKE`.
-- `.gitignore`, a pre-commit hook and CI all refuse to commit `.json` or `.csv`
-  files other than `system.example.json` and the fixtures. Please do not bypass
-  them (`--no-verify`, `git add -f`).
+  bittings, and are marked as fake: a JSON fixture carries a `_comment` starting
+  with `FAKE`, and a text fixture begins with a line starting with `FAKE`.
+- `.gitignore`, a pre-commit hook and CI all refuse to commit `.json`, `.csv` or
+  `.txt` files other than `system.example.json` and the fixtures. Please do not
+  bypass them (`--no-verify`, `git add -f`).
 
 ## Before you start
 

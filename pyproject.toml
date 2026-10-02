@@ -20,6 +20,7 @@ sfic-gen-bittings = "sfic_solver.gen_bittings:main"
 sfic-check-bittings = "sfic_solver.check_bittings:main"
 sfic-check-system = "sfic_solver.check_system:main"
 sfic-solve-system = "sfic_solver.solve_system:main"
+sfic-check-charts = "sfic_solver.check_charts:main"
 
 [tool.setuptools]
 packages = ["sfic_solver"]

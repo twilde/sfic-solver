@@ -336,16 +336,17 @@ out once and cached. `Config.space` replaces `Config.pins`, `pattern` and
 There is no behavior change for any valid file. The depth count is new as a
 parameter, but it defaults to 10, the only value any file can use today. The
 output of all four tools, including seeded solver runs, was compared with the
-output from before the change and is identical. Two small tidy-ups came with it: `count_valid` was a second copy
-of `operating_set_size` fed with the allowed cuts, so it is now the same call, and
-a `KeySpace` refuses a pattern whose length is not the pin count, where the old
-functions would have silently compared the shorter of the two. Review of the
-change asked for the rest of its validation, since `KeySpace` is now the library
-entry point and the pinning code will build one too: it also refuses a pin count,
-adjacent-cut limit or depth count below 1, a depth count above 10 (a bitting is
-one digit per cut) and a pattern with anything but E and O. The one command that
-could reach that, `check_bittings --max-step 0`, was silently accepted before and
-is now a usage error like the same option in `gen_bittings`.
+output from before the change and is identical. Two small tidy-ups came with
+it: `count_valid` was a second copy of `operating_set_size` fed with the
+allowed cuts, so it is now the same call, and a `KeySpace` refuses a pattern
+whose length is not the pin count, where the old functions would have silently
+compared the shorter of the two. Review of the change asked for the rest of
+its validation, since `KeySpace` is now the library entry point and the
+pinning code will build one too: it also refuses a pin count, adjacent-cut
+limit or depth count below 1, a depth count above 10 (a bitting is one digit
+per cut) and a pattern with anything but E and O. The one command that could
+reach that, `check_bittings --max-step 0`, was silently accepted before and is
+now a usage error like the same option in `gen_bittings`.
 
 ## D27. Pinning systems are records in a registry
 
@@ -407,3 +408,58 @@ shear lines written down separately. `joint_on_line` says which joint is on a sh
 line in a chamber, which is what explanations and a later visualizer need. It also
 shows the control cross-operation the checker will report: a key cut like a core's
 control bitting lines up the control line.
+
+## D30. The data-file guard also covers .txt
+
+Pinning charts are key data (D25) and the tools will print them as plain text, so
+the guard that already refuses `.json` (D9) and `.csv` (D12) learns `.txt` before
+anything reads or writes a chart: `.gitignore`, the pre-commit hook and CI reject a
+`.txt` file anywhere except under `tests/fixtures/`, where it must begin with a
+line starting `FAKE` (a test enforces it, as it does for the `_comment` in JSON
+fixtures). A blanket `.txt` rule is broader than charts, but the repository has
+never contained a `.txt` file, in its tree or its history, and a legitimate one
+(a requirements file, say) can be allowed by name when it appears, as the example
+system file is. `.pdf` follows when PDF output does (D25); spreadsheets are not
+planned.
+
+## D31. The conformance command reads charts and reports positions only
+
+Step 3 of core pinning (D25). `sfic_solver/charts.py` reads pinning charts in
+either layout from the design (the tools' own, with `name = bitting` lines, and
+the legacy one of older keying software, with a master line and a
+comma-separated list of change keys), several to a file when separated by lines
+of dashes, skipping the `FAKE` line of a test fixture. Its header labels sit in
+one table, match without regard to case and may be followed by `=` or `:` (a
+line that starts with a known label splits right after it, so a value may
+contain colons), a chart that mixes the two layouts is refused, and every error
+says which chart and line and what kind of problem, never what was written
+there, because a chart is key data. Digits are ASCII only: `\d` and
+`str.isdigit` also accept characters such as `²`, which `int()` then rejects
+with a message that quotes them.
+
+`check_charts` (root script `check_charts.py`, installed as `sfic-check-charts`)
+pins each chart's keys with the pinning system it names and compares every
+chamber with the chart, reporting each disagreement as one of four kinds: the
+pins differ, the pinner refuses the chamber, the master rows do not fill from the
+bottom, or a cut the system does not have. It takes files or directories of `.txt`
+files (UTF-8, with or without the byte order mark that Windows tools write; any
+other encoding is reported as such), or `SFIC_CHARTS` when given no path, and does
+nothing when it has neither.
+The report holds counts and positions (file, chart and chamber, numbered in the
+order given) and no key, core or building name, bitting or pin size, so it is safe
+to quote in an issue, and a test checks that on a deliberately wrong chart.
+Every message is fixed text: a chart that names a pinning system the tools do not
+have is reported as exactly that, without the name (a chart's `System` line is
+chart content, and could hold anything), and a last-resort handler turns any
+unexpected error into a fixed message, so that a future slip cannot quote a chart.
+`--details` adds the pin sizes, the system name and the underlying errors for the
+owner's own use, and says not to share them. The summary counts compared, agreeing
+and disagreeing charts, charts that could not be checked and files that could not
+be read separately, so that one kind of failure cannot skew another's count. The
+closing line says DISAGREEMENTS only when a chart really disagrees, and a neutral
+PROBLEMS when the only trouble is a file or chart that could not be read or
+checked, so that quoting it never reports something the output does not show. The
+exit status is 1 for any of them. It has been tested on fake charts computed
+independently of the pinner; whether it agrees with real charts is for their owner
+to find out locally, which is the point of the step.
+

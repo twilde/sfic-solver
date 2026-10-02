@@ -1,0 +1,44 @@
+FAKE charts for tests only: computed from the placeholder keys in system.example.json.
+
+Key System = Example building
+System = A2
+Core = Area A cores
+Date = 2026-10-01
+Control Key = 9743854
+area_a = 5721276
+master_sub = 7305496
+master_top = 5961634
+
+T/D      4  6  9 10  5  8  9
+Control 12  8  8  8 12  6  8
+Master  --  2  4 --  2  2 --
+Master   2  4  2  4  2  4  2
+Bottom   5  3  0  1  2  3  4
+
+----------------------------------------
+
+Key System = Example building
+System = A2
+Core = Unit cores (unit:101)
+Date = 2026-10-01
+Control Key = 3785412
+unit:101 = 3101658
+unit_master = 7587672
+
+T/D     10  6  5  8  9 12 11
+Control  6 12 10  8  8  4  4
+Master   4  4  8  6 --  2  6
+Bottom   3  1  0  1  6  5  2
+
+----------------------------------------
+
+Key System = Example building
+System = A2
+Core = Standalone cores
+Date = 2026-10-01
+Control Key = 9743854
+area_d = 1161012
+
+T/D      4  6  9 10  5  8  9
+Control 18 16  8 12 18 14 12
+Bottom   1  1  6  1  0  1  2
