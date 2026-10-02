@@ -301,6 +301,15 @@ not choose.
 
 ## Dependencies and platforms
 
+Tesseract is optional. It is a program, not a Python package; the tool looks for it
+at run time, on the path or where `--tesseract` says, and the project does not
+install it or import it. Every other tool in the project works without it, and
+without any of the Python packages below, exactly as before. Only
+`sfic-scan-charts` needs them, and without them it says what is missing and exits
+with status 2. This is an exception to D2, which says the project has no runtime
+dependencies (standard library only), and it is bounded and stated in "An exception
+to D2, and its limits" below.
+
 The rest of the project is standard library only and stays so. Scanning needs more,
 and it is kept in an optional extra: `pip install -e ".[scan]"` installs Pillow
 (images), numpy (the projections and the shape comparison) and pypdfium2 (PDF
