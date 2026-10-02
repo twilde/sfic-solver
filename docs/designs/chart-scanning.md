@@ -329,7 +329,11 @@ extensions `.txt`, `.failed.txt` and `.review.txt`, since the owner chose that d
 outside this repository; `-o` chooses another place. The tool will not overwrite an
 existing file without being told to, and it writes nothing else: there are no
 debugging images, because an image of a page is key data in a place the owner did
-not choose.
+not choose. That includes temporary files. Pages are rendered in memory, and each
+crop is handed to Tesseract over its standard input (`tesseract stdin stdout`), so
+that no image of a page ever exists as a file. The three outputs hold key data, and
+SECURITY.md says to treat such files like a password file, so they are created
+readable by their owner alone (mode `0600`), not with the default.
 
 ## Dependencies and platforms
 
@@ -387,7 +391,9 @@ under "Alternatives considered" and not chosen.
 
 A PDF is parsed by a native library, which is a reason to run the tool on files the
 owner made, not on files received from elsewhere. The tool opens no network
-connection and Tesseract needs none.
+connection and Tesseract needs none. The first of those is checked from inside
+Python; the second and the native PDF library cannot be, so for them it is a design
+rule and not a tested property (see "Testing without real scans").
 
 ## Testing without real scans
 
@@ -403,7 +409,18 @@ the harness runs it on many random charts, not only the fixtures. Corrupted imag
 (a digit painted over, a column smudged, a row erased, a page rotated too far,
 resolution too low) must be flagged, never accepted with a wrong value. Tests are
 skipped cleanly when Tesseract or the extra is not installed, and CI installs both
-so that they run there. The limits of the exception to D2 are tested too: one test
+so that they run there. The privacy promises are tests where Python can check them. One test runs the tool
+with `TMPDIR` pointing at an empty directory and asserts that it is still empty
+afterwards, which holds only if no temporary file, image or otherwise, was written.
+One blocks `socket` in the test process and runs the tool, so that any attempt by the
+Python code to open a connection fails the test. One checks that the three outputs
+are created with mode `0600`. What cannot be checked from inside Python is the
+Tesseract subprocess and the native PDF library: for them "no files, no network" is
+a design rule, kept by how they are called (images over standard input, nothing in
+the command line that names a file or a host), and the document says so rather than
+claiming a test.
+
+The limits of the exception to D2 are tested too: one test
 imports every core module with the scanning packages blocked, and one runs the
 command with them blocked and with Tesseract missing and checks for exit status 2
 and a message that names what is missing.
