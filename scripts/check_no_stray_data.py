@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Fail if any data file (.json, .csv or .txt) other than the allowed ones is committed.
+"""Fail if any data file other than the allowed ones is committed.
 
 Real system files, exports (such as a key matrix) and pinning charts contain real
-bittings and must never be committed. The only allowed data files are system.example.json
-(repo root) and fixtures under tests/fixtures/, which must use obviously fake
-bittings.
+bittings and must never be committed. Two kinds of file are refused:
+
+  text data (.json, .csv, .txt)   allowed only as system.example.json (repo root)
+                                  and under tests/fixtures/, with obviously fake
+                                  bittings
+  scans and PDFs (.pdf, .png,     refused everywhere, fixtures included: a picture
+  .jpg, .jpeg, .tif, .tiff,       cannot carry a FAKE marker or be reviewed in a
+  .heic, .heif, .bmp, .webp)      diff, and tests make their images when they run
 
 Usage:
     scripts/check_no_stray_data.py --staged     # files staged for commit (pre-commit hook)
@@ -18,12 +23,16 @@ import subprocess
 import sys
 
 DATA_EXTENSIONS = (".json", ".csv", ".txt")
+SCAN_EXTENSIONS = (".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".heic", ".heif",
+                   ".bmp", ".webp")
 ALLOWED_EXACT = {"system.example.json"}
 ALLOWED_PREFIX = "tests/fixtures/"
 
 
 def is_stray(path):
     path = path.replace("\\", "/")
+    if path.lower().endswith(SCAN_EXTENSIONS):
+        return True
     if not path.lower().endswith(DATA_EXTENSIONS):
         return False
     if path in ALLOWED_EXACT:
@@ -56,7 +65,8 @@ def main(argv=None):
     stray = find_stray(paths)
     if stray:
         print("Refusing: .json, .csv and .txt files other than system.example.json and "
-              "tests/fixtures/ may hold real key data:", file=sys.stderr)
+              "tests/fixtures/, and any PDF or image (scans of charts), may hold real "
+              "key data:", file=sys.stderr)
         for p in stray:
             print(f"  {p}", file=sys.stderr)
         print("Unstage them (git restore --staged <file>); keep real system files outside "

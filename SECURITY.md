@@ -35,9 +35,9 @@ instead and we will find a safe example together.
 
 A real system file lists the bittings of a real key system. Treat it like a
 password file: keep it outside any repository (this one ignores `.json`,
-`.csv` and `.txt` files and refuses to commit them, but your other repositories
-will not),
-and restrict who can read it.
+`.csv` and `.txt` files and refuses to commit them, as it does PDFs and images,
+but your other repositories will not), and restrict who can read it. Scans and
+photos of pinning charts are just as sensitive as the system file.
 
 ## Supported versions
 

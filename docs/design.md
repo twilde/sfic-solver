@@ -447,3 +447,20 @@ unreadable chart. It has been tested on fake charts computed independently of th
 pinner; whether it agrees with real charts is for their owner to find out
 locally, which is the point of the step.
 
+## D32. The data-file guard also covers scans and PDFs
+
+An owner whose charts exist only on paper will scan or photograph them, and a scan
+of a chart is the chart: the pin sizes can be read off it, by eye or by OCR. So the
+guard that refuses `.json`, `.csv` and `.txt` (D9, D12, D30) learns `.pdf`, `.png`,
+`.jpg`, `.jpeg`, `.tif`, `.tiff`, `.heic`, `.heif`, `.bmp` and `.webp` before any
+code reads such a file. `.gitignore`, the pre-commit hook and CI all enforce it. It
+differs from the text rule in one way: there is no fixture exception. A text
+fixture is marked fake by its first line and can be read in a diff, but a picture
+can be neither, so tests that need images draw them into a temporary directory
+when they run, from fake charts, and commit none. The `.gitignore` patterns are
+written case-insensitively (`*.[jJ][pP][gG]`), because scanners and phones write
+`SCAN.PDF` and `IMG_0001.JPG`, and git ignores by case on Linux. A legitimate image
+(a screenshot in the documentation, say) can be allowed by name when one appears,
+as the example system file is. The list is of formats a scan can arrive in, not of
+every format; spreadsheets and word-processor files are still not planned. `.pdf`
+output (D25, step 7) will need the same guard, and already has it.

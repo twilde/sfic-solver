@@ -23,6 +23,9 @@ _spec.loader.exec_module(guard)
     "README.md",
     "sfic_solver/check_system.py",
     "notes.jsonl",
+    "docs/pdf-notes.md",
+    "sfic_solver/image.py",
+    "tests/fixtures/charts/jpg.txt",
 ])
 def test_allowed(path):
     assert guard.find_stray([path]) == []
@@ -45,6 +48,20 @@ def test_allowed(path):
     "notes/CHARTS.TXT",
     "tests/chart.txt",
     "tests/fixturesX/chart.txt",
+    "scan.pdf",
+    "scans/page 1.PDF",
+    "IMG_0001.JPG",
+    "photos/chart.jpeg",
+    "chart.png",
+    "chart.TIF",
+    "chart.tiff",
+    "IMG_0002.HEIC",
+    "chart.heif",
+    "chart.bmp",
+    "chart.webp",
+    "tests/fixtures/scan.pdf",          # no fixture exception for scans
+    "tests/fixtures/charts/page.png",
+    "tests/fixtures/charts/page.JPG",
 ])
 def test_stray(path):
     assert guard.find_stray([path]) == [path]
@@ -105,6 +122,19 @@ def test_fixtures_are_marked_fake():
     ("chart.txt", True),
     ("docs/charts/legacy.txt", True),
     ("tests/fixtures/chart.txt", False),
+    ("scan.pdf", True),
+    ("SCAN.PDF", True),
+    ("IMG_0001.JPG", True),
+    ("photos/page.jpeg", True),
+    ("page.png", True),
+    ("page.TIFF", True),
+    ("page.tif", True),
+    ("IMG_0002.HEIC", True),
+    ("page.heif", True),
+    ("page.bmp", True),
+    ("page.webp", True),
+    ("tests/fixtures/charts/page.png", True),    # unlike text fixtures
+    ("tests/fixtures/scan.pdf", True),
 ])
 def test_gitignore_matches_the_guard(path, ignored):
     probe = subprocess.run(["git", "check-ignore", "-q", "--no-index", path],
@@ -112,6 +142,25 @@ def test_gitignore_matches_the_guard(path, ignored):
     if probe.returncode not in (0, 1):
         pytest.skip("git not available")
     assert (probe.returncode == 0) == ignored, path
+
+
+def test_no_scans_or_pdfs_in_the_fixtures():
+    scans = [p.name for p in FIXTURES.rglob("*")
+             if p.is_file() and p.suffix.lower() in guard.SCAN_EXTENSIONS]
+    assert scans == []
+
+
+def test_scan_extensions_are_tested_in_every_case_variant():
+    # .gitignore spells each extension case-insensitively; check every one of them
+    # in the cases scanners and phones write.
+    for ext in guard.SCAN_EXTENSIONS:
+        for name in (f"scan{ext}", f"SCAN{ext.upper()}", f"Scan{ext.capitalize()}"):
+            assert guard.find_stray([name]) == [name]
+            probe = subprocess.run(["git", "check-ignore", "-q", "--no-index", name],
+                                   cwd=ROOT, capture_output=True)
+            if probe.returncode not in (0, 1):
+                pytest.skip("git not available")
+            assert probe.returncode == 0, name
 
 
 def test_text_fixtures_are_marked_fake():

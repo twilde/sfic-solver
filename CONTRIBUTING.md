@@ -16,8 +16,11 @@ commit message. The project is public, and so is its history.
   bittings, and are marked as fake: a JSON fixture carries a `_comment` starting
   with `FAKE`, and a text fixture begins with a line starting with `FAKE`.
 - `.gitignore`, a pre-commit hook and CI all refuse to commit `.json`, `.csv` or
-  `.txt` files other than `system.example.json` and the fixtures. Please do not
-  bypass them (`--no-verify`, `git add -f`).
+  `.txt` files other than `system.example.json` and the fixtures, and every PDF
+  or image (`.pdf`, `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.heic`, `.heif`,
+  `.bmp`, `.webp`) without exception, since a picture cannot be marked as fake.
+  Tests that need images make them when they run. Please do not bypass the
+  guards (`--no-verify`, `git add -f`).
 
 ## Before you start
 

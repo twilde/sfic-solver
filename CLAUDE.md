@@ -34,9 +34,16 @@ Treat everything committed as if strangers will read it. The repo is public.
   maintainer holds. Write design reasoning as general scenarios ("a building
   rekeyed without original records"), never as facts about this one. This applies
   to commit messages and pull request text as well as files.
+- Scans, photos and PDFs of charts, and any OCR text made from them, are real key
+  data too. Never ask the user to paste, upload or describe their contents; debug
+  with invented values or with reports that give positions only (file, chart,
+  chamber numbers). Tools that read them run locally, never through a cloud
+  service. Tests make their images at run time from fake charts and commit none.
 - Real system files live outside this repo. Do not go looking for them. If you
   find any `.json`, `.csv` or `.txt` other than `system.example.json` and files
-  under `tests/fixtures/`, stop and ask before reading it.
+  under `tests/fixtures/`, or any `.pdf` or image (`.png`, `.jpg`, `.jpeg`, `.tif`,
+  `.tiff`, `.heic`, `.heif`, `.bmp`, `.webp`) anywhere, stop and ask before
+  reading it.
 - Example and fixture data must be random or obviously fake, with generic names.
 - `.gitignore`, the pre-commit hook and CI all enforce the data-file rule.
   Never bypass them (`--no-verify`, `git add -f`).

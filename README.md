@@ -259,15 +259,19 @@ OK
 A real system file contains real bittings. **Never commit one.** `.gitignore`
 ignores every `*.json`, `*.csv` and `*.txt` (system files, exports of your key
 matrix and pinning charts) except `system.example.json` and the fake fixtures
-under `tests/fixtures/`, and two guards enforce it:
+under `tests/fixtures/`. It also ignores every PDF and image (`.pdf`, `.png`,
+`.jpg`, `.jpeg`, `.tif`, `.tiff`, `.heic`, `.heif`, `.bmp`, `.webp`), with no
+exception, since scans and photos of charts are key data and a picture cannot be
+marked as fake. Two guards enforce it:
 
 - a pre-commit hook (`git config core.hooksPath .githooks`) that rejects any
-  other staged `.json`, `.csv` or `.txt`;
-- a CI job that fails if any other `.json`, `.csv` or `.txt` is tracked or appears
-  anywhere in the history.
+  other staged `.json`, `.csv` or `.txt`, and any staged PDF or image;
+- a CI job that fails if any such file is tracked or appears anywhere in the
+  history.
 
 Keep real files in a directory outside the repository. A pinning chart counts as
-real key data in any format, because the pin sizes give the bittings away.
+real key data in any format (text, scan, photo or PDF), because the pin sizes
+give the bittings away.
 
 Issues and pull requests are public too: never paste real bittings, real system
 files, or anything that identifies a real building. Reproduce problems with
