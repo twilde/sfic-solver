@@ -60,8 +60,16 @@ def main(argv=None):
         return 2
 
     base = output.base_path(args.paths[0], args.output)
+    targets = [output.target(base, s) for s in output.SUFFIXES]
+    links = [p for p in targets if p.is_symlink()]
+    if links:
+        print("sfic-scan-charts: these output paths are symbolic links, which are never "
+              "written through, so nothing was read (move them away):", file=sys.stderr)
+        for path in links:
+            print(f"  {path}", file=sys.stderr)
+        return 2
     if not args.force:
-        in_the_way = [p for p in (output.target(base, s) for s in output.SUFFIXES) if p.exists()]
+        in_the_way = [p for p in targets if p.exists()]
         if in_the_way:
             print("sfic-scan-charts: these files already exist, so nothing was read "
                   "(use --force to replace them, or -o to write elsewhere):", file=sys.stderr)
@@ -86,8 +94,9 @@ def main(argv=None):
     try:
         written = output.write_outputs(base, scan.charts, args.force)
     except output.OutputExists as err:
-        print(f"sfic-scan-charts: {err.args[0]} already exists; nothing was written "
-              "(use --force)", file=sys.stderr)
+        why = ("is a symbolic link, which is never written through; move it away"
+               if err.link else "already exists (use --force to replace it)")
+        print(f"sfic-scan-charts: {err.args[0]} {why}; nothing was written", file=sys.stderr)
         return 2
     lines, ok = output.report(scan, recogniser.version)
     print("\n".join(lines))

@@ -6,6 +6,7 @@ checked before any is written, so a refusal leaves nothing half done. The report
 names positions (input, page, chart, row, chamber) and kinds of problem, never a
 digit read from a page or a file name, so that it is safe to quote in an issue.
 """
+import errno
 import os
 from pathlib import Path
 
@@ -16,7 +17,12 @@ SUFFIXES = {assemble.ACCEPTED: ".txt", assemble.FAILED: ".failed.txt",
 
 
 class OutputExists(Exception):
-    """A file that would be written already exists (and --force was not given)."""
+    """A file that would be written is in the way: it exists (and --force was not
+    given), or it is a symbolic link, which is never followed. `args[0]` is its path."""
+
+    def __init__(self, path, link=False):
+        super().__init__(path)
+        self.link = link
 
 
 def base_path(first_input, output=None):
@@ -35,12 +41,20 @@ def target(base, status):
 
 def write_private(path, text, force=False):
     """Write `text` to `path` readable by its owner only; refuse to replace a file
-    unless `force`."""
+    unless `force`, and never write through a symbolic link, with or without `force`
+    (it would put key data wherever the link points and change that file's mode)."""
     flags = os.O_WRONLY | os.O_CREAT | (os.O_TRUNC if force else os.O_EXCL)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    if Path(path).is_symlink():
+        raise OutputExists(path, link=True)
     try:
         descriptor = os.open(path, flags, 0o600)
     except FileExistsError:
         raise OutputExists(path) from None
+    except OSError as error:
+        if error.errno == errno.ELOOP:              # a link appeared after the check
+            raise OutputExists(path, link=True) from None
+        raise
     with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
         if hasattr(os, "fchmod"):
             os.fchmod(handle.fileno(), 0o600)           # also when --force reuses a file
@@ -56,10 +70,11 @@ def write_outputs(base, found, force=False):
         texts = [c.text for c in found if c.status == status]
         if texts:
             plan.append((status, len(texts), target(base, status), assemble.join_charts(texts)))
-    if not force:
-        for _, _, path, _ in plan:
-            if path.exists():
-                raise OutputExists(path)
+    for _, _, path, _ in plan:
+        if path.is_symlink():
+            raise OutputExists(path, link=True)         # never, even with --force
+        if path.exists() and not force:
+            raise OutputExists(path)
     written = []
     for status, count, path, text in plan:
         write_private(path, text, force)

@@ -120,3 +120,31 @@ def test_a_flagged_chart_says_which_lines_of_the_page_it_covers():
     # an accepted chart needs no position, and a chart with no span says nothing of one
     assert not any("lines" in l for l in output.chart_lines(chart(asm.ACCEPTED)))
     assert not any("of the page)" in l for l in output.chart_lines(chart(asm.REVIEW)))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="symbolic links")
+def test_a_symbolic_link_in_the_way_is_refused_even_with_force(tmp_path):
+    # Review: with --force, O_TRUNC would write key data through a link to wherever it
+    # points, and fchmod would change that file's mode too.
+    elsewhere = tmp_path / "elsewhere.txt"
+    elsewhere.write_text("not ours")
+    os.chmod(elsewhere, 0o644)
+    (tmp_path / "out.review.txt").symlink_to(elsewhere)
+    found = [chart(asm.ACCEPTED), chart(asm.REVIEW)]
+    for force in (False, True):
+        with pytest.raises(output.OutputExists):
+            output.write_outputs(tmp_path / "out", found, force=force)
+    assert elsewhere.read_text() == "not ours"
+    assert stat.S_IMODE(elsewhere.stat().st_mode) == 0o644
+    assert not (tmp_path / "out.txt").exists()          # nothing else was written either
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="symbolic links")
+def test_writing_never_follows_a_link_even_if_one_appears_after_the_check(tmp_path):
+    elsewhere = tmp_path / "elsewhere.txt"
+    elsewhere.write_text("not ours")
+    link = tmp_path / "late.txt"
+    link.symlink_to(elsewhere)
+    with pytest.raises(output.OutputExists):
+        output.write_private(link, "key data", force=True)
+    assert elsewhere.read_text() == "not ours"

@@ -66,6 +66,22 @@ def test_existing_output_files_stop_the_run_before_anything_is_read(tmp_path, mo
     assert (tmp_path / "scans.review.txt").read_text() == "keep"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="symbolic links")
+def test_an_output_path_that_is_a_symbolic_link_stops_the_run_even_with_force(
+        tmp_path, monkeypatch, capsys):
+    pytest.importorskip("PIL")
+    monkeypatch.setattr(scanning, "require", lambda tesseract=None: "/bin/true")
+    scan = tmp_path / "scans.png"
+    scan.write_bytes(b"x")
+    elsewhere = tmp_path / "elsewhere.txt"
+    elsewhere.write_text("not ours")
+    (tmp_path / "scans.txt").symlink_to(elsewhere)
+    assert scan_charts.main([str(scan), "--force"]) == 2
+    err = capsys.readouterr().err
+    assert "symbolic links" in err and "scans.txt" in err
+    assert elsewhere.read_text() == "not ours"
+
+
 def test_the_root_script_runs_as_a_command():
     run = run_script("scan_charts", "--help")
     assert run.returncode == 0 and "NAME.review.txt" in run.stdout
