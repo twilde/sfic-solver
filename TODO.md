@@ -18,3 +18,7 @@
 - Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
   drawing of each core's pin stacks inside the chart output, and optional PDF
   output of all the charts as one document.
+- A script for the pull request privacy scan that reviewers now run by hand: seven
+  digit strings that are not in `system.example.json`, a short list of key-history
+  phrases, commit identity and trailers, and the data-file guard over the whole
+  history. It is code, so it needs a short design first (D24).
