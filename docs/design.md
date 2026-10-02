@@ -23,7 +23,7 @@ for material that really is list-shaped (formats, ranges, a plan of commits).
 
 - [Core pinning for SFIC pinning systems (A2 first)](designs/core-pinning.md):
   pinning cores, control keys, a simulated lock, and moving beyond the parity
-  pattern. Draft (D25).
+  pattern. Accepted (D25).
 
 ## D1. Package layout, with root scripts kept as entry points
 
@@ -296,7 +296,7 @@ nobody.
 The tools will grow from "which keys operate which cores" to "which pins make
 the cores behave that way", for SFIC A2 first and other pinning systems as data.
 The reasoning is long and has open questions, so it lives in
-[docs/designs/core-pinning.md](designs/core-pinning.md) (status: draft) rather
+[docs/designs/core-pinning.md](designs/core-pinning.md) (status: accepted) rather
 than here. The decisions it records so far, none yet built: every core has
 exactly one control key, which is part of its pinning, not an extra; within one
 core, master and change keys are indistinguishable and all are just operating

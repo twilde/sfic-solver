@@ -1,6 +1,6 @@
 # Core pinning for SFIC pinning systems (A2 first)
 
-Status: Draft
+Status: Accepted
 
 This document proposes teaching the tools to pin cores: to take the keys and the
 hierarchy a system file already describes and work out the pins that make the
