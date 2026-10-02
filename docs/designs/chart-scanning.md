@@ -438,7 +438,7 @@ helpers that render fake charts to images live with the tests.
 
 ## Decisions from review
 
-Review settled some questions that this document first left open.
+Review settled the questions that this document first left open.
 
 Pages carry handwritten notes in the margin, and charts are matched to cores by
 position: see "What the printouts look like" and "What the tool writes". No
@@ -452,17 +452,18 @@ agrees) stay visibly separate, and the README shows both commands. Phone formats
 still refuses them, and a later version can add an optional package and
 perspective correction.
 
-## Open questions
+The thresholds start strict. How many renditions to run per row, and the group size
+and purity below which a group is flagged, begin at values that flag too much
+rather than too little, and are relaxed only as far as the harness shows that no
+wrong chart is ever accepted. The values themselves are settled while building.
 
-Whether the real printouts match the assumptions here is still the largest unknown.
-The font may be proportional or have a slashed zero, the digits may touch, the header
-labels may be spelt differently from the table in `charts.py`, a long `Change Keys`
-line may wrap onto a second line, a page may hold more than one chart, and a page
-may carry a title, a date or a page number. Each is handled by flagging today, and
-none is a design driver unless the first real run shows it to be one; it is then a
-candidate for a change, decided from positions only.
+## What cannot be known yet
 
-How many renditions to run per row, and the thresholds for group size and
-purity, are tuning, to be settled by the harness; the proposal is to start strict
-and relax them only as far as the harness shows the no-wrong-chart property still
-holds.
+How closely the real printouts match the assumptions here can only be learned by
+running the tool on them. The font may be proportional or have a slashed zero, the
+digits may touch, the header labels may be spelt differently from the table in
+`charts.py`, a long `Change Keys` line may wrap onto a second line, a page may hold
+more than one chart, and a page may carry a title, a date or a page number. Each is
+handled by flagging today, and none is a design driver unless the first real run
+shows it to be one; it is then decided from a report of positions only, and the
+design is revised.
