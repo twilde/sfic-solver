@@ -22,3 +22,10 @@
   digit strings that are not in `system.example.json`, a short list of key-history
   phrases, commit identity and trailers, and the data-file guard over the whole
   history. It is code, so it needs a short design first (D24).
+- Scanning paper charts (docs/designs/chart-scanning.md, accepted; D38): the tool is
+  built (step 3). Still to do: step 4, the synthetic-image harness with the quality
+  matrix and the 1,000-chart criterion, including the macOS system fonts (issue #10:
+  commas are not found in thin fonts such as Courier New); and step 5, the README
+  ("scanning paper charts", the command in the tools table, and the "dependency-free"
+  wording with the one stated exception), CLAUDE.md's "standard library only"
+  likewise, and the log. Step 5 has to land before a release mentions the tool.
