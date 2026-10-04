@@ -13,6 +13,14 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request cancels the run it makes pointless. Nothing else is
+# ever cancelled: a run on main or a tag gets its own group, because even without
+# cancel-in-progress GitHub drops an older queued run when a newer one joins its
+# group, and that would skip the tests of a commit on main.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.ref) || format('ci-run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   guard:
     name: No stray data files

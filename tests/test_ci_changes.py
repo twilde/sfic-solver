@@ -182,3 +182,13 @@ def test_ci_runs_once_per_change_not_on_every_push():
     assert "pull_request:" in lines
     assert "workflow_dispatch:" in lines
     assert "branches: [main]" in lines, "push must be limited to main"
+
+
+def test_only_pull_requests_cancel_each_other():
+    """Cancel superseded pull request runs; give every other run its own group (D48)."""
+    text = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    block = text[text.index("\nconcurrency:"):text.index("\njobs:")]
+    lines = [line.strip() for line in block.splitlines() if not line.lstrip().startswith("#")]
+    group = next(line for line in lines if line.startswith("group:"))
+    assert "github.event_name == 'pull_request'" in group and "github.run_id" in group
+    assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in lines

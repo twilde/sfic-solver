@@ -478,6 +478,12 @@ every commit twice. A branch pushed with no pull request, which CLAUDE.md allows
 getting something reviewed early, is therefore not tested until someone runs CI on it
 from the Actions tab or opens a pull request (D47).
 
+A new push to a pull request cancels that pull request's run still in progress,
+since its result no longer matters (D48). Only pull requests share a concurrency
+group. Runs on `main`, tags and manual runs each get their own, so none is ever
+cancelled: with a shared group GitHub also drops an older queued run when a newer one
+arrives, even without cancel-in-progress, and a commit on `main` could go untested.
+
 **CI** runs a guard job (the stray-data checks over tracked files and over
 history) and a test matrix on Python 3.11 to 3.14 on `ubuntu-24.04`, plus one
 Python 3.14 job on `ubuntu-26.04` so that problems with the new image show up

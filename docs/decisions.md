@@ -485,3 +485,13 @@ pull request is opened. That is accepted, since such branches exist to be read, 
 merged. Amends D46 only in that the scanner's comparison has no branch-push case.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D48. A new push to a pull request cancels its superseded CI run
+
+Every push to a pull request started a full run while the previous one was still
+going, though its result no longer mattered. CI now cancels it. Only pull request runs
+share a concurrency group; runs on `main`, tags and by hand each get a unique one,
+because GitHub drops an older queued run from a shared group even when cancelling is
+off, which could leave a commit on `main` untested. A test checks both settings.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
