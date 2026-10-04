@@ -478,10 +478,27 @@ early and on our terms. Runners are pinned rather than `ubuntu-latest` because
 `ubuntu-latest` moves to 26.04 from late 2026, and a surprise change of image is
 not the kind of failure to take by surprise. Once the rollout finishes (by
 2026-11-19) the pins can be replaced by `ubuntu-latest`, which is on the TODO
-list. The test jobs install Tesseract and the fonts the scanning tests draw with
-and the `scan` extra, so those tests, the quality tests included, run in every CI
-job and skip elsewhere, and a last step runs the installed commands. Action
-versions are tracked by major tag and chosen to run on Node 24 (D14, D15).
+list. The test jobs install only pytest, as a contributor can, so the scanner's
+tests that need the `scan` extra or Tesseract skip there, which also shows that
+nothing else depends on them (issue #15 was a test that did), and a last step runs
+the installed commands. Action versions are tracked by major tag and chosen to run
+on Node 24 (D14, D15).
+
+**The scanner's checks run only when a change can affect them** (D46). They are the
+slow ones: they install Tesseract and the fonts the tests draw with and the `scan`
+extra, then draw and read charts, the quality tests included, on the same matrix as
+the test job. A small job, `changes`, runs `scripts/ci_changes.py`, which lists the
+files changed since the branch left `main` (for a pull request, since its base) and
+says whether any is the scanner, a core module it imports, its tests, `pyproject.toml`
+or CI itself. The `scanner` matrix runs if so. Pushes to `main` and tags always run
+it, and so does any case where the comparison cannot be made (no base, a git
+failure), since skipping by mistake is worse than running by mistake. The list of
+paths is in the script, and a test reads the imports of the scanner's code and tests
+and fails if a module they use is missing from it. Both the filter and the jobs are
+in the workflow rather than a `paths:` filter on it, because that would stop the
+whole workflow, the guard and the core tests with it. A skipped job counts as passing
+for a required check, but a skipped matrix shows as one check without the matrix
+names, so requiring the individual `scanner (...)` checks would need a summary job.
 
 **Dependabot** opens one grouped pull request a week for GitHub Actions only,
 because CI uses third-party actions whose runtimes get deprecated. There is

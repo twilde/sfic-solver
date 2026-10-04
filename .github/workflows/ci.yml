@@ -20,6 +20,30 @@ jobs:
       - name: ...and none may ever have been committed
         run: python3 scripts/check_no_stray_data.py --history
 
+  changes:
+    name: Does the change touch the scanner?
+    runs-on: ubuntu-24.04
+    outputs:
+      scanner: ${{ steps.scanner.outputs.scanner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0          # the comparison needs the history back to the branch point
+      - name: Compare with the base (everything runs on main, tags and when unsure)
+        id: scanner
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          base=""
+          if [ "$EVENT" = pull_request ]; then
+            base="origin/$BASE_REF"
+          elif [ "$REF" != refs/heads/main ] && [ "${REF#refs/heads/}" != "$REF" ]; then
+            base="origin/main"
+          fi
+          python3 scripts/ci_changes.py ${base:+--base "$base"} >> "$GITHUB_OUTPUT"
+
   test:
     name: test (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
@@ -39,13 +63,10 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Tesseract and fonts (the scanning tests need them; they skip without)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y tesseract-ocr fonts-liberation fonts-dejavu-core
-          tesseract --version
+      # Without the scan extra or Tesseract, the way CONTRIBUTING.md says a
+      # contributor can work: the scanner's tests that need them skip.
       - name: Install
-        run: python -m pip install -e ".[test,scan]"
+        run: python -m pip install -e ".[test]"
       - name: Test
         run: python -m pytest -q
       - name: Installed commands run
@@ -53,3 +74,34 @@ jobs:
           sfic-check-system tests/fixtures/clean.json
           sfic-gen-bittings OOEOEOE -n 3
           sfic-scan-charts --help > /dev/null
+
+  scanner:
+    # Slow (Tesseract, and drawing and reading charts), so it runs only when the
+    # change can affect the scanner (scripts/ci_changes.py). A skipped job counts as
+    # passing for a required check, but a skipped matrix shows as one unnamed check.
+    name: scanner (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: changes
+    if: needs.changes.outputs.scanner == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: ubuntu-26.04
+            python-version: "3.14"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Tesseract and fonts (the scanning tests need them; they skip without)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr fonts-liberation fonts-dejavu-core
+          tesseract --version
+      - name: Install
+        run: python -m pip install -e ".[test,scan]"
+      - name: Test the scanner
+        run: python -m pytest -q tests/test_scan_*.py

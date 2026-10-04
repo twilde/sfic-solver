@@ -460,3 +460,15 @@ operating keys. The scanner, whose work is suspended (D44), still expects all fo
 header lines and flags a chart without them for review.
 
 Detail: [designs/core-pinning.md, "The chart layout"](designs/core-pinning.md#the-chart-layout).
+
+## D46. CI runs the scanner's slow checks only when a change can affect them
+
+The scanner's tests need Tesseract and the `scan` extra and are the slowest in CI, but
+work on the scanner is suspended (D44) and most changes cannot affect it. The `test`
+matrix now installs only pytest and runs the whole suite, so the scanner's tests skip
+there, as for a contributor. A `scanner` matrix, with Tesseract and the extra, runs
+only if `scripts/ci_changes.py` finds a changed file that is the scanner or something
+it uses. Pushes to `main`, tags and any doubt run it. A test keeps the file list in
+step with the scanner's imports. This replaces a TODO item for a job without the extra.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
