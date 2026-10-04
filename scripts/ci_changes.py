@@ -18,14 +18,17 @@ import sys
 
 # A changed path that starts with any of these can affect the scanner. Beyond the
 # scanner itself: the core modules it imports (and check_charts, which its tests run
-# its output through), its tests and their helpers, the packaging that declares its
-# extra, and CI itself. tests/test_ci_changes.py checks the list against the imports.
+# its output through), the root scripts its tests run as commands, its tests and their
+# helpers, the packaging that declares its extra, and CI itself.
+# tests/test_ci_changes.py checks the list against the imports and the scripts run.
 SCANNER_PREFIXES = (
     "sfic_solver/scanning/",
     "sfic_solver/scan_charts.py",
     "sfic_solver/charts.py",
     "sfic_solver/pinning.py",
     "sfic_solver/check_charts.py",
+    "check_charts.py",
+    "scan_charts.py",
     "tests/test_scan_",
     "tests/scan_",
     "tests/conftest.py",

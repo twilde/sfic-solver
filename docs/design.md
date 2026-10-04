@@ -502,12 +502,13 @@ slow ones: they install Tesseract and the fonts the tests draw with and the `sca
 extra, then draw and read charts, the quality tests included, on the same matrix as
 the test job. A small job, `changes`, runs `scripts/ci_changes.py`, which lists the
 files a pull request changes relative to its base and says whether any is the scanner,
-a core module it imports, its tests, `pyproject.toml` or CI itself. The `scanner`
-matrix runs if so. Everything that is not a pull request (pushes to `main`, tags, a
-manual run) always runs it, and so does any case where the comparison cannot be made
-(a git failure), since skipping by mistake is worse than running by mistake. The list of
-paths is in the script, and a test reads the imports of the scanner's code and tests
-and fails if a module they use is missing from it. Both the filter and the jobs are
+a core module it imports, a root script its tests run, its tests, `pyproject.toml` or
+CI itself. The `scanner` matrix runs if so. Everything that is not a pull request
+(pushes to `main`, tags, a manual run) always runs it, and so does any case where the
+comparison cannot be made (a git failure), since skipping by mistake is worse than
+running by mistake. The list of paths is in the script, and a test reads the imports of
+the scanner's code and tests, and the root scripts the tests run, and fails if one is
+missing from it. Both the filter and the jobs are
 in the workflow rather than a `paths:` filter on it, because that would stop the
 whole workflow, the guard and the core tests with it.
 

@@ -23,6 +23,8 @@ NOT_THE_SCANNER = {"sfic_solver/__init__.py"}
     "sfic_solver/scan_charts.py",
     "sfic_solver/charts.py",
     "sfic_solver/pinning.py",
+    "check_charts.py",
+    "scan_charts.py",
     "tests/test_scan_layout.py",
     "tests/scan_harness.py",
     "pyproject.toml",
@@ -40,6 +42,8 @@ def test_scanner_files_and_what_it_uses_are_affecting(path):
     "sfic_solver/model.py",
     "sfic_solver/check_system.py",
     "sfic_solver/gen_bittings.py",
+    "check_system.py",
+    "gen_bittings.py",
     "tests/test_model.py",
     "tests/test_readme.py",
     "scripts/check_no_stray_data.py",
@@ -80,8 +84,15 @@ def imported_files(path):
     return found
 
 
+def scripts_run_by(path):
+    """The root scripts a test runs as commands: run_script("name", ...) or ROOT / "name.py"."""
+    text = path.read_text()
+    names = re.findall(r'run_script\(\s*"(\w+)"', text) + re.findall(r'ROOT / "(\w+)\.py"', text)
+    return {ROOT / f"{name}.py" for name in names if (ROOT / f"{name}.py").is_file()}
+
+
 def scanner_closure():
-    """Every sfic_solver/ and tests/ file the scanner's code and tests import, transitively."""
+    """Every repo file the scanner's code and tests import or run as a command, transitively."""
     todo = {*(ROOT / "sfic_solver" / "scanning").glob("*.py"),
             ROOT / "sfic_solver" / "scan_charts.py",
             *(ROOT / "tests").glob("test_scan_*.py"), *(ROOT / "tests").glob("scan_*.py")}
@@ -89,7 +100,7 @@ def scanner_closure():
     while todo:
         path = todo.pop()
         seen.add(path)
-        todo |= imported_files(path) - seen
+        todo |= (imported_files(path) | scripts_run_by(path)) - seen
     return {p.relative_to(ROOT).as_posix() for p in seen} - NOT_THE_SCANNER
 
 
@@ -97,7 +108,8 @@ def test_everything_the_scanner_imports_is_in_the_list():
     """A scanner dependency missing from SCANNER_PREFIXES would let a change to it skip the tests."""
     closure = scanner_closure()
     assert {"sfic_solver/charts.py", "sfic_solver/pinning.py", "sfic_solver/check_charts.py",
-            "tests/conftest.py"} <= closure, "the import walk found too little"
+            "check_charts.py", "scan_charts.py", "tests/conftest.py"} <= closure, \
+        "the import walk found too little"
     missing = sorted(p for p in closure if not ci.touches_scanner([p]))
     assert missing == [], f"add these to SCANNER_PREFIXES in scripts/ci_changes.py: {missing}"
 
