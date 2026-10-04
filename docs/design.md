@@ -333,7 +333,7 @@ any weight or algorithm for files that do not opt in (D6).
 An owner whose pinning charts exist only on paper needs them as text before
 `check_charts` can run on them. [designs/chart-scanning.md](designs/chart-scanning.md)
 (accepted) designs a local tool for that, and `sfic-scan-charts` is built, with its
-test harness (step 4); the README section is step 5. What it commits to:
+test harness and its README section. What it commits to:
 
 The tool transcribes and never repairs. It never consults the pinner or the
 pinning rules to choose a reading, because a tool that quietly "fixes" what it
@@ -459,7 +459,8 @@ the trailer (D37).
 
 **Standard library only, Python 3.11 or newer.** The core tools have no runtime
 dependencies, and pytest is the only test dependency. The one exception is
-scanning, above. The floor is 3.11: 3.9 was already end-of-life upstream and had
+scanning, above: the README, CLAUDE.md, CONTRIBUTING.md and SECURITY.md each say
+"standard library only" with that exception named, and a test keeps them so. The floor is 3.11: 3.9 was already end-of-life upstream and had
 no build for Ubuntu 26.04, and 3.10 reaches end-of-life in October 2026.
 `requires-python`, the README, the CI matrix and a test all state the same
 minimum. Some older idioms (such as `typing.Optional`) remain from the days of

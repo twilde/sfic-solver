@@ -38,7 +38,8 @@ plan, not a list of bullet points.
 ## Setup
 
 Python 3.11 or newer, standard library only (please do not add runtime
-dependencies).
+dependencies). The one exception is the chart scanner, whose packages are the
+optional `scan` extra (see below); the core tools and their tests need none.
 
 ```bash
 pip install -e ".[test]"        # pytest is the only extra dependency

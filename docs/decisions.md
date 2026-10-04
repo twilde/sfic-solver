@@ -424,3 +424,16 @@ charts per condition in CI, but a chart costs six to seven seconds, so three it 
 
 Detail: [design.md, "Reading scanned charts"](design.md#reading-scanned-charts),
 [designs/chart-scanning.md](designs/chart-scanning.md).
+
+## D43. The README claims no more for the scanner than the harness has shown
+
+The README, CLAUDE.md, CONTRIBUTING.md and SECURITY.md keep saying "standard library
+only", each with the scanner named as the one exception (D2, D38), and a test checks
+they do. The README's section on scanning says what was run (fake charts, about 120
+in the measured runs, nothing accepted wrong) and that the 1,000-chart run has not
+been made, so it states no error rate. The flag rate and the thin-font weakness are
+stated as limits, not hidden. When the slow run is made, the README is updated with
+what it showed.
+
+Detail: [design.md, "Reading scanned charts"](design.md#reading-scanned-charts),
+[designs/chart-scanning.md, "What the harness showed"](designs/chart-scanning.md#what-the-harness-showed).

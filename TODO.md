@@ -22,11 +22,9 @@
   digit strings that are not in `system.example.json`, a short list of key-history
   phrases, commit identity and trailers, and the data-file guard over the whole
   history. It is code, so it needs a short design first (D24).
-- Scanning paper charts (docs/designs/chart-scanning.md, accepted; D38): the tool is
-  built (step 3) and so is the harness (step 4). Still to do: run the slow tier to
-  completion (`pytest --runslow tests/test_scan_harness.py -s`, about two hours a
-  condition), and the dissent check that flags about one clean chart in twelve
-  (issue #12); make the thin macOS fonts read (issue #10); and step 5, the README
-  ("scanning paper charts", the command in the tools table, and the "dependency-free"
-  wording with the one stated exception), CLAUDE.md's "standard library only"
-  likewise, and the log. Step 5 has to land before a release mentions the tool.
+- Scanning paper charts (docs/designs/chart-scanning.md, accepted; D38): the tool, its
+  harness and its documentation are built (steps 3 to 5). Still to do: run the slow
+  tier to completion (`pytest --runslow tests/test_scan_harness.py -s`, about two
+  hours a condition) and then say in the README what it showed; the dissent check
+  that flags about one clean chart in twelve (issue #12); and the thin macOS fonts
+  (issue #10).

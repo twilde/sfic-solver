@@ -79,3 +79,30 @@ def test_minimum_python_is_stated_consistently():
                        (ROOT / ".github/workflows/ci.yml").read_text(), re.M).group(1)
     versions = [tuple(map(int, v.strip(' "').split("."))) for v in matrix.split(",")]
     assert min(versions) == tuple(map(int, floor.split(".")))
+
+
+def test_every_command_is_in_the_readme_table_and_the_scanner_exception_is_stated():
+    """One fact in several files (D43): the commands, the scan extra and the exception."""
+    import tomllib
+
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    readme = (ROOT / "README.md").read_text()
+    for script in project["scripts"]:
+        assert f"`{script}`" in readme, script
+    # The extra's packages are named where the README says what the extra is.
+    for package in project["optional-dependencies"]["scan"]:
+        assert package in readme, package
+    assert project["dependencies"] == []
+    for name in ("README.md", "CLAUDE.md", "CONTRIBUTING.md", "SECURITY.md"):
+        text = (ROOT / name).read_text()
+        assert "standard library" in text.lower(), name
+        assert "scan" in text.lower(), f"{name} says standard library without the exception"
+
+
+def test_the_readme_install_line_is_the_one_the_tool_prints():
+    from sfic_solver.scanning import INSTALL_HINT, TESSERACT_ENV
+
+    readme = (ROOT / "README.md").read_text()
+    assert INSTALL_HINT in readme
+    assert "brew install tesseract" in readme and "apt install tesseract-ocr" in readme
+    assert TESSERACT_ENV in readme
