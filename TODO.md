@@ -15,7 +15,8 @@
   key-space object, the pinning library, the `.txt` guard and the conformance
   script, and the config and checker for files that set `pinning`). Step 5 changes
   the solver's scoring and the residual-risk population, so it needs the
-  maintainer's agreement first; step 6 is the chart command.
+  maintainer's agreement first (a draft is in docs/designs/pinnable-solving.md);
+  step 6 is the chart command.
 - Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
   drawing of each core's pin stacks inside the chart output, and optional PDF
   output of all the charts as one document.

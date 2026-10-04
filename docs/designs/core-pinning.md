@@ -553,7 +553,7 @@ the checker, so the rules are verified before anything depends on them.
 | 2 | Library: the pinning system record with A2, the pinner with control pins, the simulated lock, and property tests (done, D27 to D29) | None for existing files (library only) |
 | 3 | (done, D30 and D31) First the data-file guard learns `.txt`, in its own commit. Then the local conformance script: read single-core charts, in the tools' layout or the legacy one (one or several to a file), and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
 | 4 | (done, D51 to D53) Config and checker: the `pinning` field, `control` on each core, `retired_cores`, pinnability, control cross-operation and the retired-core consistency check in the report | Only for files that opt in |
-| 5 | The generator and solver work with or without a pattern; the residual-risk population comes from the retired cores, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
+| 5 | (proposed in [pinnable-solving.md](pinnable-solving.md)) The generator and solver work with or without a pattern; the residual-risk population comes from the retired cores, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
 | 6 | The chart command (with the key system name, the date and the unit names) and README updates | New command |
 | 7 | An ASCII drawing of each core's pin stacks in the chart output, and optional PDF output of all charts as one document, each with its own design document; the guard learns `.pdf` first | New output only |
 
