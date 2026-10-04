@@ -141,7 +141,8 @@ def test_column_is_none_when_masters_do_not_fill_from_the_bottom():
     (chart("System = A2\nControl Key = 9743854"), "no operating keys"),
     (chart(TOOLS_HEADER + "\nMaster Key = 5961634\nChange Keys = 5721276"),
      "mixes the tools' layout"),
-    (chart(LEGACY_HEADER.replace("Master Key = 5961634\n", "").replace("Change Keys = 5721276, 9565698", "Change Keys =")),
+    (chart(LEGACY_HEADER.replace("Master Key = 5961634\n", "")
+           .replace("Change Keys = 5721276, 9565698", "Change Keys =")),
      "no operating keys"),
     (chart(TOOLS_HEADER + "\nCore = again"), "a header label is repeated"),
     (chart(TOOLS_HEADER + "\nnot a header line"), "not `label = value`"),

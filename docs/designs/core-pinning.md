@@ -467,8 +467,8 @@ Bottom   1  1  6  1  0  1  2
 
 The legacy layout, as older keying software writes it, has `System`, `Control Key`
 and then a `Master Key` line, a single `Change Keys` line listing every change key,
-separated by commas, or both (a core with nothing above its one key has only one of
-them, and a first reading of real charts showed it, D45). It has no key system name,
+separated by commas, or both (a core with nothing above its one key may have only one
+of them, D45). It has no key system name,
 no core name and no date, and its keys are known only by their roles. Every key on
 the master and change lines is an operating key of the one core, so a chart with a
 master and two change keys has three. The example is computed from fake keys:
