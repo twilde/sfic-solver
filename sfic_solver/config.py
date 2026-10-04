@@ -148,6 +148,26 @@ def parse_config(raw, allow_null=False):
         close = difflib.get_close_matches(name, list(keys), n=1)
         return f" (did you mean {close[0]!r}?)" if close else ""
 
+    def resolve_changes(where, change_specs):
+        """The key names a core's `change` entry (a name, a wildcard or a list) selects."""
+        if isinstance(change_specs, str):
+            change_specs = [change_specs]
+        if not change_specs:
+            raise ConfigError(f"{where}: needs 'change' (a key name, a wildcard such as "
+                              f"'{unit_prefix}*', or a list of those)")
+        _string_list(change_specs, f"{where}: change")
+        changes = []
+        for pat in change_specs:
+            matches = [n for n in keys if fnmatch.fnmatchcase(n, pat)]
+            if not matches:
+                raise ConfigError(f"{where}: change {pat!r} matches no key in keys{hint(pat)}")
+            for match in matches:
+                if match in changes:
+                    raise ConfigError(f"{where}: key {match!r} is matched by more than one "
+                                      f"change entry")
+                changes.append(match)
+        return changes
+
     specs = raw.get("cores", [])
     if not isinstance(specs, list):
         raise ConfigError("cores must be a list of {name, change, masters} objects")
@@ -165,23 +185,7 @@ def parse_config(raw, allow_null=False):
         warnings += [f"{where}: unknown field {f!r} is ignored (misspelled?)"
                      for f in spec if f not in CORE_FIELDS and not f.startswith("_")]
 
-        change_specs = spec.get("change")
-        if isinstance(change_specs, str):
-            change_specs = [change_specs]
-        if not change_specs:
-            raise ConfigError(f"{where}: needs 'change' (a key name, a wildcard such as "
-                              f"'{unit_prefix}*', or a list of those)")
-        _string_list(change_specs, f"{where}: change")
-        changes = []
-        for pat in change_specs:
-            matches = [n for n in keys if fnmatch.fnmatchcase(n, pat)]
-            if not matches:
-                raise ConfigError(f"{where}: change {pat!r} matches no key in keys{hint(pat)}")
-            for match in matches:
-                if match in changes:
-                    raise ConfigError(f"{where}: key {match!r} is matched by more than one "
-                                      f"change entry")
-                changes.append(match)
+        changes = resolve_changes(where, spec.get("change"))
 
         masters = _string_list(spec.get("masters", []), f"{where}: masters")
         for pos, master in enumerate(masters):
