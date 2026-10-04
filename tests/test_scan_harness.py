@@ -31,7 +31,6 @@ pytestmark = [pytest.mark.skipif(not have_tesseract(), reason="Tesseract is not 
               need_fonts(), need_ocr_font]
 
 SAMPLE = 3              # charts per condition in the always-on tier (about 6 s each)
-FULL = int(os.environ.get("SFIC_HARNESS_CHARTS", "1000"))
 
 # At least this many of the SAMPLE charts are accepted (the matrix in the design
 # document had 10 to 12 of 12 accepted in every condition). These are floors from the
@@ -125,6 +124,8 @@ def test_a_pdf_is_read_like_the_images_it_holds(tmp_path):
 @pytest.mark.slow
 @pytest.mark.parametrize("name", harness.CONDITIONS)
 def test_full_run_one_condition(name):
-    outcome = harness.run_condition(FULL, seed_of(name), **harness.CONDITIONS[name])
+    # Read here and not at import, so that a bad value spoils only this tier.
+    count = int(os.environ.get("SFIC_HARNESS_CHARTS", "1000"))
+    outcome = harness.run_condition(count, seed_of(name), **harness.CONDITIONS[name])
     print(f"\n{outcome.row(name)}   ({outcome.total} charts)")
     assert outcome.wrong == 0, outcome.wrong_pages
