@@ -80,7 +80,9 @@ print is poor at it, and such notes are the very information that identifies a
 building, so the tool must neither transcribe them nor be disturbed by them. The
 design handles the case where the notes sit in the margins, clear of the printed
 block; notes that touch or sit among the printed lines are not designed for, and
-the charts they affect end up in the review file.
+the charts they affect end up in the review file. Built, it handles notes in the
+left margin and just after a row; notes beside the block that overlap its rows can
+break line finding for the whole page, not one chart (issue #16).
 
 A bordered table would need one more stage, to find and remove the ruled lines
 before reading, and an easier way to find the columns. It is not built, since it is
@@ -649,3 +651,11 @@ more than one chart, and a page may carry a title, a date or a page number. Each
 handled by flagging today, and none is a design driver unless the first real run
 shows it to be one; it is then decided from a report of positions only, and the
 design is revised.
+
+A first trial on real scans has been made, and it found three problems that the
+drawn charts did not show: handwriting beside the printed block that overlaps its
+rows breaks line finding, a blurred equals sign is not recognised although the
+design says it is found by structure, and a row label is accepted only if every
+reading of it agrees, which the design does not require. They are recorded, with a
+proposed order of work, in issue #16, and nothing here has changed because of them
+yet. Until they are fixed, the tool should not be expected to read a real printout.

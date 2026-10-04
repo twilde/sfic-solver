@@ -278,11 +278,14 @@ way).
 
 What is and is not known about how well it reads:
 
-- It has been tested only on charts drawn by the tests from fake bittings, never on a
-  real printout, and nothing is claimed beyond that. In test runs of about 120 such
-  charts under blur, noise, skew and low resolution, and in tests that erase or ink
-  over cells, no chart was ever accepted wrong. The full 1,000-chart run that would
-  bound the rate has not been made.
+- It has been tested mostly on charts drawn by the tests from fake bittings. A first
+  trial on real scans found three problems that those charts did not show
+  ([issue #16](https://github.com/twilde/sfic-solver/issues/16)), so do not expect
+  it to read a real printout yet, and nothing is claimed beyond that. The figures
+  that follow are about drawn charts: in test runs of about 120 of them under blur,
+  noise, skew and low resolution, and in tests that erase or ink over cells, no
+  chart was ever accepted wrong. The full 1,000-chart run that would bound the rate
+  has not been made.
 - Expect some charts to go to the review file even when the scan is good: one of
   the 12 clean charts in those runs was, and 8 of the 120 across all the
   conditions, which is a sample and not a rate
@@ -291,8 +294,10 @@ What is and is not known about how well it reads:
 - Fonts with thin commas, such as Courier New and Menlo (a Mac's defaults), can
   hide the commas in the `Change Keys` line, so many charts from such printouts
   will be flagged ([issue #10](https://github.com/twilde/sfic-solver/issues/10)).
-- Handwriting in the margin, clear of the printed block, is ignored; writing
-  touching a row can send that chart to review.
+- Handwriting in the left margin, or after a row, is ignored or sent to review.
+  Handwriting beside the printed block that overlaps its rows is not handled yet and
+  can make the whole page unreadable
+  ([issue #16](https://github.com/twilde/sfic-solver/issues/16)).
 - It takes about six seconds a chart on four cores.
 
 Try it on a single page first. If the report says every chart on it was flagged

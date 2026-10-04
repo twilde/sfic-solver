@@ -363,7 +363,9 @@ the README is a slow tier, `pytest --runslow`, run by hand and not yet made. In 
 sample of 120 clean and degraded charts nothing wrong was accepted, and 8 were
 flagged, one of them among the 12 clean charts
 ([issue #12](https://github.com/twilde/sfic-solver/issues/12)); the figures and
-what the harness covers are in the design document.
+what the harness covers are in the design document. A first trial on real scans
+found three problems that the drawn charts did not show
+([issue #16](https://github.com/twilde/sfic-solver/issues/16)).
 
 **Scans are processed locally, always.** A scan of a chart is the chart: the pin
 sizes can be read off it, so any service that receives the image receives the key
