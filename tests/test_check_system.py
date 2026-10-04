@@ -299,3 +299,14 @@ def test_the_retired_core_warnings_are_capped(pinned, write_cfg):
     section = out.split("== Retired cores")[1].split("\n\n")[0]
     assert len([ln for ln in section.splitlines() if ln.startswith("WARNING")]) == 30
     assert re.search(r"\.\.\. and \d+ more\n", section)
+
+
+def test_the_control_lines_are_capped_too(pinned, write_cfg):
+    # One key with a control key's bitting opens the control line of every core using it.
+    pinned["keys"]["stray"] = pinned["control_keys"]["control_a"]
+    first = pinned["cores"][0]
+    pinned["cores"] += [{**first, "name": f"Copy {number}"} for number in range(35)]
+    out = check(write_cfg, pinned).stdout
+    section = out.split("== Pinning")[1].split("\n\n")[0]
+    assert len([ln for ln in section.splitlines() if ln.startswith("CONTROL")]) == 30
+    assert re.search(r"\.\.\. and \d+ more\n?$", section)

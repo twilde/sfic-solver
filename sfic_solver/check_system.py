@@ -48,7 +48,15 @@ from .config import load_or_exit
 from .model import distance, operates, options_for
 from .pinning import pin_chambers
 
-MAX_LISTED = 30        # lines per section before "... and N more"
+MAX_LISTED = 30        # lines per list before "... and N more"
+
+
+def capped(lines):
+    """The first MAX_LISTED lines of a list, and a count of the rest."""
+    shown = list(lines[:MAX_LISTED])
+    if len(lines) > MAX_LISTED:
+        shown.append(f"... and {len(lines) - MAX_LISTED} more")
+    return shown
 
 
 def check_retired_cores(cfg):
@@ -68,9 +76,7 @@ def check_retired_cores(cfg):
             for error in pin_chambers(cfg.pinning, operating, control)[1]:
                 found.append(f"WARNING   {core['name']} [{ch}], chamber {error.chamber}: "
                              f"{error.reason}")
-    lines = found[:MAX_LISTED]
-    if len(found) > MAX_LISTED:
-        lines.append(f"... and {len(found) - MAX_LISTED} more")
+    lines = capped(found)
     if found:
         lines.append("Either the description of the old cores is wrong or the rules are too "
                      "strict.")
@@ -84,8 +90,7 @@ def check_pinning(cfg, everything):
     CONTROL: a known key that operates a core's control shear line. Only the control
     bitting itself does, whoever the key is meant for.
     """
-    lines, problems = [], 0
-    unpinnable = []
+    unpinnable, control_lines = [], []
     for core in cfg.cores:
         control = cfg.control_keys[core["control"]]
         for ch in core["changes"]:
@@ -93,18 +98,14 @@ def check_pinning(cfg, everything):
             for error in pin_chambers(cfg.pinning, operating, control)[1]:
                 unpinnable.append(f"UNPINNABLE {core['name']} [{ch}], chamber {error.chamber}: "
                                   f"{error.reason}")
-    lines += unpinnable[:MAX_LISTED]
-    if len(unpinnable) > MAX_LISTED:
-        lines.append(f"... and {len(unpinnable) - MAX_LISTED} more")
-    problems += len(unpinnable)
     for core in cfg.cores:
         control = cfg.control_keys[core["control"]]
         for name, cuts in everything.items():
             if name != core["control"] and cuts == control:
-                lines.append(f"CONTROL   key {name} operates the control shear line of "
-                             f"{core['name']}")
-                problems += 1
-    return lines or ["none"], problems
+                control_lines.append(f"CONTROL   key {name} operates the control shear line "
+                                     f"of {core['name']}")
+    lines = capped(unpinnable) + capped(control_lines)
+    return lines or ["none"], len(unpinnable) + len(control_lines)
 
 
 def main(argv=None):
