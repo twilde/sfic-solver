@@ -341,11 +341,19 @@ there is nothing to estimate for undecoded keys, since exactly one bitting
 operates the line. Both are problems and set the exit status. Long lists stop at
 30 lines with a count of the rest, as the closeness list does (D52).
 
+The retired-core section pins each retired core, as described, once per change key
+that is decoded, with its retired masters and its retired control key, and prints a
+`WARNING` for every chamber that cannot be pinned. It is a warning and not a problem
+because either reading of a failure is possible: the description of the old cores
+may be wrong, or the rules may be stricter than the hardware, and the report says
+so. Warnings do not change the exit status; the closing line counts them beside any
+problems (D53).
+
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), and the guard and the conformance script
-(step 3) are built, and so is most of step 4: the loader and the pinnability and control checks. The
-rest is not: the retired-core consistency check, the generator and solver working
-without a pattern, the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
+(step 3) are built, and so is step 4: the loader, the pinnability and control checks and the retired-core
+consistency check. The rest is not: the generator and solver working without a
+pattern, the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
 additive and are held for the maintainer's agreement when their turn comes:
 pinnability as a hard rule for the solver alongside cross-operation and
 duplicates, and a new population for the residual-risk estimate. Neither changes

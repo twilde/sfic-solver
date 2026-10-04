@@ -543,3 +543,16 @@ control bitting operates that line, but it says which cores are affected. Reject
 leaving it out, because the design promised it and the line costs nothing.
 
 Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D53. Retired-core failures are warnings, and the closing line counts them
+
+The retired cores let the tools test the pinning rules against the old
+installation: every decoded key in a retired core must be pinnable with the
+retired masters and control. A failure means the description is wrong or the rules
+are too strict, and the tools cannot tell which, so it is a `WARNING`, listed and
+capped like the other sections, and it does not change the exit status. The closing
+line says `OK, 1 warning(s)` or `3 problem(s) flagged, 1 warning(s)`. Rejected:
+counting warnings as problems, which would fail a file for a fact the owner may
+rightly dispute.
+
+Detail: [design.md, "Pinning"](design.md#pinning).

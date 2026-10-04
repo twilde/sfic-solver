@@ -205,7 +205,8 @@ def test_flags_a_control_cut_of_zero_beside_an_operating_cut_of_nine(pinned, wri
 
 def test_every_chamber_that_fails_is_listed(pinned, write_cfg):
     # master_sub moves to 6 in chamber 1 (beside area_a's 5) and to 3 in chamber 5 (beside 2).
-    pinned["keys"]["master_sub"] = "6305396"
+    sub = pinned["keys"]["master_sub"]
+    pinned["keys"]["master_sub"] = "6" + sub[1:4] + "3" + sub[5:]
     out = check(write_cfg, pinned).stdout
     chambers = [ln.split("]")[1].split(":")[0].strip(", ")
                 for ln in out.splitlines() if ln.startswith("UNPINNABLE Area A cores [area_a]")]
@@ -228,9 +229,73 @@ def test_a_core_is_not_flagged_for_its_own_control_key(pinned, write_cfg):
 
 def test_the_listing_of_unpinnable_cores_is_capped(pinned, write_cfg):
     # 40 unit keys whose first cut is 1 from unit_master's 7: each unit core fails in chamber 1.
+    unit = pinned["keys"]["unit:101"]
     for number in range(40):
-        pinned["keys"][f"unit:{200 + number}"] = f"8{number:02d}1234"
+        pinned["keys"][f"unit:{200 + number}"] = f"8{number:02d}" + unit[3:]
     proc = check(write_cfg, pinned)
     out = proc.stdout
     assert len([ln for ln in out.splitlines() if ln.startswith("UNPINNABLE")]) == 30
     assert re.search(r"\.\.\. and \d+ more\n", out.split("== Pinning")[1])
+
+
+# -- retired cores: the rules checked against the old pinning ----------------------
+
+def test_consistent_retired_cores_are_reported_as_none(pinned):
+    out = run_script("check_system", FIXTURES / "pinning.json").stdout
+    assert re.search(r"== Retired cores[^\n]*==\nnone\n", out)
+
+
+def test_a_decoded_key_that_could_not_have_shared_a_retired_core_is_a_warning(pinned, write_cfg):
+    # The old master's first cut becomes 2, one from unit:101's 3. Retired keys are exempt
+    # from the parity pattern, so this is only a question of whether the old cores were
+    # pinnable, which these two keys together could not have been.
+    pinned["retired_keys"]["old_master"] = "2" + pinned["retired_keys"]["old_master"][1:]
+    proc = check(write_cfg, pinned)
+    assert proc.returncode == 0, proc.stdout
+    assert ("WARNING   Original cores [unit:101], chamber 1: operating cuts 2 and 3 are 1 apart"
+            in proc.stdout)
+    assert "Either the description of the old cores is wrong or the rules are too strict." \
+        in proc.stdout
+    assert proc.stdout.strip().endswith("OK, 1 warning(s)")
+
+
+def test_the_old_control_key_is_checked_against_the_decoded_keys_too(pinned, write_cfg):
+    # unit:104 has a 9 in chamber 1 and the old control key a 0 there.
+    pinned["keys"]["unit:104"] = "95" + pinned["keys"]["unit:101"][2:]
+    assert pinned["retired_keys"]["old_control"][0] == "0"
+    out = check(write_cfg, pinned).stdout
+    assert ("WARNING   Original cores [unit:104], chamber 1: control cut 0 puts the control "
+            "boundary 1 above the highest operating cut 9") in out
+
+
+def test_warnings_do_not_hide_problems_and_are_counted_beside_them(pinned, write_cfg):
+    pinned["retired_keys"]["old_master"] = "2" + pinned["retired_keys"]["old_master"][1:]
+    pinned["keys"]["master_sub"] = "6" + pinned["keys"]["master_sub"][1:]
+    proc = check(write_cfg, pinned)
+    assert proc.returncode == 1
+    assert proc.stdout.strip().endswith("problem(s) flagged, 1 warning(s)")
+
+
+def test_a_retired_wildcard_with_no_decoded_keys_yet_is_none(pinned, write_cfg):
+    pinned["retired_cores"][0]["change"] = "flat:*"
+    out = check(write_cfg, pinned).stdout
+    assert re.search(r"== Retired cores[^\n]*==\nnone\n", out)
+
+
+def test_there_is_no_retired_core_section_without_pinning(pinned, write_cfg):
+    del pinned["pinning"]
+    for core in pinned["cores"]:
+        del core["control"]
+    proc = check(write_cfg, pinned)
+    assert "== Retired cores" not in proc.stdout
+    assert "retired_cores is ignored" in proc.stderr
+
+
+def test_the_retired_core_warnings_are_capped(pinned, write_cfg):
+    unit = pinned["keys"]["unit:101"]
+    for number in range(35):
+        pinned["keys"][f"unit:{300 + number}"] = f"95{number:02d}" + unit[4:]
+    out = check(write_cfg, pinned).stdout
+    section = out.split("== Retired cores")[1].split("\n\n")[0]
+    assert len([ln for ln in section.splitlines() if ln.startswith("WARNING")]) == 30
+    assert re.search(r"\.\.\. and \d+ more\n", section)

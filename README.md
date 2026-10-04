@@ -218,6 +218,23 @@ would remove the core; only the control bitting itself operates a control shear
 line, so this also shows up as a `DUPLICATE`. Both are problems and make the
 command exit with status 1. The pinning checks do not need a parity pattern.
 
+If the building was rekeyed, the old cores were pinned too, so a key that sat in
+an old core with the old master can only have been one that the old pins allowed.
+Describe the old installation in `retired_cores`, shaped like `cores`: `change`
+selects keys (a wildcard such as `"unit:*"` may match nothing yet), `masters` and
+`control` name entries in `retired_keys`. The checker then asks of each decoded
+key whether the old core could have been pinned, and prints `WARNING` lines if
+not:
+
+```console
+== Retired cores: could the old cores, as described, have been pinned? ==
+WARNING   Original cores [unit:101], chamber 1: operating cuts 2 and 3 are 1 apart, so the pin between them would be 1, outside 2 to 19
+Either the description of the old cores is wrong or the rules are too strict.
+```
+
+A warning is not a problem: it does not change the exit status, and the last line
+counts it (`OK, 1 warning(s)`). It means the description or the rules need a look.
+
 ## Typical workflow
 
 1. **Generate keys.** Draw bittings for the non-unit keys, keeping each at

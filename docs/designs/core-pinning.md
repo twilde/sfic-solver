@@ -224,9 +224,10 @@ entry, and a richer history is simply more entries. A sketch, with invented name
 ]
 ```
 
-The exact shape is settled when step 4 is built; what this document commits to is
-that the description is generic and mirrors `cores`, so that nobody has to learn a
-second notation.
+As built (D51), the shape is the one sketched: `change` selects keys from `keys` or
+`retired_keys`, `masters` and `control` name entries in `retired_keys`, a wildcard
+may match nothing yet, and the control is required. The description is generic and
+mirrors `cores`, so that nobody has to learn a second notation.
 
 It can be put to three uses, in the order they would be built. The first is a
 check of the rules themselves against real data: every decoded key in a retired
@@ -551,7 +552,7 @@ the checker, so the rules are verified before anything depends on them.
 | 1 | Refactor: bundle pin count, depth count, MACS and the optional parity pattern into one key-space rules object, in place of the loose parameters passed around today (done, D26) | None |
 | 2 | Library: the pinning system record with A2, the pinner with control pins, the simulated lock, and property tests (done, D27 to D29) | None for existing files (library only) |
 | 3 | (done, D30 and D31) First the data-file guard learns `.txt`, in its own commit. Then the local conformance script: read single-core charts, in the tools' layout or the legacy one (one or several to a file), and check that the pinner reproduces every row of every chart, correcting the rules if it does not | None |
-| 4 | Config and checker: the `pinning` field, `control` on each core, `retired_cores`, pinnability, control cross-operation and the retired-core consistency check in the report | Only for files that opt in |
+| 4 | (done, D51 to D53) Config and checker: the `pinning` field, `control` on each core, `retired_cores`, pinnability, control cross-operation and the retired-core consistency check in the report | Only for files that opt in |
 | 5 | The generator and solver work with or without a pattern; the residual-risk population comes from the retired cores, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
 | 6 | The chart command (with the key system name, the date and the unit names) and README updates | New command |
 | 7 | An ASCII drawing of each core's pin stacks in the chart output, and optional PDF output of all charts as one document, each with its own design document; the guard learns `.pdf` first | New output only |
