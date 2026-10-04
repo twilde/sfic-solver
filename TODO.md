@@ -26,5 +26,5 @@
   harness and its documentation are built (steps 3 to 5). Still to do: run the slow
   tier to completion (`pytest --runslow tests/test_scan_harness.py -s`, about two
   hours a condition) and then say in the README what it showed; the dissent check
-  that flags about one clean chart in twelve (issue #12); and the thin macOS fonts
+  that flags some clean charts (issue #12); and the thin macOS fonts
   (issue #10).

@@ -620,8 +620,8 @@ What a run of 12 charts per condition, 120 in all, showed on the built pipeline:
 
 No chart was accepted wrong, and zero wrong in 120 charts bounds the true rate only
 below about 2.5%, so this is a sample and not the claim. What it does show is that
-about one chart in twelve is flagged even when the image is clean. The cause, in the
-clean case that was looked at, is the dissent check: the last mark of a row (here the
+charts are flagged even when the image is clean: 8 of the 120 here, one of them
+among the 12 clean charts. The cause, in the clean case that was looked at, is the dissent check: the last mark of a row (here the
 last chamber of the Bottom row) was read differently by enough of the readings that
 its group's vote was split, and the chart went to review with "its own readings
 disagree with its shape's". That is the tool failing in the intended direction, and

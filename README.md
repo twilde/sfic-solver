@@ -283,9 +283,11 @@ What is and is not known about how well it reads:
   charts under blur, noise, skew and low resolution, and in tests that erase or ink
   over cells, no chart was ever accepted wrong. The full 1,000-chart run that would
   bound the rate has not been made.
-- Expect some charts to go to the review file even when the scan is good: about one
-  clean chart in twelve in those runs. That costs a look at the paper and is the
-  intended direction.
+- Expect some charts to go to the review file even when the scan is good: one of
+  the 12 clean charts in those runs was, and 8 of the 120 across all the
+  conditions, which is a sample and not a rate
+  ([issue #12](https://github.com/twilde/sfic-solver/issues/12)). That costs a look
+  at the paper and is the intended direction.
 - Fonts with thin commas, such as Courier New and Menlo (a Mac's defaults), can
   hide the commas in the `Change Keys` line, so many charts from such printouts
   will be flagged ([issue #10](https://github.com/twilde/sfic-solver/issues/10)).
