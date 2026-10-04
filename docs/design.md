@@ -328,11 +328,24 @@ command is tested on fake charts computed independently of the pinner; whether i
 agrees with real charts is for their owner to find out locally, which is the
 point of the step (D31).
 
+**The checker** adds a section to `check_system`'s report for a file that sets
+`pinning`, after the cross-operation one. Each core is pinned once per change key
+with its masters as the other operating keys and the control key it names, using
+`pin_chambers`, so that every chamber that cannot be built is listed with its
+reason (`UNPINNABLE`, the core, the change key and the chamber), not only the
+first. A second kind of line, `CONTROL`, names a known key that would operate a
+core's control shear line. A chamber has one joint in the control range, so only
+the control bitting itself does, and for known keys this coincides with
+`DUPLICATE`; the line is there to say which cores the duplicate would open, and
+there is nothing to estimate for undecoded keys, since exactly one bitting
+operates the line. Both are problems and set the exit status. Long lists stop at
+30 lines with a count of the rest, as the closeness list does (D52).
+
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), and the guard and the conformance script
-(step 3) are built, and so is the loader half of step 4. The rest is not: the
-checker changes for opted-in files, the generator and solver working without a
-pattern, the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
+(step 3) are built, and so is most of step 4: the loader and the pinnability and control checks. The
+rest is not: the retired-core consistency check, the generator and solver working
+without a pattern, the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
 additive and are held for the maintainer's agreement when their turn comes:
 pinnability as a hard rule for the solver alongside cross-operation and
 duplicates, and a new population for the residual-risk estimate. Neither changes

@@ -7,6 +7,8 @@ Reads a JSON description of the system and reports:
   * pairs of keys that are too close
   * for each core type, how many keys operate it (intended + false keys)
   * known keys that would operate a core they are NOT meant to operate
+  * if the file sets `pinning`: cores that cannot be pinned (chamber by chamber, with
+    the reason) and known keys that would operate a core's control shear line
   * a rough estimate of the chance that still-undecoded unit keys do the same
 
 Usage:
@@ -25,9 +27,12 @@ Config (see system.example.json):
     keys           {name: bitting} operating keys, including decoded unit keys
     retired_keys   {name: bitting} old keys that must not operate new cores
     control_keys   {name: bitting} control keys (closeness checks only)
-    cores          list of {name, change, masters}
+    cores          list of {name, change, masters, control}
                    change: key name, wildcard ("unit:*") or list of those
                    masters: list of key names pinned above the change key
+                   control: name of the core's control key (needed with pinning)
+    pinning        optional pinning system name, such as "A2": turns on the
+                   pinning checks
 
 A core accepts any key whose cut at every position equals the change key's
 cut or one of its masters' cuts. Exits with status 1 if anything is flagged.
@@ -37,6 +42,39 @@ import sys
 
 from .config import load_or_exit
 from .model import distance, operates, options_for
+from .pinning import pin_chambers
+
+MAX_LISTED = 30        # lines per section before "... and N more"
+
+
+def check_pinning(cfg, everything):
+    """The pinning section: (lines, problems) for a file that sets `pinning`.
+
+    UNPINNABLE: a core (one per change key) with a chamber whose cuts cannot be pinned.
+    CONTROL: a known key that operates a core's control shear line. Only the control
+    bitting itself does, whoever the key is meant for.
+    """
+    lines, problems = [], 0
+    unpinnable = []
+    for core in cfg.cores:
+        control = cfg.control_keys[core["control"]]
+        for ch in core["changes"]:
+            operating = [cfg.keys[ch]] + [cfg.keys[m] for m in core["masters"]]
+            for error in pin_chambers(cfg.pinning, operating, control)[1]:
+                unpinnable.append(f"UNPINNABLE {core['name']} [{ch}], chamber {error.chamber}: "
+                                  f"{error.reason}")
+    lines += unpinnable[:MAX_LISTED]
+    if len(unpinnable) > MAX_LISTED:
+        lines.append(f"... and {len(unpinnable) - MAX_LISTED} more")
+    problems += len(unpinnable)
+    for core in cfg.cores:
+        control = cfg.control_keys[core["control"]]
+        for name, cuts in everything.items():
+            if name != core["control"] and cuts == control:
+                lines.append(f"CONTROL   key {name} operates the control shear line of "
+                             f"{core['name']}")
+                problems += 1
+    return lines or ["none"], problems
 
 
 def main(argv=None):
@@ -116,6 +154,13 @@ def main(argv=None):
     problems += found
     if not found:
         print("none")
+
+    if cfg.pinning:
+        print(f"\n== Pinning ({cfg.pinning.name}): can each core be built, and does a key "
+              f"open a control shear line? ==")
+        lines, found = check_pinning(cfg, everything)
+        print("\n".join(lines))
+        problems += found
 
     unit_count = cfg.unit_count
     if unit_count:

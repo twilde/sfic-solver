@@ -188,6 +188,36 @@ OK
 `CROSS     key unit:104 operates Unit cores [unit:101]` would mean the key
 `unit:104` operates the core of `unit:101`, which it must not.
 
+### Pinning (optional)
+
+The checks above treat a core as a rule: it accepts the change key's cut or a
+master's cut at every position. Somebody still has to put pins in it, and
+pinning has rules of its own. Set `"pinning": "A2"` (the one system built in)
+and give every core a `"control"`, the name of its control key in
+`control_keys`, and `check_system` also asks whether each core can be built.
+A file without `pinning` is checked exactly as before. The reasoning is in
+[docs/designs/core-pinning.md](docs/designs/core-pinning.md).
+
+A chamber can be pinned when its distinct operating cuts, and the control cut
+plus 10, are each at least 2 apart: two cuts that differ by exactly 1 would need
+a pin of size 1, which does not exist. In practice that rules out little, such as
+a control cut of 0 in a chamber where a key of the core has a cut of 9. The
+report adds a section after the cross-operation one:
+
+```console
+$ ./check_system.py system.json
+...
+== Pinning (A2): can each core be built, and does a key open a control shear line? ==
+UNPINNABLE Area A cores [area_a], chamber 1: operating cuts 5 and 6 are 1 apart, so the pin between them would be 1, outside 2 to 19
+CONTROL   key stray operates the control shear line of Unit cores
+```
+
+`UNPINNABLE` names the core, its change key and every chamber that fails, with
+the reason. `CONTROL` names a known key whose cuts are the control key's, which
+would remove the core; only the control bitting itself operates a control shear
+line, so this also shows up as a `DUPLICATE`. Both are problems and make the
+command exit with status 1. The pinning checks do not need a parity pattern.
+
 ## Typical workflow
 
 1. **Generate keys.** Draw bittings for the non-unit keys, keeping each at
@@ -332,7 +362,8 @@ digit; never paste or describe the page itself.
 - Parity and MACS are checked for `keys` and `control_keys` (a control key that
   broke parity could need a pin size that does not exist), but not for
   `retired_keys`. Closeness and duplicates cover all sections. Control keys are
-  never tested for operation.
+  never tested for operation of a core's operating shear line; with `pinning`,
+  every known key is tested against each core's control shear line.
 - Closeness counts differing positions only. It does not model the physical
   similarity of cuts.
 - **Residual-risk numbers assume undecoded unit keys are random valid

@@ -531,3 +531,15 @@ alternative, one control key used by default when only one exists, was rejected 
 that a second control key added later cannot silently re-pin cores.
 
 Detail: [design.md, "System files"](design.md#system-files).
+
+## D52. With pinning set, `check_system` lists every chamber that cannot be pinned
+
+For an opted-in file the report gains a section: one `UNPINNABLE` line per core,
+change key and failing chamber, with the reason, and a `CONTROL` line for any known
+key that operates a core's control shear line. Both count as problems. Listing every
+chamber, not the first, is what an owner needs to fix a core, so the pinner gained
+`pin_chambers`. `CONTROL` is redundant with `DUPLICATE` for known keys, since only the
+control bitting operates that line, but it says which cores are affected. Rejected:
+leaving it out, because the design promised it and the line costs nothing.
+
+Detail: [design.md, "Pinning"](design.md#pinning).
