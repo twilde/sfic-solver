@@ -59,7 +59,9 @@ git worktree add --detach "$SCRATCH/pr-N" FETCH_HEAD
 
 pytest is not installed globally. Make a venv in the scratchpad (`python3 -m venv
 $SCRATCH/venv && $SCRATCH/venv/bin/pip install -e ".[test]"`), and recreate it each
-session, since scratchpad paths change and are cleared.
+session, since scratchpad paths change and are cleared. Install the `scan` extra only
+if `python3 scripts/ci_changes.py --base origin/main`, run in the worktree, prints
+`scanner=true` (D50).
 
 ## The review
 

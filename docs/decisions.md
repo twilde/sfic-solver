@@ -507,3 +507,15 @@ combination of results and check that every job has a timeout.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
 
+## D50. Sessions pick which tests to run by the same rule as CI
+
+The scanner's tests are most of the suite's time, and a session rarely has Tesseract,
+so running them all before every commit costs minutes and checks little. CLAUDE.md now
+says: run the changed module's tests while working; before committing, ask
+`scripts/ci_changes.py` and run the whole suite with only `.[test]`, adding the `scan`
+extra only when it says `scanner=true`; never skip the core suite; say which was run.
+The review procedure follows the same rule. CI remains the backstop for what a session
+could not run.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+

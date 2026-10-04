@@ -250,3 +250,11 @@ def test_the_summary_passes_only_when_everything_that_should_have_run_did(result
     result = subprocess.run(["bash", "-e", "-c", summary_script()], env=env,
                             capture_output=True, text=True)
     assert (result.returncode == 0) is passes, result.stdout + result.stderr
+
+
+def test_sessions_and_reviewers_are_told_the_command_the_script_answers_to():
+    """CLAUDE.md and docs/reviewing.md name the command (D50); it must stay a real one."""
+    command = "python3 scripts/ci_changes.py --base origin/main"
+    for name in ("CLAUDE.md", "docs/reviewing.md"):
+        assert command in " ".join((ROOT / name).read_text().split()), name
+    assert (ROOT / "scripts" / "ci_changes.py").is_file()

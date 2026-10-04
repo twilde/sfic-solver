@@ -523,6 +523,17 @@ should not hold a runner that long, and the pytest steps print their ten slowest
 cases (`--durations=10`) so that a test that grows slow shows in the log. A test runs
 the summary job's script against each combination of results.
 
+**Choosing tests in a session.** The comparison that decides whether CI runs the
+scanner's tests is a script, so a session can ask the same question before it
+commits: `scripts/ci_changes.py --base origin/main` prints `scanner=false` or
+`scanner=true`. CLAUDE.md tells sessions to run the tests of the module they are
+changing as they go, and before committing the whole suite in a venv with only
+`.[test]`, adding the `scan` extra and a second run only on `scanner=true`. The
+scanner's tests are about two thirds of the suite's time even without Tesseract, and a
+session usually has none, so the rule saves the most where the check can least be
+made anyway. CI is the backstop, so a session says which it ran rather than claiming
+the full suite. The same rule applies to a reviewer testing a merged head (D50).
+
 **Dependabot** opens one grouped pull request a week for GitHub Actions only,
 because CI uses third-party actions whose runtimes get deprecated. There is
 deliberately no pip entry: the package has no runtime dependencies, and pytest and
