@@ -474,8 +474,8 @@ not the kind of failure to take by surprise. Once the rollout finishes (by
 2026-11-19) the pins can be replaced by `ubuntu-latest`, which is on the TODO
 list. The test jobs install Tesseract and the fonts the scanning tests draw with
 and the `scan` extra, so those tests, the quality tests included, run in every CI
-job and skip elsewhere, and a last step runs the installed commands. Action versions are tracked by major tag and chosen
-to run on Node 24 (D14, D15).
+job and skip elsewhere, and a last step runs the installed commands. Action
+versions are tracked by major tag and chosen to run on Node 24 (D14, D15).
 
 **Dependabot** opens one grouped pull request a week for GitHub Actions only,
 because CI uses third-party actions whose runtimes get deprecated. There is
