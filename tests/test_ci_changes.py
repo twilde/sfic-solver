@@ -172,3 +172,13 @@ def test_ci_runs_the_script_and_gates_the_scanner_job_on_it():
     test_job = text[text.index("\n  test:"):text.index("\n  scanner:")]
     commands = "\n".join(line for line in test_job.splitlines() if not line.lstrip().startswith("#"))
     assert "scan]" not in commands and "tesseract" not in commands.lower()
+
+
+def test_ci_runs_once_per_change_not_on_every_push():
+    """Pull requests plus main and tags; an unrestricted `push:` tests each PR commit twice."""
+    text = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    triggers = text[text.index("\non:"):text.index("\npermissions:")]
+    lines = [line.strip() for line in triggers.splitlines() if not line.lstrip().startswith("#")]
+    assert "pull_request:" in lines
+    assert "workflow_dispatch:" in lines
+    assert "branches: [main]" in lines, "push must be limited to main"

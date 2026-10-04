@@ -1,8 +1,14 @@
 name: CI
 
 on:
+  # A branch with a pull request is tested by the pull_request run alone; running on
+  # its pushes too would test every commit twice. A branch with no pull request is
+  # not tested unless run by hand from the Actions tab.
   push:
+    branches: [main]
+    tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,18 +35,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0          # the comparison needs the history back to the branch point
-      - name: Compare with the base (everything runs on main, tags and when unsure)
+      - name: Compare with the base (everything runs except on a pull request, and when unsure)
         id: scanner
         env:
           EVENT: ${{ github.event_name }}
-          REF: ${{ github.ref }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           base=""
           if [ "$EVENT" = pull_request ]; then
             base="origin/$BASE_REF"
-          elif [ "$REF" != refs/heads/main ] && [ "${REF#refs/heads/}" != "$REF" ]; then
-            base="origin/main"
           fi
           python3 scripts/ci_changes.py ${base:+--base "$base"} >> "$GITHUB_OUTPUT"
 

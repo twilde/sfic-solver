@@ -463,6 +463,8 @@ Detail: [designs/core-pinning.md, "The chart layout"](designs/core-pinning.md#th
 
 ## D46. CI runs the scanner's slow checks only when a change can affect them
 
+Status: Amended by D47.
+
 The scanner's tests need Tesseract and the `scan` extra and are the slowest in CI, but
 work on the scanner is suspended (D44) and most changes cannot affect it. The `test`
 matrix now installs only pytest and runs the whole suite, so the scanner's tests skip
@@ -470,5 +472,16 @@ there, as for a contributor. A `scanner` matrix, with Tesseract and the extra, r
 only if `scripts/ci_changes.py` finds a changed file that is the scanner or something
 it uses. Pushes to `main`, tags and any doubt run it. A test keeps the file list in
 step with the scanner's imports. This replaces a TODO item for a job without the extra.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D47. CI runs on pull requests, on `main` and tags, and by hand, not on every push
+
+CI triggered on both `push` and `pull_request`, so every commit on a branch with a
+pull request was tested twice. It now runs for pull requests (which also test the
+merge with `main`, and work for forks), for pushes to `main` and `v*` tags, and on
+demand. The cost: a branch with no pull request gets no CI until it is run by hand or a
+pull request is opened. That is accepted, since such branches exist to be read, not
+merged. Amends D46 only in that the scanner's comparison has no branch-push case.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).

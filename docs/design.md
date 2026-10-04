@@ -471,6 +471,13 @@ had no build for Ubuntu 26.04, and 3.10 reaches end-of-life in October 2026.
 minimum. Some older idioms (such as `typing.Optional`) remain from the days of
 3.9 and could be modernised in a refactor pass (D2, D15).
 
+**CI runs once per change.** It triggers on pull requests, on pushes to `main` and
+`v*` tags, and by hand (`workflow_dispatch`), not on every push: a branch with a pull
+request is tested by the pull request run, and triggering on its pushes as well tested
+every commit twice. A branch pushed with no pull request, which CLAUDE.md allows for
+getting something reviewed early, is therefore not tested until someone runs CI on it
+from the Actions tab or opens a pull request (D47).
+
 **CI** runs a guard job (the stray-data checks over tracked files and over
 history) and a test matrix on Python 3.11 to 3.14 on `ubuntu-24.04`, plus one
 Python 3.14 job on `ubuntu-26.04` so that problems with the new image show up
@@ -488,11 +495,11 @@ on Node 24 (D14, D15).
 slow ones: they install Tesseract and the fonts the tests draw with and the `scan`
 extra, then draw and read charts, the quality tests included, on the same matrix as
 the test job. A small job, `changes`, runs `scripts/ci_changes.py`, which lists the
-files changed since the branch left `main` (for a pull request, since its base) and
-says whether any is the scanner, a core module it imports, its tests, `pyproject.toml`
-or CI itself. The `scanner` matrix runs if so. Pushes to `main` and tags always run
-it, and so does any case where the comparison cannot be made (no base, a git
-failure), since skipping by mistake is worse than running by mistake. The list of
+files a pull request changes relative to its base and says whether any is the scanner,
+a core module it imports, its tests, `pyproject.toml` or CI itself. The `scanner`
+matrix runs if so. Everything that is not a pull request (pushes to `main`, tags, a
+manual run) always runs it, and so does any case where the comparison cannot be made
+(a git failure), since skipping by mistake is worse than running by mistake. The list of
 paths is in the script, and a test reads the imports of the scanner's code and tests
 and fails if a module they use is missing from it. Both the filter and the jobs are
 in the workflow rather than a `paths:` filter on it, because that would stop the
