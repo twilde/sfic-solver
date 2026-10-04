@@ -518,4 +518,3 @@ The review procedure follows the same rule. CI remains the backstop for what a s
 could not run.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
-
