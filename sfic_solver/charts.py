@@ -5,8 +5,8 @@ chamber. Two header layouts are read:
 
   the tools' layout   Key System, System, Core, Date (all optional but System),
                       Control Key, then one `name = bitting` line per operating key
-  the legacy layout   System, Control Key, Master Key and one Change Keys line of
-                      comma-separated bittings (older keying software)
+  the legacy layout   System, Control Key, then a Master Key line, a Change Keys line
+                      of comma-separated bittings, or both (older keying software)
 
 A label and its value may be separated by `=` or `:`. Several charts may share a file,
 separated by a line of dashes. A chart is key
@@ -151,11 +151,12 @@ def parse_chart(start, lines, index):
     if CONTROL_KEY not in fields:
         raise ChartError("no Control Key line", index)
     if legacy:
-        if MASTER_KEY not in fields or CHANGE_KEYS not in fields:
-            raise ChartError("the legacy layout needs both a Master Key and a Change Keys line",
-                             index)
-        listed = [fields[MASTER_KEY], *[b for b in re.split(r"[,\s]+", fields[CHANGE_KEYS]) if b]]
-        keys = [("master" if i == 0 else f"change {i}", b) for i, b in enumerate(listed)]
+        # Either line may be missing: a core with no master above it has only a change
+        # key, which older software printed on whichever line the owner had used.
+        if MASTER_KEY in fields:
+            keys.append(("master", fields[MASTER_KEY]))
+        listed = [b for b in re.split(r"[,\s]+", fields.get(CHANGE_KEYS, "")) if b]
+        keys += [(f"change {i}", b) for i, b in enumerate(listed, 1)]
     if not keys:
         raise ChartError("no operating keys in the header", index)
 

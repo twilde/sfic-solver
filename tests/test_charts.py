@@ -60,6 +60,15 @@ def test_charts_are_separated_by_dashes_and_the_fake_line_is_skipped():
     assert parse_charts("") == [] and parse_charts("FAKE only\n") == []
 
 
+@pytest.mark.parametrize("drop, keys", [
+    ("Master Key = 5961634\n", ["5721276", "9565698"]),
+    ("\nChange Keys = 5721276, 9565698", ["5961634"]),
+])
+def test_a_legacy_chart_may_have_only_a_master_key_or_only_change_keys(drop, keys):
+    parsed = parse_charts(chart(LEGACY_HEADER.replace(drop, "")))[0]
+    assert parsed.layout == "legacy" and [b for _, b in parsed.keys] == keys
+
+
 def test_a_colon_may_separate_a_label_from_its_value():
     colons = (LEGACY_HEADER.replace("System =", "System:").replace("Control Key =", "Control Key:")
               .replace("Master Key =", "Master Key:").replace("Change Keys =", "Change Keys:"))
@@ -132,10 +141,9 @@ def test_column_is_none_when_masters_do_not_fill_from_the_bottom():
     (chart("System = A2\nControl Key = 9743854"), "no operating keys"),
     (chart(TOOLS_HEADER + "\nMaster Key = 5961634\nChange Keys = 5721276"),
      "mixes the tools' layout"),
-    (chart(LEGACY_HEADER.replace("\nChange Keys = 5721276, 9565698", "")),
-     "needs both a Master Key and a Change Keys line"),
-    (chart(LEGACY_HEADER.replace("Master Key = 5961634\n", "")),
-     "needs both a Master Key and a Change Keys line"),
+    (chart(LEGACY_HEADER.replace("Master Key = 5961634\n", "")
+           .replace("Change Keys = 5721276, 9565698", "Change Keys =")),
+     "no operating keys"),
     (chart(TOOLS_HEADER + "\nCore = again"), "a header label is repeated"),
     (chart(TOOLS_HEADER + "\nnot a header line"), "not `label = value`"),
     (chart(TOOLS_HEADER + "\nowner = somebody"), "neither a known label nor `name = bitting`"),

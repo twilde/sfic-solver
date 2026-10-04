@@ -280,8 +280,8 @@ which joint is on a shear line, which explanations and a later visualizer need
 
 **The conformance check** is the one layer that touches real data. `charts.py`
 reads pinning charts in either layout from the design, the tools' own with `name
-= bitting` lines and the legacy one of older keying software with a master line
-and a comma-separated list of change keys. Several charts to a file are separated
+= bitting` lines and the legacy one of older keying software with a master line,
+a comma-separated list of change keys, or both. Several charts to a file are separated
 by lines of dashes, and the `FAKE` line of a test fixture is skipped. Header
 labels sit in one table, match without regard to case and may be followed by `=`
 or `:`; a line that starts with a known label splits right after it, so a value
