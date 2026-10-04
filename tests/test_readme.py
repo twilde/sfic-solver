@@ -94,9 +94,18 @@ def test_every_command_is_in_the_readme_table_and_the_scanner_exception_is_state
         assert package in readme, package
     assert project["dependencies"] == []
     for name in ("README.md", "CLAUDE.md", "CONTRIBUTING.md", "SECURITY.md"):
-        text = (ROOT / name).read_text()
-        assert "standard library" in text.lower(), name
-        assert "scan" in text.lower(), f"{name} says standard library without the exception"
+        assert says_standard_library_with_the_exception(ROOT / name), name
+
+
+def says_standard_library_with_the_exception(path):
+    """Whether a paragraph of the file says "standard library" and, in the same
+    paragraph, names the scanner as an exception. A file that mentions scanning
+    elsewhere does not count; reverting the sentence must fail the test."""
+    for paragraph in re.split(r"\n\s*\n", path.read_text()):
+        text = " ".join(paragraph.lower().split())
+        if "standard library" in text and "exception" in text and "scan" in text:
+            return True
+    return False
 
 
 def test_the_readme_install_line_is_the_one_the_tool_prints():
