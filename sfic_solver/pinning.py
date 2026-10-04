@@ -141,23 +141,39 @@ def pin_chamber(system, operating, control):
     return chamber
 
 
-def pin_core(system, operating_keys, control):
-    """Pin every chamber of a core: one Chamber per position, or PinningError.
+def pin_chambers(system, operating_keys, control):
+    """Pin every chamber of a core, each on its own: (chambers, errors).
 
-    operating_keys  the bittings of every key that operates the core (all on an
-                    equal footing: change key, masters, whatever the hierarchy calls them)
-    control         the bitting of the core's control key
+    `chambers` has a Chamber for each position that can be pinned and None for the
+    others, and `errors` has a PinningError (with its chamber number) for each of
+    those, so that a report can name every chamber that fails and not only the first.
     """
     if not operating_keys:
         raise ValueError("a core needs at least one operating key")
     length = len(control)
     if any(len(key) != length for key in operating_keys):
         raise ValueError("every key must have the same number of cuts")
-    chambers = []
+    chambers, errors = [], []
     for position in range(length):
         try:
             chambers.append(pin_chamber(system, [key[position] for key in operating_keys],
                                         control[position]))
         except PinningError as err:
-            raise PinningError(err.reason, position + 1) from None
-    return tuple(chambers)
+            chambers.append(None)
+            errors.append(PinningError(err.reason, position + 1))
+    return tuple(chambers), errors
+
+
+def pin_core(system, operating_keys, control):
+    """Pin every chamber of a core: one Chamber per position, or PinningError.
+
+    operating_keys  the bittings of every key that operates the core (all on an
+                    equal footing: change key, masters, whatever the hierarchy calls them)
+    control         the bitting of the core's control key
+
+    The error is the first chamber that cannot be pinned; `pin_chambers` gives all.
+    """
+    chambers, errors = pin_chambers(system, operating_keys, control)
+    if errors:
+        raise errors[0]
+    return chambers

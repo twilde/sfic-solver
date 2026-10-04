@@ -7,6 +7,10 @@ Reads a JSON description of the system and reports:
   * pairs of keys that are too close
   * for each core type, how many keys operate it (intended + false keys)
   * known keys that would operate a core they are NOT meant to operate
+  * if the file sets `pinning`: cores that cannot be pinned (chamber by chamber, with
+    the reason) and known keys that would operate a core's control shear line
+  * with `retired_cores` too: whether each retired core, as described, could have been
+    pinned (a warning, not a problem: the description or the rules may be wrong)
   * a rough estimate of the chance that still-undecoded unit keys do the same
 
 Usage:
@@ -25,9 +29,14 @@ Config (see system.example.json):
     keys           {name: bitting} operating keys, including decoded unit keys
     retired_keys   {name: bitting} old keys that must not operate new cores
     control_keys   {name: bitting} control keys (closeness checks only)
-    cores          list of {name, change, masters}
+    cores          list of {name, change, masters, control}
                    change: key name, wildcard ("unit:*") or list of those
                    masters: list of key names pinned above the change key
+                   control: name of the core's control key (needed with pinning)
+    pinning        optional pinning system name, such as "A2": turns on the
+                   pinning checks
+    retired_cores  list of {name, change, masters, control} like cores, for the old
+                   installation: masters and control are names in retired_keys
 
 A core accepts any key whose cut at every position equals the change key's
 cut or one of its masters' cuts. Exits with status 1 if anything is flagged.
@@ -37,6 +46,66 @@ import sys
 
 from .config import load_or_exit
 from .model import distance, operates, options_for
+from .pinning import pin_chambers
+
+MAX_LISTED = 30        # lines per list before "... and N more"
+
+
+def capped(lines):
+    """The first MAX_LISTED lines of a list, and a count of the rest."""
+    shown = list(lines[:MAX_LISTED])
+    if len(lines) > MAX_LISTED:
+        shown.append(f"... and {len(lines) - MAX_LISTED} more")
+    return shown
+
+
+def check_retired_cores(cfg):
+    """The retired-core section: (lines, warnings).
+
+    The old cores were physically pinned, so every key that sat in one with its
+    retired masters and control must be pinnable together. A WARNING means the
+    description of the old cores is wrong or the rules are too strict, so it is not
+    counted as a problem.
+    """
+    pool = {**cfg.keys, **cfg.retired_keys}
+    found = []
+    for core in cfg.retired_cores:
+        control = cfg.retired_keys[core["control"]]
+        for ch in core["changes"]:
+            operating = [pool[ch]] + [cfg.retired_keys[m] for m in core["masters"]]
+            for error in pin_chambers(cfg.pinning, operating, control)[1]:
+                found.append(f"WARNING   {core['name']} [{ch}], chamber {error.chamber}: "
+                             f"{error.reason}")
+    lines = capped(found)
+    if found:
+        lines.append("Either the description of the old cores is wrong or the rules are too "
+                     "strict.")
+    return lines or ["none"], len(found)
+
+
+def check_pinning(cfg, everything):
+    """The pinning section: (lines, problems) for a file that sets `pinning`.
+
+    UNPINNABLE: a core (one per change key) with a chamber whose cuts cannot be pinned.
+    CONTROL: a known key that operates a core's control shear line. Only the control
+    bitting itself does, whoever the key is meant for.
+    """
+    unpinnable, control_lines = [], []
+    for core in cfg.cores:
+        control = cfg.control_keys[core["control"]]
+        for ch in core["changes"]:
+            operating = [cfg.keys[ch]] + [cfg.keys[m] for m in core["masters"]]
+            for error in pin_chambers(cfg.pinning, operating, control)[1]:
+                unpinnable.append(f"UNPINNABLE {core['name']} [{ch}], chamber {error.chamber}: "
+                                  f"{error.reason}")
+    for core in cfg.cores:
+        control = cfg.control_keys[core["control"]]
+        for name, cuts in everything.items():
+            if name != core["control"] and cuts == control:
+                control_lines.append(f"CONTROL   key {name} operates the control shear line "
+                                     f"of {core['name']}")
+    lines = capped(unpinnable) + capped(control_lines)
+    return lines or ["none"], len(unpinnable) + len(control_lines)
 
 
 def main(argv=None):
@@ -49,7 +118,7 @@ def main(argv=None):
     keys, retired, control = cfg.keys, cfg.retired_keys, cfg.control_keys
     everything = {**keys, **retired, **control}
     cores = cfg.cores
-    problems = 0
+    problems = warnings = 0
 
     print("== Key checks ==")
     for name, cuts in {**keys, **control}.items():     # retired keys are exempt
@@ -117,6 +186,17 @@ def main(argv=None):
     if not found:
         print("none")
 
+    if cfg.pinning:
+        print(f"\n== Pinning ({cfg.pinning.name}): can each core be built, and does a key "
+              f"open a control shear line? ==")
+        lines, found = check_pinning(cfg, everything)
+        print("\n".join(lines))
+        problems += found
+        if cfg.retired_cores:
+            print("\n== Retired cores: could the old cores, as described, have been pinned? ==")
+            lines, warnings = check_retired_cores(cfg)
+            print("\n".join(lines))
+
     unit_count = cfg.unit_count
     if unit_count:
         decoded = sum(1 for n in keys if n.startswith(unit_prefix))
@@ -138,7 +218,8 @@ def main(argv=None):
                 print(f"{core['name']}: {expected:.2f} unit keys expected to operate it "
                       f"({at_least_one * 100:.0f}% chance at least one does)")
 
-    print(f"\n{'OK' if not problems else str(problems) + ' problem(s) flagged'}")
+    note = f", {warnings} warning(s)" if warnings else ""
+    print(f"\n{'OK' if not problems else str(problems) + ' problem(s) flagged'}{note}")
     return 1 if problems else 0
 
 

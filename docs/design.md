@@ -200,9 +200,19 @@ exited 1). The rules worth knowing:
   with `_` are free text and never warn.
 - Retired keys must always be known: `null` is only for keys the solver picks.
 
-The pinning fields the design adds (`pinning`, `control` on each core,
-`retired_cores`) are opt-in per file, so that files without them keep their
-meaning. They are step 4 of core pinning and are not built yet.
+The pinning fields are opt-in per file, so that files without them keep their
+meaning (D51). `pinning` names a pinning system, in any case; an unknown name is
+refused with the known ones listed, and so is a system whose cut depth count
+differs from the key space's, since both default to 10 but are separate numbers.
+`name` is an optional name for the key system. With pinning set, every core needs
+a `control` naming an entry in `control_keys`; without it a control is optional
+but is checked if given. `retired_cores` describes the old installation in the
+shape of `cores`: `change` selects names from `keys` and `retired_keys` (a
+wildcard may match nothing, since undecoded units are what it is for), `masters`
+and `control` name entries in `retired_keys`, and the control is required. It is
+read only when pinning is set, and a file that has it without pinning is warned
+that it is ignored. The loader only validates these fields; the checks that use
+them are described under Pinning.
 
 ## Pinning
 
@@ -318,11 +328,32 @@ command is tested on fake charts computed independently of the pinner; whether i
 agrees with real charts is for their owner to find out locally, which is the
 point of the step (D31).
 
+**The checker** adds a section to `check_system`'s report for a file that sets
+`pinning`, after the cross-operation one. Each core is pinned once per change key
+with its masters as the other operating keys and the control key it names, using
+`pin_chambers`, so that every chamber that cannot be built is listed with its
+reason (`UNPINNABLE`, the core, the change key and the chamber), not only the
+first. A second kind of line, `CONTROL`, names a known key that would operate a
+core's control shear line. A chamber has one joint in the control range, so only
+the control bitting itself does, and for known keys this coincides with
+`DUPLICATE`; the line is there to say which cores the duplicate would open, and
+there is nothing to estimate for undecoded keys, since exactly one bitting
+operates the line. Both are problems and set the exit status. Long lists stop at
+30 lines with a count of the rest, as the closeness list does (D52).
+
+The retired-core section pins each retired core, as described, once per change key
+that is decoded, with its retired masters and its retired control key, and prints a
+`WARNING` for every chamber that cannot be pinned. It is a warning and not a problem
+because either reading of a failure is possible: the description of the old cores
+may be wrong, or the rules may be stricter than the hardware, and the report says
+so. Warnings do not change the exit status; the closing line counts them beside any
+problems (D53).
+
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), and the guard and the conformance script
-(step 3) are built. Steps 4 to 7 are not: the `pinning` field and checker
-changes for opted-in files, the generator and solver working without a pattern,
-the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
+(step 3) are built, and so is step 4: the loader, the pinnability and control checks and the retired-core
+consistency check. The rest is not: the generator and solver working without a
+pattern, the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
 additive and are held for the maintainer's agreement when their turn comes:
 pinnability as a hard rule for the solver alongside cross-operation and
 duplicates, and a new population for the residual-risk estimate. Neither changes

@@ -12,11 +12,14 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
 from . import model
+from .pinning import PinningSystem, get_system
 
 SECTIONS = ("keys", "retired_keys", "control_keys")
-TOP_LEVEL_FIELDS = {"pins", "pattern", "max_step", "min_diff", "unit_prefix", "unit_count",
-                    "close_check_units", "cores", *SECTIONS}
-CORE_FIELDS = {"name", "change", "masters"}
+TOP_LEVEL_FIELDS = {"name", "pins", "pattern", "max_step", "min_diff", "unit_prefix",
+                    "unit_count", "close_check_units", "pinning", "cores", "retired_cores",
+                    *SECTIONS}
+CORE_FIELDS = {"name", "change", "masters", "control"}
+RETIRED_CORE_FIELDS = {"name", "change", "masters", "control"}
 
 
 class ConfigError(ValueError):
@@ -34,8 +37,11 @@ class Config:
     keys: Dict[str, Optional[Tuple[int, ...]]]
     retired_keys: Dict[str, Optional[Tuple[int, ...]]]
     control_keys: Dict[str, Optional[Tuple[int, ...]]]
-    cores: List[dict]                           # {name, changes, masters, is_unit}
+    cores: List[dict]                           # {name, changes, masters, control, is_unit}
     warnings: List[str] = field(default_factory=list)
+    name: Optional[str] = None                  # the key system's name, for charts
+    pinning: Optional[PinningSystem] = None     # set only if the file opts in to pinning
+    retired_cores: List[dict] = field(default_factory=list)   # {name, changes, masters, control}
 
 
 def _no_duplicate_keys(pairs):
@@ -109,6 +115,20 @@ def parse_config(raw, allow_null=False):
     if not isinstance(close_check_units, bool):
         raise ConfigError(f"close_check_units must be true or false, got {close_check_units!r}")
 
+    system_name = raw.get("name")
+    if system_name is not None and (not isinstance(system_name, str) or not system_name.strip()):
+        raise ConfigError(f"name must be a non-empty string, got {system_name!r}")
+    pinning_system = None
+    if "pinning" in raw:
+        try:
+            pinning_system = get_system(raw["pinning"])
+        except ValueError as err:
+            raise ConfigError(f"pinning: {err}") from None
+        if pinning_system.depths != space.depths:
+            raise ConfigError(f"pinning system {pinning_system.name} has "
+                              f"{pinning_system.depths} cut depths but the key space has "
+                              f"{space.depths}")
+
     groups, owner = {}, {}
     for label in SECTIONS:
         section = raw.get(label, {})
@@ -148,6 +168,41 @@ def parse_config(raw, allow_null=False):
         close = difflib.get_close_matches(name, list(keys), n=1)
         return f" (did you mean {close[0]!r}?)" if close else ""
 
+    def hint_for(name, section):
+        """Where a name that is not in `section` probably belongs (name may be any JSON)."""
+        if not isinstance(name, str):
+            return ""
+        if name in owner and owner[name] != section:
+            return f" ({name!r} is in {owner[name]}, not {section})"
+        close = difflib.get_close_matches(name, list(groups[section]), n=1)
+        return f" (did you mean {close[0]!r}?)" if close else ""
+
+    def resolve_changes(where, change_specs, pool=None, empty_wildcards_ok=False):
+        """The key names a core's `change` entry (a name, a wildcard or a list) selects.
+
+        pool is the dict of keys that may be chosen, `keys` unless given;
+        empty_wildcards_ok lets a wildcard match nothing (a name still may not).
+        """
+        label = "keys" if pool is None else "keys or retired_keys"
+        pool = keys if pool is None else pool
+        if isinstance(change_specs, str):
+            change_specs = [change_specs]
+        if not change_specs:
+            raise ConfigError(f"{where}: needs 'change' (a key name, a wildcard such as "
+                              f"'{unit_prefix}*', or a list of those)")
+        _string_list(change_specs, f"{where}: change")
+        changes = []
+        for pat in change_specs:
+            matches = [n for n in pool if fnmatch.fnmatchcase(n, pat)]
+            if not matches and not (empty_wildcards_ok and any(c in pat for c in "*?[")):
+                raise ConfigError(f"{where}: change {pat!r} matches no key in {label}{hint(pat)}")
+            for match in matches:
+                if match in changes:
+                    raise ConfigError(f"{where}: key {match!r} is matched by more than one "
+                                      f"change entry")
+                changes.append(match)
+        return changes
+
     specs = raw.get("cores", [])
     if not isinstance(specs, list):
         raise ConfigError("cores must be a list of {name, change, masters} objects")
@@ -165,23 +220,7 @@ def parse_config(raw, allow_null=False):
         warnings += [f"{where}: unknown field {f!r} is ignored (misspelled?)"
                      for f in spec if f not in CORE_FIELDS and not f.startswith("_")]
 
-        change_specs = spec.get("change")
-        if isinstance(change_specs, str):
-            change_specs = [change_specs]
-        if not change_specs:
-            raise ConfigError(f"{where}: needs 'change' (a key name, a wildcard such as "
-                              f"'{unit_prefix}*', or a list of those)")
-        _string_list(change_specs, f"{where}: change")
-        changes = []
-        for pat in change_specs:
-            matches = [n for n in keys if fnmatch.fnmatchcase(n, pat)]
-            if not matches:
-                raise ConfigError(f"{where}: change {pat!r} matches no key in keys{hint(pat)}")
-            for match in matches:
-                if match in changes:
-                    raise ConfigError(f"{where}: key {match!r} is matched by more than one "
-                                      f"change entry")
-                changes.append(match)
+        changes = resolve_changes(where, spec.get("change"))
 
         masters = _string_list(spec.get("masters", []), f"{where}: masters")
         for pos, master in enumerate(masters):
@@ -191,17 +230,68 @@ def parse_config(raw, allow_null=False):
                 raise ConfigError(f"{where}: master {master!r} is listed twice")
             if master in changes:
                 raise ConfigError(f"{where}: {master!r} is both a change key and a master")
+        control = spec.get("control")
+        if control is None:
+            if pinning_system:
+                raise ConfigError(f"{where}: needs 'control' (the name of one of control_keys), "
+                                  f"since the system sets pinning")
+        elif not isinstance(control, str) or control not in groups["control_keys"]:
+            raise ConfigError(f"{where}: unknown control {control!r}"
+                              f"{hint_for(control, 'control_keys')}; it must name an entry "
+                              f"in control_keys")
         cores.append({
             "name": name,
             "changes": changes,
             "masters": masters,
+            "control": control,
             "is_unit": any(c.startswith(unit_prefix) for c in changes),
         })
+
+    retired_specs = raw.get("retired_cores", [])
+    if not isinstance(retired_specs, list):
+        raise ConfigError("retired_cores must be a list of {name, change, masters, control} "
+                          "objects")
+    retired_cores, retired_names = [], set()
+    for index, spec in enumerate(retired_specs, 1):
+        if not isinstance(spec, dict):
+            raise ConfigError(f"retired_cores[{index}] must be an object with name, change, "
+                              f"masters and control")
+        name = spec.get("name")
+        if not isinstance(name, str) or not name:
+            raise ConfigError(f"retired_cores[{index}] needs a non-empty 'name'")
+        where = f"retired core {name!r}"
+        if name in retired_names:
+            raise ConfigError(f"{where}: retired core names must be unique")
+        retired_names.add(name)
+        warnings += [f"{where}: unknown field {f!r} is ignored (misspelled?)"
+                     for f in spec if f not in RETIRED_CORE_FIELDS and not f.startswith("_")]
+        changes = resolve_changes(where, spec.get("change"),
+                                  pool={**keys, **groups["retired_keys"]},
+                                  empty_wildcards_ok=True)
+        masters = _string_list(spec.get("masters", []), f"{where}: masters")
+        for pos, master in enumerate(masters):
+            if master not in groups["retired_keys"]:
+                raise ConfigError(f"{where}: unknown master {master!r}"
+                                  f"{hint_for(master, 'retired_keys')} "
+                                  f"(retired cores are pinned with entries of retired_keys)")
+            if master in masters[:pos]:
+                raise ConfigError(f"{where}: master {master!r} is listed twice")
+            if master in changes:
+                raise ConfigError(f"{where}: {master!r} is both a change key and a master")
+        control = spec.get("control")
+        if not isinstance(control, str) or control not in groups["retired_keys"]:
+            raise ConfigError(f"{where}: needs 'control', the name of an entry in retired_keys"
+                              f"{hint_for(control, 'retired_keys')}")
+        retired_cores.append({"name": name, "changes": changes, "masters": masters,
+                              "control": control})
+    if retired_cores and not pinning_system:
+        warnings.append("retired_cores is ignored, because the system does not set pinning")
 
     return Config(raw=raw, space=space, min_diff=min_diff, unit_prefix=unit_prefix,
                   unit_count=unit_count, close_check_units=close_check_units, keys=keys,
                   retired_keys=groups["retired_keys"], control_keys=groups["control_keys"],
-                  cores=cores, warnings=warnings)
+                  cores=cores, warnings=warnings, name=system_name, pinning=pinning_system,
+                  retired_cores=retired_cores)
 
 
 def load_config(path, allow_null=False):

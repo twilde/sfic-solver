@@ -5,7 +5,7 @@ import random
 import pytest
 
 from sfic_solver import pinning
-from sfic_solver.pinning import A2, Chamber, PinningError, pin_chamber, pin_core
+from sfic_solver.pinning import A2, Chamber, PinningError, pin_chamber, pin_chambers, pin_core
 from helpers import example_charts
 
 
@@ -50,6 +50,15 @@ def test_pin_core_reports_the_chamber():
     assert caught.value.chamber == 2
     assert caught.value.reason.startswith("operating cuts 2 and 3 are 1 apart")
     assert str(caught.value).startswith("chamber 2: ")
+
+
+def test_pin_chambers_reports_every_chamber_that_fails_and_pins_the_rest():
+    # Chambers 2 and 3 have cuts 1 apart; chamber 1 is fine.
+    chambers, errors = pin_chambers(A2, [(1, 2, 3), (1, 3, 4)], (4, 4, 4))
+    assert [e.chamber for e in errors] == [2, 3]
+    assert chambers[0] == pin_chamber(A2, [1, 1], 4)
+    assert chambers[1] is None and chambers[2] is None
+    assert pin_chambers(A2, [(1, 2, 3)], (4, 4, 4))[1] == []
 
 
 @pytest.mark.parametrize("operating, control", [

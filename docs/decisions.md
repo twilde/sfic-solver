@@ -518,3 +518,41 @@ The review procedure follows the same rule. CI remains the backstop for what a s
 could not run.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D51. Pinning is switched on by a `pinning` field, and each core names its control key
+
+A system file opts in to pinning with `pinning` (a system name such as `"A2"`);
+without it nothing changes. With it, every core needs a `control` naming one of
+`control_keys`, since the control is half of the pinning, and an optional `name`
+labels the system. `retired_cores` has the shape of `cores`, with `masters` and
+`control` taken from `retired_keys` and a wildcard allowed to match nothing yet.
+A system whose cut depth count differs from the key space's is refused. The
+alternative, one control key used by default when only one exists, was rejected so
+that a second control key added later cannot silently re-pin cores.
+
+Detail: [design.md, "System files"](design.md#system-files).
+
+## D52. With pinning set, `check_system` lists every chamber that cannot be pinned
+
+For an opted-in file the report gains a section: one `UNPINNABLE` line per core,
+change key and failing chamber, with the reason, and a `CONTROL` line for any known
+key that operates a core's control shear line. Both count as problems. Listing every
+chamber, not the first, is what an owner needs to fix a core, so the pinner gained
+`pin_chambers`. `CONTROL` is redundant with `DUPLICATE` for known keys, since only the
+control bitting operates that line, but it says which cores are affected. Rejected:
+leaving it out, because the design promised it and the line costs nothing.
+
+Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D53. Retired-core failures are warnings, and the closing line counts them
+
+The retired cores let the tools test the pinning rules against the old
+installation: every decoded key in a retired core must be pinnable with the
+retired masters and control. A failure means the description is wrong or the rules
+are too strict, and the tools cannot tell which, so it is a `WARNING`, listed and
+capped like the other sections, and it does not change the exit status. The closing
+line says `OK, 1 warning(s)` or `3 problem(s) flagged, 1 warning(s)`. Rejected:
+counting warnings as problems, which would fail a file for a fact the owner may
+rightly dispute.
+
+Detail: [design.md, "Pinning"](design.md#pinning).

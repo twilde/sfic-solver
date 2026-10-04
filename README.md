@@ -93,6 +93,7 @@ A JSON file. Fields (only `keys` and `cores` are needed for the basics):
 
 | Field | Meaning |
 | --- | --- |
+| `name` | Optional name of the key system, for the chart command to come. |
 | `pins` | Number of pins, so the length of every bitting. Default: the length of `pattern` if there is one, otherwise `7`. If both are given they must agree. |
 | `pattern` | One `E`/`O` per pin (7 by default). Enables parity checks and restricts the key space. If omitted, any cut 0-9 is allowed at every position. |
 | `max_step` | Max difference between adjacent cuts. Default `5`. |
@@ -103,7 +104,9 @@ A JSON file. Fields (only `keys` and `cores` are needed for the basics):
 | `keys` | `{name: bitting}` of operating keys, including decoded unit keys. |
 | `retired_keys` | `{name: bitting}` of old keys that must **not** operate any new core. |
 | `control_keys` | `{name: bitting}` of control keys. |
-| `cores` | List of `{"name", "change", "masters"}`. `change` is a key name, a wildcard such as `"unit:*"`, or a list of those. `masters` is a list of key names pinned above the change key (may be empty). |
+| `pinning` | Optional name of a pinning system (`"A2"`): opts in to the pinning checks. Without it the file is read exactly as before. |
+| `cores` | List of `{"name", "change", "masters"}`. `change` is a key name, a wildcard such as `"unit:*"`, or a list of those. `masters` is a list of key names pinned above the change key (may be empty). With `pinning`, each core also needs `"control"`: the name of its control key in `control_keys`. |
+| `retired_cores` | Optional, with `pinning`: how the old cores were pinned, as a list of `{"name", "change", "masters", "control"}` shaped like `cores`. `change` names keys in `keys` or `retired_keys` (a wildcard may match nothing yet), and `masters` and `control` name entries in `retired_keys`. |
 
 Names must be unique across `keys`, `retired_keys` and `control_keys`. Only
 entries in `keys` can be change keys or masters. Top-level and core fields
@@ -136,7 +139,8 @@ This is `system.example.json` (random placeholder bittings, generic names):
     "unit:103": "7741438"
   },
   "retired_keys": {
-    "old_master": "1327238"
+    "old_master": "1327238",
+    "old_area": "2210958"
   },
   "control_keys": {
     "control_a": "9743854",
@@ -184,6 +188,53 @@ OK
 
 `CROSS     key unit:104 operates Unit cores [unit:101]` would mean the key
 `unit:104` operates the core of `unit:101`, which it must not.
+
+### Pinning (optional)
+
+The checks above treat a core as a rule: it accepts the change key's cut or a
+master's cut at every position. Somebody still has to put pins in it, and
+pinning has rules of its own. Set `"pinning": "A2"` (the one system built in)
+and give every core a `"control"`, the name of its control key in
+`control_keys`, and `check_system` also asks whether each core can be built.
+A file without `pinning` is checked exactly as before. The reasoning is in
+[docs/designs/core-pinning.md](docs/designs/core-pinning.md).
+
+A chamber can be pinned when its distinct operating cuts, and the control cut
+plus 10, are each at least 2 apart: two cuts that differ by exactly 1 would need
+a pin of size 1, which does not exist. In practice that rules out little, such as
+a control cut of 0 in a chamber where a key of the core has a cut of 9. The
+report adds a section after the cross-operation one:
+
+```console
+$ ./check_system.py system.json
+...
+== Pinning (A2): can each core be built, and does a key open a control shear line? ==
+UNPINNABLE Area A cores [area_a], chamber 1: operating cuts 5 and 6 are 1 apart, so the pin between them would be 1, outside 2 to 19
+CONTROL   key stray operates the control shear line of Unit cores
+```
+
+`UNPINNABLE` names the core, its change key and every chamber that fails, with
+the reason. `CONTROL` names a known key whose cuts are the control key's, which
+would remove the core; only the control bitting itself operates a control shear
+line, so this also shows up as a `DUPLICATE`. Both are problems and make the
+command exit with status 1. The pinning checks do not need a parity pattern.
+
+If the building was rekeyed, the old cores were pinned too, so a key that sat in
+an old core with the old master can only have been one that the old pins allowed.
+Describe the old installation in `retired_cores`, shaped like `cores`: `change`
+selects keys (a wildcard such as `"unit:*"` may match nothing yet), `masters` and
+`control` name entries in `retired_keys`. The checker then asks of each decoded
+key whether the old core could have been pinned, and prints `WARNING` lines if
+not:
+
+```console
+== Retired cores: could the old cores, as described, have been pinned? ==
+WARNING   Original cores [unit:101], chamber 1: operating cuts 2 and 3 are 1 apart, so the pin between them would be 1, outside 2 to 19
+Either the description of the old cores is wrong or the rules are too strict.
+```
+
+A warning is not a problem: it does not change the exit status, and the last line
+counts it (`OK, 1 warning(s)`). It means the description or the rules need a look.
 
 ## Typical workflow
 
@@ -329,7 +380,8 @@ digit; never paste or describe the page itself.
 - Parity and MACS are checked for `keys` and `control_keys` (a control key that
   broke parity could need a pin size that does not exist), but not for
   `retired_keys`. Closeness and duplicates cover all sections. Control keys are
-  never tested for operation.
+  never tested for operation of a core's operating shear line; with `pinning`,
+  every known key is tested against each core's control shear line.
 - Closeness counts differing positions only. It does not model the physical
   similarity of cuts.
 - **Residual-risk numbers assume undecoded unit keys are random valid

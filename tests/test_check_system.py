@@ -1,5 +1,8 @@
 """check_system: whole-scheme checker (command-line behaviour)."""
 import json
+import re
+
+import pytest
 
 from conftest import FIXTURES, ROOT, run_script
 
@@ -14,6 +17,12 @@ def mix(base, other, positions):
     cuts = [int(o) if i in positions else int(b) for i, (b, o) in enumerate(zip(base, other))]
     assert all(abs(a - b) <= 5 for a, b in zip(cuts, cuts[1:])), "planted key breaks MACS"
     return "".join(map(str, cuts))
+
+
+@pytest.fixture
+def pinned():
+    """A fresh copy of the fake system that opts in to pinning."""
+    return json.loads((FIXTURES / "pinning.json").read_text())
 
 
 def check(write_cfg, cfg):
@@ -159,3 +168,145 @@ def test_example_file_is_a_clean_demo():
 def test_example_file_loads_as_json_with_expected_sections():
     cfg = json.loads((ROOT / "system.example.json").read_text())
     assert {"pattern", "keys", "cores"} <= set(cfg)
+
+
+# -- pinning (opt-in): core-pinning.md, step 4 --------------------------------------
+
+def test_a_system_without_pinning_prints_no_pinning_section():
+    assert "== Pinning" not in run_script("check_system", FIXTURES / "clean.json").stdout
+
+
+def test_a_pinnable_system_passes_the_pinning_checks():
+    proc = run_script("check_system", FIXTURES / "pinning.json")
+    assert proc.returncode == 0, proc.stdout
+    assert "== Pinning (A2)" in proc.stdout
+    assert re.search(r"== Pinning \(A2\)[^\n]*==\nnone\n", proc.stdout)
+    assert proc.stdout.strip().endswith("OK")
+
+
+def test_flags_an_operating_gap_of_one_and_says_which_chamber(pinned, write_cfg):
+    # master_sub's first cut moves to 6, one from area_a's 5, in the Area A cores.
+    pinned["keys"]["master_sub"] = "6" + pinned["keys"]["master_sub"][1:]
+    proc = check(write_cfg, pinned)
+    assert proc.returncode == 1
+    assert ("UNPINNABLE Area A cores [area_a], chamber 1: operating cuts 5 and 6 are 1 apart, "
+            "so the pin between them would be 1, outside 2 to 19") in proc.stdout
+
+
+def test_flags_a_control_cut_of_zero_beside_an_operating_cut_of_nine(pinned, write_cfg):
+    # area_b's first cut is 9; a control key cut of 0 there cannot be pinned (the gap rule).
+    pinned["control_keys"]["control_a"] = "0" + pinned["control_keys"]["control_a"][1:]
+    proc = check(write_cfg, pinned)
+    assert proc.returncode == 1
+    assert ("UNPINNABLE Area B cores [area_b], chamber 1: control cut 0 puts the control "
+            "boundary 1 above the highest operating cut 9") in proc.stdout
+    assert "UNPINNABLE Unit cores" not in proc.stdout        # they use the other control key
+
+
+def test_every_chamber_that_fails_is_listed(pinned, write_cfg):
+    # master_sub moves to 6 in chamber 1 (beside area_a's 5) and to 3 in chamber 5 (beside 2).
+    sub = pinned["keys"]["master_sub"]
+    pinned["keys"]["master_sub"] = "6" + sub[1:4] + "3" + sub[5:]
+    out = check(write_cfg, pinned).stdout
+    chambers = [ln.split("]")[1].split(":")[0].strip(", ")
+                for ln in out.splitlines() if ln.startswith("UNPINNABLE Area A cores [area_a]")]
+    assert chambers == ["chamber 1", "chamber 5"]
+
+
+def test_flags_a_known_key_that_operates_a_control_shear_line(pinned, write_cfg):
+    pinned["keys"]["stray"] = pinned["control_keys"]["control_b"]
+    proc = check(write_cfg, pinned)
+    assert proc.returncode == 1
+    assert "CONTROL   key stray operates the control shear line of Unit cores" in proc.stdout
+    assert "DUPLICATE" in proc.stdout        # the same fact, seen as two keys with one bitting
+    assert "operates the control shear line of Area A cores" not in proc.stdout
+
+
+def test_a_core_is_not_flagged_for_its_own_control_key(pinned, write_cfg):
+    out = check(write_cfg, pinned).stdout
+    assert "CONTROL " not in out
+
+
+def test_the_listing_of_unpinnable_cores_is_capped(pinned, write_cfg):
+    # 40 unit keys whose first cut is 1 from unit_master's 7: each unit core fails in chamber 1.
+    unit = pinned["keys"]["unit:101"]
+    for number in range(40):
+        pinned["keys"][f"unit:{200 + number}"] = f"8{number:02d}" + unit[3:]
+    proc = check(write_cfg, pinned)
+    out = proc.stdout
+    assert len([ln for ln in out.splitlines() if ln.startswith("UNPINNABLE")]) == 30
+    assert re.search(r"\.\.\. and \d+ more\n", out.split("== Pinning")[1])
+
+
+# -- retired cores: the rules checked against the old pinning ----------------------
+
+def test_consistent_retired_cores_are_reported_as_none(pinned):
+    out = run_script("check_system", FIXTURES / "pinning.json").stdout
+    assert re.search(r"== Retired cores[^\n]*==\nnone\n", out)
+
+
+def test_a_decoded_key_that_could_not_have_shared_a_retired_core_is_a_warning(pinned, write_cfg):
+    # The old master's first cut becomes 2, one from unit:101's 3. Retired keys are exempt
+    # from the parity pattern, so this is only a question of whether the old cores were
+    # pinnable, which these two keys together could not have been.
+    pinned["retired_keys"]["old_master"] = "2" + pinned["retired_keys"]["old_master"][1:]
+    proc = check(write_cfg, pinned)
+    assert proc.returncode == 0, proc.stdout
+    assert ("WARNING   Original cores [unit:101], chamber 1: operating cuts 2 and 3 are 1 apart"
+            in proc.stdout)
+    assert "Either the description of the old cores is wrong or the rules are too strict." \
+        in proc.stdout
+    assert proc.stdout.strip().endswith("OK, 1 warning(s)")
+
+
+def test_the_old_control_key_is_checked_against_the_decoded_keys_too(pinned, write_cfg):
+    # unit:104 has a 9 in chamber 1 and the old control key a 0 there.
+    pinned["keys"]["unit:104"] = "95" + pinned["keys"]["unit:101"][2:]
+    assert pinned["retired_keys"]["old_control"][0] == "0"
+    out = check(write_cfg, pinned).stdout
+    assert ("WARNING   Original cores [unit:104], chamber 1: control cut 0 puts the control "
+            "boundary 1 above the highest operating cut 9") in out
+
+
+def test_warnings_do_not_hide_problems_and_are_counted_beside_them(pinned, write_cfg):
+    pinned["retired_keys"]["old_master"] = "2" + pinned["retired_keys"]["old_master"][1:]
+    pinned["keys"]["master_sub"] = "6" + pinned["keys"]["master_sub"][1:]
+    proc = check(write_cfg, pinned)
+    assert proc.returncode == 1
+    assert proc.stdout.strip().endswith("problem(s) flagged, 1 warning(s)")
+
+
+def test_a_retired_wildcard_with_no_decoded_keys_yet_is_none(pinned, write_cfg):
+    pinned["retired_cores"][0]["change"] = "flat:*"
+    out = check(write_cfg, pinned).stdout
+    assert re.search(r"== Retired cores[^\n]*==\nnone\n", out)
+
+
+def test_there_is_no_retired_core_section_without_pinning(pinned, write_cfg):
+    del pinned["pinning"]
+    for core in pinned["cores"]:
+        del core["control"]
+    proc = check(write_cfg, pinned)
+    assert "== Retired cores" not in proc.stdout
+    assert "retired_cores is ignored" in proc.stderr
+
+
+def test_the_retired_core_warnings_are_capped(pinned, write_cfg):
+    unit = pinned["keys"]["unit:101"]
+    for number in range(35):
+        pinned["keys"][f"unit:{300 + number}"] = f"95{number:02d}" + unit[4:]
+    out = check(write_cfg, pinned).stdout
+    section = out.split("== Retired cores")[1].split("\n\n")[0]
+    assert len([ln for ln in section.splitlines() if ln.startswith("WARNING")]) == 30
+    assert re.search(r"\.\.\. and \d+ more\n", section)
+
+
+def test_the_control_lines_are_capped_too(pinned, write_cfg):
+    # One key with a control key's bitting opens the control line of every core using it.
+    pinned["keys"]["stray"] = pinned["control_keys"]["control_a"]
+    first = pinned["cores"][0]
+    pinned["cores"] += [{**first, "name": f"Copy {number}"} for number in range(35)]
+    out = check(write_cfg, pinned).stdout
+    section = out.split("== Pinning")[1].split("\n\n")[0]
+    assert len([ln for ln in section.splitlines() if ln.startswith("CONTROL")]) == 30
+    assert re.search(r"\.\.\. and \d+ more\n?$", section)
