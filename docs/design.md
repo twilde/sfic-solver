@@ -200,9 +200,19 @@ exited 1). The rules worth knowing:
   with `_` are free text and never warn.
 - Retired keys must always be known: `null` is only for keys the solver picks.
 
-The pinning fields the design adds (`pinning`, `control` on each core,
-`retired_cores`) are opt-in per file, so that files without them keep their
-meaning. They are step 4 of core pinning and are not built yet.
+The pinning fields are opt-in per file, so that files without them keep their
+meaning (D51). `pinning` names a pinning system, in any case; an unknown name is
+refused with the known ones listed, and so is a system whose cut depth count
+differs from the key space's, since both default to 10 but are separate numbers.
+`name` is an optional name for the key system. With pinning set, every core needs
+a `control` naming an entry in `control_keys`; without it a control is optional
+but is checked if given. `retired_cores` describes the old installation in the
+shape of `cores`: `change` selects names from `keys` and `retired_keys` (a
+wildcard may match nothing, since undecoded units are what it is for), `masters`
+and `control` name entries in `retired_keys`, and the control is required. It is
+read only when pinning is set, and a file that has it without pinning is warned
+that it is ignored. The loader only validates these fields; the checks that use
+them are described under Pinning.
 
 ## Pinning
 
@@ -320,9 +330,9 @@ point of the step (D31).
 
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), and the guard and the conformance script
-(step 3) are built. Steps 4 to 7 are not: the `pinning` field and checker
-changes for opted-in files, the generator and solver working without a pattern,
-the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
+(step 3) are built, and so is the loader half of step 4. The rest is not: the
+checker changes for opted-in files, the generator and solver working without a
+pattern, the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
 additive and are held for the maintainer's agreement when their turn comes:
 pinnability as a hard rule for the solver alongside cross-operation and
 duplicates, and a new population for the residual-risk estimate. Neither changes

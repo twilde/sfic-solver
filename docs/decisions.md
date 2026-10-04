@@ -518,3 +518,16 @@ The review procedure follows the same rule. CI remains the backstop for what a s
 could not run.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D51. Pinning is switched on by a `pinning` field, and each core names its control key
+
+A system file opts in to pinning with `pinning` (a system name such as `"A2"`);
+without it nothing changes. With it, every core needs a `control` naming one of
+`control_keys`, since the control is half of the pinning, and an optional `name`
+labels the system. `retired_cores` has the shape of `cores`, with `masters` and
+`control` taken from `retired_keys` and a wildcard allowed to match nothing yet.
+A system whose cut depth count differs from the key space's is refused. The
+alternative, one control key used by default when only one exists, was rejected so
+that a second control key added later cannot silently re-pin cores.
+
+Detail: [design.md, "System files"](design.md#system-files).

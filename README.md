@@ -93,6 +93,7 @@ A JSON file. Fields (only `keys` and `cores` are needed for the basics):
 
 | Field | Meaning |
 | --- | --- |
+| `name` | Optional name of the key system, for the chart command to come. |
 | `pins` | Number of pins, so the length of every bitting. Default: the length of `pattern` if there is one, otherwise `7`. If both are given they must agree. |
 | `pattern` | One `E`/`O` per pin (7 by default). Enables parity checks and restricts the key space. If omitted, any cut 0-9 is allowed at every position. |
 | `max_step` | Max difference between adjacent cuts. Default `5`. |
@@ -103,7 +104,9 @@ A JSON file. Fields (only `keys` and `cores` are needed for the basics):
 | `keys` | `{name: bitting}` of operating keys, including decoded unit keys. |
 | `retired_keys` | `{name: bitting}` of old keys that must **not** operate any new core. |
 | `control_keys` | `{name: bitting}` of control keys. |
-| `cores` | List of `{"name", "change", "masters"}`. `change` is a key name, a wildcard such as `"unit:*"`, or a list of those. `masters` is a list of key names pinned above the change key (may be empty). |
+| `pinning` | Optional name of a pinning system (`"A2"`): opts in to the pinning checks. Without it the file is read exactly as before. |
+| `cores` | List of `{"name", "change", "masters"}`. `change` is a key name, a wildcard such as `"unit:*"`, or a list of those. `masters` is a list of key names pinned above the change key (may be empty). With `pinning`, each core also needs `"control"`: the name of its control key in `control_keys`. |
+| `retired_cores` | Optional, with `pinning`: how the old cores were pinned, as a list of `{"name", "change", "masters", "control"}` shaped like `cores`. `change` names keys in `keys` or `retired_keys` (a wildcard may match nothing yet), and `masters` and `control` name entries in `retired_keys`. |
 
 Names must be unique across `keys`, `retired_keys` and `control_keys`. Only
 entries in `keys` can be change keys or masters. Top-level and core fields

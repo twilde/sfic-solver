@@ -1,0 +1,92 @@
+{
+  "_comment": "FAKE: invented placeholder bittings and generic names, for tests. Based on system.example.json with pinning switched on.",
+  "name": "Example building",
+  "pinning": "A2",
+  "pattern": "OOEOEOE",
+  "max_step": 5,
+  "min_diff": 5,
+  "unit_prefix": "unit:",
+  "unit_count": 100,
+  "keys": {
+    "master_top": "5961634",
+    "master_sub": "7305496",
+    "area_a": "5721276",
+    "area_b": "9565698",
+    "area_c": "3323872",
+    "area_d": "1161012",
+    "unit_master": "7587672",
+    "unit:101": "3101658",
+    "unit:102": "5549878",
+    "unit:103": "7741438"
+  },
+  "retired_keys": {
+    "old_master": "1327238",
+    "old_control": "0215736"
+  },
+  "control_keys": {
+    "control_a": "9743854",
+    "control_b": "3785412"
+  },
+  "cores": [
+    {
+      "name": "Area A cores",
+      "change": "area_a",
+      "masters": [
+        "master_sub",
+        "master_top"
+      ],
+      "control": "control_a"
+    },
+    {
+      "name": "Area B cores",
+      "change": "area_b",
+      "masters": [
+        "master_sub",
+        "master_top"
+      ],
+      "control": "control_a"
+    },
+    {
+      "name": "Area C cores",
+      "change": "area_c",
+      "masters": [
+        "master_top"
+      ],
+      "control": "control_a"
+    },
+    {
+      "name": "Sub-master cores",
+      "change": "master_sub",
+      "masters": [
+        "master_top"
+      ],
+      "control": "control_a"
+    },
+    {
+      "name": "Standalone cores",
+      "change": "area_d",
+      "masters": [],
+      "control": "control_a"
+    },
+    {
+      "name": "Unit cores",
+      "change": "unit:*",
+      "masters": [
+        "unit_master"
+      ],
+      "control": "control_b"
+    }
+  ],
+  "retired_cores": [
+    {
+      "name": "Original cores",
+      "change": [
+        "unit:*"
+      ],
+      "masters": [
+        "old_master"
+      ],
+      "control": "old_control"
+    }
+  ]
+}

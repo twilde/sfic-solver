@@ -208,3 +208,149 @@ def test_null_keys_allowed_for_the_solver(clean_cfg):
     assert cfg.keys["unit_master"] is None
     with pytest.raises(ConfigError):
         parse_config(clean_cfg)
+
+
+# -- pinning: the optional fields (core-pinning.md, step 4) -----------------------
+
+PINNING = FIXTURES / "pinning.json"
+
+
+@pytest.fixture
+def pinned():
+    """A fresh copy of the fake system that opts in to pinning (fixtures/pinning.json)."""
+    return json.loads(PINNING.read_text())
+
+
+def refused(raw, *fragments):
+    with pytest.raises(ConfigError) as caught:
+        parse_config(raw)
+    for fragment in fragments:
+        assert fragment in str(caught.value), str(caught.value)
+
+
+def test_the_pinning_fixture_loads(pinned):
+    cfg = load_config(PINNING)
+    assert cfg.warnings == []
+    assert cfg.pinning.name == "A2" and cfg.name == pinned["name"]
+    assert {core["name"]: core["control"] for core in cfg.cores} == {
+        "Area A cores": "control_a", "Area B cores": "control_a", "Area C cores": "control_a",
+        "Sub-master cores": "control_a", "Standalone cores": "control_a",
+        "Unit cores": "control_b"}
+    assert cfg.retired_cores == [{
+        "name": "Original cores", "changes": ["unit:101", "unit:102", "unit:103"],
+        "masters": ["old_master"], "control": "old_control"}]
+
+
+def test_files_that_do_not_opt_in_are_read_as_before():
+    for path in (FIXTURES / "clean.json", ROOT / "system.example.json"):
+        cfg = load_config(path)
+        assert cfg.pinning is None and cfg.name is None and cfg.retired_cores == []
+        assert all(core["control"] is None for core in cfg.cores)
+
+
+def test_the_pinning_system_name_ignores_case(pinned):
+    pinned["pinning"] = "a2"
+    assert parse_config(pinned).pinning.name == "A2"
+
+
+@pytest.mark.parametrize("bad", ["A9", "", 2, None, ["A2"]])
+def test_an_unknown_pinning_system_is_refused_and_the_known_ones_are_listed(pinned, bad):
+    pinned["pinning"] = bad
+    refused(pinned, "pinning: unknown pinning system", "known systems: A2")
+
+
+def test_a_pinning_system_with_another_depth_count_is_refused(pinned, monkeypatch):
+    from dataclasses import replace
+    from sfic_solver import pinning
+    monkeypatch.setitem(pinning.SYSTEMS, "A8", replace(pinning.A2, name="A8", depths=8))
+    pinned["pinning"] = "A8"
+    refused(pinned, "pinning system A8 has 8 cut depths but the key space has 10")
+
+
+@pytest.mark.parametrize("bad", ["", "  ", 5, ["x"]])
+def test_the_system_name_must_be_text(pinned, bad):
+    pinned["name"] = bad
+    refused(pinned, "name must be a non-empty string")
+
+
+def test_a_core_needs_a_control_key_when_pinning_is_set(pinned):
+    del pinned["cores"][2]["control"]
+    refused(pinned, "core 'Area C cores': needs 'control'", "since the system sets pinning")
+
+
+def test_a_core_may_leave_out_its_control_key_without_pinning(pinned):
+    del pinned["pinning"]
+    del pinned["cores"][2]["control"]
+    cfg = parse_config(pinned)
+    assert cfg.cores[2]["control"] is None and cfg.cores[0]["control"] == "control_a"
+
+
+@pytest.mark.parametrize("bad, hint", [
+    ("control_z", ""),
+    ("controla", "did you mean 'control_a'?"),
+    ("master_top", "'master_top' is in keys, not control_keys"),
+    (7, ""), (["control_a"], ""),
+])
+def test_a_core_control_must_name_a_control_key(pinned, bad, hint):
+    pinned["cores"][0]["control"] = bad
+    refused(pinned, f"core 'Area A cores': unknown control {bad!r}", hint,
+            "must name an entry in control_keys")
+
+
+def test_a_control_is_checked_even_when_pinning_is_off(pinned):
+    del pinned["pinning"]
+    pinned["cores"][0]["control"] = "nope"
+    refused(pinned, "unknown control 'nope'")
+
+
+def test_retired_cores_match_changes_among_keys_and_retired_keys(pinned):
+    pinned["retired_keys"]["old_area"] = "2210958"
+    pinned["retired_cores"][0]["change"] = ["unit:*", "old_area"]
+    cfg = parse_config(pinned)
+    assert cfg.retired_cores[0]["changes"] == ["unit:101", "unit:102", "unit:103", "old_area"]
+
+
+def test_a_retired_wildcard_may_match_nothing_but_a_name_may_not(pinned):
+    pinned["retired_cores"][0]["change"] = "flat:*"       # no decoded keys yet: fine
+    assert parse_config(pinned).retired_cores[0]["changes"] == []
+    pinned["retired_cores"][0]["change"] = "unit:999"
+    refused(pinned, "retired core 'Original cores': change 'unit:999' matches no key in "
+                    "keys or retired_keys")
+
+
+@pytest.mark.parametrize("mutate, fragments", [
+    (lambda c: c.update(retired_cores={"name": "x"}), ["retired_cores must be a list"]),
+    (lambda c: c.update(retired_cores=["x"]), ["retired_cores[1] must be an object"]),
+    (lambda c: c["retired_cores"][0].pop("name"), ["retired_cores[1] needs a non-empty 'name'"]),
+    (lambda c: c["retired_cores"].append(dict(c["retired_cores"][0])),
+     ["retired core names must be unique"]),
+    (lambda c: c["retired_cores"][0].pop("change"),
+     ["retired core 'Original cores': needs 'change'"]),
+    (lambda c: c["retired_cores"][0].update(masters=["master_top"]),
+     ["unknown master 'master_top'", "'master_top' is in keys, not retired_keys"]),
+    (lambda c: c["retired_cores"][0].update(masters=["old_master", "old_master"]),
+     ["master 'old_master' is listed twice"]),
+    (lambda c: c["retired_cores"][0].update(change=["old_master"]),
+     ["'old_master' is both a change key and a master"]),
+    (lambda c: c["retired_cores"][0].pop("control"),
+     ["retired core 'Original cores': needs 'control', the name of an entry in retired_keys"]),
+    (lambda c: c["retired_cores"][0].update(control="control_a"),
+     ["'control_a' is in control_keys, not retired_keys"]),
+])
+def test_retired_core_errors(pinned, mutate, fragments):
+    mutate(pinned)
+    refused(pinned, *fragments)
+
+
+def test_retired_cores_without_pinning_warn_that_they_are_ignored(pinned):
+    del pinned["pinning"]
+    for core in pinned["cores"]:
+        core.pop("control")
+    cfg = parse_config(pinned)
+    assert "retired_cores is ignored, because the system does not set pinning" in cfg.warnings
+
+
+def test_misspelled_retired_core_fields_warn(pinned):
+    pinned["retired_cores"][0]["master"] = ["old_master"]
+    assert "retired core 'Original cores': unknown field 'master' is ignored (misspelled?)" \
+        in parse_config(pinned).warnings
