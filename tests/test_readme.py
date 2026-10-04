@@ -79,3 +79,39 @@ def test_minimum_python_is_stated_consistently():
                        (ROOT / ".github/workflows/ci.yml").read_text(), re.M).group(1)
     versions = [tuple(map(int, v.strip(' "').split("."))) for v in matrix.split(",")]
     assert min(versions) == tuple(map(int, floor.split(".")))
+
+
+def test_every_command_is_in_the_readme_table_and_the_scanner_exception_is_stated():
+    """One fact in several files (D43): the commands, the scan extra and the exception."""
+    import tomllib
+
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    readme = (ROOT / "README.md").read_text()
+    for script in project["scripts"]:
+        assert f"`{script}`" in readme, script
+    # The extra's packages are named where the README says what the extra is.
+    for package in project["optional-dependencies"]["scan"]:
+        assert package in readme, package
+    assert project["dependencies"] == []
+    for name in ("README.md", "CLAUDE.md", "CONTRIBUTING.md", "SECURITY.md"):
+        assert says_standard_library_with_the_exception(ROOT / name), name
+
+
+def says_standard_library_with_the_exception(path):
+    """Whether a paragraph of the file says "standard library" and, in the same
+    paragraph, names the scanner as an exception. A file that mentions scanning
+    elsewhere does not count; reverting the sentence must fail the test."""
+    for paragraph in re.split(r"\n\s*\n", path.read_text()):
+        text = " ".join(paragraph.lower().split())
+        if "standard library" in text and "exception" in text and "scan" in text:
+            return True
+    return False
+
+
+def test_the_readme_install_line_is_the_one_the_tool_prints():
+    from sfic_solver.scanning import INSTALL_HINT, TESSERACT_ENV
+
+    readme = (ROOT / "README.md").read_text()
+    assert INSTALL_HINT in readme
+    assert "brew install tesseract" in readme and "apt install tesseract-ocr" in readme
+    assert TESSERACT_ENV in readme

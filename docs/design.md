@@ -333,7 +333,7 @@ any weight or algorithm for files that do not opt in (D6).
 An owner whose pinning charts exist only on paper needs them as text before
 `check_charts` can run on them. [designs/chart-scanning.md](designs/chart-scanning.md)
 (accepted) designs a local tool for that, and `sfic-scan-charts` is built, with its
-test harness (step 4); the README section is step 5. What it commits to:
+test harness and its README section. What it commits to:
 
 The tool transcribes and never repairs. It never consults the pinner or the
 pinning rules to choose a reading, because a tool that quietly "fixes" what it
@@ -360,10 +360,12 @@ condition always runs (image damage, fonts, a cell or row erased or inked over,
 pages too poor to read, margin notes, a PDF), and takes about six minutes because a
 chart costs six or seven seconds. The 1,000-chart run that would support a claim in
 the README is a slow tier, `pytest --runslow`, run by hand and not yet made. In a
-sample of 120 clean and degraded charts nothing wrong was accepted, and about one
-chart in twelve was flagged by the dissent check even on a clean image
-([issue #12](https://github.com/twilde/sfic-solver/issues/12)); the
-figures and what the harness covers are in the design document.
+sample of 120 clean and degraded charts nothing wrong was accepted, and 8 were
+flagged, one of them among the 12 clean charts
+([issue #12](https://github.com/twilde/sfic-solver/issues/12)); the figures and
+what the harness covers are in the design document. A first trial on real scans
+found three problems that the drawn charts did not show
+([issue #16](https://github.com/twilde/sfic-solver/issues/16)).
 
 **Scans are processed locally, always.** A scan of a chart is the chart: the pin
 sizes can be read off it, so any service that receives the image receives the key
@@ -459,8 +461,10 @@ the trailer (D37).
 
 **Standard library only, Python 3.11 or newer.** The core tools have no runtime
 dependencies, and pytest is the only test dependency. The one exception is
-scanning, above. The floor is 3.11: 3.9 was already end-of-life upstream and had
-no build for Ubuntu 26.04, and 3.10 reaches end-of-life in October 2026.
+scanning, above: the README, CLAUDE.md, CONTRIBUTING.md and SECURITY.md each say
+"standard library only" with that exception named in the same paragraph, and a
+test keeps them so. The floor is 3.11: 3.9 was already end-of-life upstream and
+had no build for Ubuntu 26.04, and 3.10 reaches end-of-life in October 2026.
 `requires-python`, the README, the CI matrix and a test all state the same
 minimum. Some older idioms (such as `typing.Optional`) remain from the days of
 3.9 and could be modernised in a refactor pass (D2, D15).

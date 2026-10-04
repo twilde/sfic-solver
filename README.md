@@ -1,6 +1,6 @@
 # sfic-solver
 
-Small, dependency-free Python tools for planning and checking a **master-keyed
+Small Python tools for planning and checking a **master-keyed
 SFIC** (small format interchangeable core) key system: generate candidate key
 bittings, check a whole key hierarchy for unintended cross-operation, and fill
 in missing bittings (such as a unit master) so as to minimise the risk of it.
@@ -9,7 +9,10 @@ in missing bittings (such as a unit master) so as to minimise the risk of it.
 > manufacturer.** It models only the rules described below. See
 > [Limitations](#limitations).
 
-Standard library only. Python 3.11 or newer.
+Standard library only, with one stated exception: the optional command that reads
+scans of paper charts needs extra packages and Tesseract (see
+[Scanning paper charts](#scanning-paper-charts)). Everything else runs without
+them. Python 3.11 or newer.
 
 ## The tools
 
@@ -20,6 +23,7 @@ Standard library only. Python 3.11 or newer.
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
 | `./check_charts.py` | `sfic-check-charts` | Checks that the tools' pinning rules reproduce pinning charts from your keying software (`.txt` files kept outside this repository). Reports positions only, never key data. |
+| `./scan_charts.py` | `sfic-scan-charts` | Reads scans (PDF or image) of paper pinning charts and writes them as the text charts `check_charts` reads. Needs the optional `scan` extra and Tesseract; see [Scanning paper charts](#scanning-paper-charts). |
 
 The pin count is 7 unless the system file says otherwise (`pins`, or the length
 of `pattern`); `gen_bittings.py` takes it from the pattern's length and
@@ -227,6 +231,78 @@ OK
    Newly decoded unit keys can cross-operate. Any `CROSS` line needs action
    before keys are cut. The residual-risk section shrinks as more units are
    decoded.
+
+## Scanning paper charts
+
+If your pinning charts exist only on paper, `sfic-scan-charts` turns scans of
+them into the text charts `check_charts` reads, so that you do not have to retype
+them. It is the one part of this project that is not standard-library only: it
+needs the optional Python packages (Pillow, numpy and pypdfium2) and the Tesseract
+program, and nothing else needs either.
+
+```bash
+pip install -e ".[scan]"        # the optional packages
+brew install tesseract          # macOS; on Debian or Ubuntu: apt install tesseract-ocr
+
+./scan_charts.py scans.pdf                  # or several files, or a directory of them
+./check_charts.py scans.txt                 # then run the conformance check yourself
+```
+
+If Tesseract is not on the path, name it with `--tesseract PROGRAM` or the
+`SFIC_TESSERACT` environment variable.
+
+It reads PDFs and `.png`, `.jpg`, `.tif` and similar scans (see `--help`; phone
+formats such as HEIC and photographs are not supported). Give it scans made by a
+scanner at 200 to 300 dpi, of files you made yourself, since a PDF is parsed by
+a native library. It runs only on your computer: nothing leaves it, it writes
+no images and no temporary files, and the three output files are created readable
+by you alone. The report names positions only (input, page, chart, row, chamber),
+never a digit or a file name. It does not run `check_charts` for you, so that "what
+the paper says" and "whether the pinning rules agree" stay two separate steps.
+
+It writes up to three files next to the input, and never over an existing one
+without `--force`:
+
+| File | What is in it | What `check_charts` does with it |
+| --- | --- | --- |
+| `NAME.txt` | Charts that passed every check. | Reads it. |
+| `NAME.failed.txt` | Charts read completely that failed a check inside the chart (a column that does not add up). | Reads it, so you can compare it with the paper. |
+| `NAME.review.txt` | Charts it could not read completely, with `??` where. | Refuses it, on purpose. Finish it by hand, looking at the page the report names. |
+
+The tool transcribes and never repairs: it does not use the pinning rules to
+choose a reading, and its checks (cell ranges, master rows filling from the
+bottom, each chamber adding up to the stack total) can only flag a chart. It
+exits 0 if every chart was accepted, 1 if anything needs attention and 2 if it
+could not run (a missing package or Tesseract, bad input, an output file in the
+way).
+
+What is and is not known about how well it reads:
+
+- It has been tested mostly on charts drawn by the tests from fake bittings. A first
+  trial on real scans found three problems that those charts did not show
+  ([issue #16](https://github.com/twilde/sfic-solver/issues/16)), so do not expect
+  it to read a real printout yet, and nothing is claimed beyond that. The figures
+  that follow are about drawn charts: in test runs of about 120 of them under blur,
+  noise, skew and low resolution, and in tests that erase or ink over cells, no
+  chart was ever accepted wrong. The full 1,000-chart run that would bound the rate
+  has not been made.
+- Expect some charts to go to the review file even when the scan is good: one of
+  the 12 clean charts in those runs was, and 8 of the 120 across all the
+  conditions, which is a sample and not a rate
+  ([issue #12](https://github.com/twilde/sfic-solver/issues/12)). That costs a look
+  at the paper and is the intended direction.
+- Fonts with thin commas, such as Courier New and Menlo (a Mac's defaults), can
+  hide the commas in the `Change Keys` line, so many charts from such printouts
+  will be flagged ([issue #10](https://github.com/twilde/sfic-solver/issues/10)).
+- Handwriting in the left margin, or after a row, is ignored or sent to review.
+  Handwriting beside the printed block that overlaps its rows is not handled yet and
+  can make the whole page unreadable
+  ([issue #16](https://github.com/twilde/sfic-solver/issues/16)).
+- It takes about six seconds a chart on four cores.
+
+Try it on a single page first. If the report says every chart on it was flagged
+for the same reason, that is something you can quote in an issue without a single
+digit; never paste or describe the page itself.
 
 ## Limitations
 

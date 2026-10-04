@@ -80,7 +80,9 @@ print is poor at it, and such notes are the very information that identifies a
 building, so the tool must neither transcribe them nor be disturbed by them. The
 design handles the case where the notes sit in the margins, clear of the printed
 block; notes that touch or sit among the printed lines are not designed for, and
-the charts they affect end up in the review file.
+the charts they affect end up in the review file. Built, it handles notes in the
+left margin and just after a row; notes beside the block that overlap its rows can
+break line finding for the whole page, not one chart (issue #16).
 
 A bordered table would need one more stage, to find and remove the ruled lines
 before reading, and an easier way to find the columns. It is not built, since it is
@@ -620,15 +622,16 @@ What a run of 12 charts per condition, 120 in all, showed on the built pipeline:
 
 No chart was accepted wrong, and zero wrong in 120 charts bounds the true rate only
 below about 2.5%, so this is a sample and not the claim. What it does show is that
-about one chart in twelve is flagged even when the image is clean. The cause, in the
-clean case that was looked at, is the dissent check: the last mark of a row (here the
-last chamber of the Bottom row) was read differently by enough of the readings that
-its group's vote was split, and the chart went to review with "its own readings
-disagree with its shape's". That is the tool failing in the intended direction, and
-the sentinel after each row (above) reduced it without removing it. Loosening the
-dissent threshold, or reading the last mark a further way, would change the
-algorithm, so neither is done here; the slow run is what would show their effect on
-wrong charts, and the question is tracked in issue #12.
+charts are flagged even when the image is clean: 8 of the 120 here, one of them
+among the 12 clean charts. The cause, in the clean case that was looked at, is the
+dissent check: the last mark of a row (here the last chamber of the Bottom row) was
+read differently by enough of the readings that its group's vote was split, and the
+chart went to review with "its own readings disagree with its shape's". That is the
+tool failing in the intended direction, and the sentinel after each row (above)
+reduced it without removing it. Loosening the dissent threshold, or reading the last
+mark a further way, would change the algorithm, so neither is done here; the slow
+run is what would show their effect on wrong charts, and the question is tracked in
+issue #12.
 
 The corruption tests assert what the design asked: a cell erased, a cell inked over
 and a row erased are flagged every time, in every chart of the sample, and a page too
@@ -648,3 +651,11 @@ more than one chart, and a page may carry a title, a date or a page number. Each
 handled by flagging today, and none is a design driver unless the first real run
 shows it to be one; it is then decided from a report of positions only, and the
 design is revised.
+
+A first trial on real scans has been made, and it found three problems that the
+drawn charts did not show: handwriting beside the printed block that overlaps its
+rows breaks line finding, a blurred equals sign is not recognised although the
+design says it is found by structure, and a row label is accepted only if every
+reading of it agrees, which the design does not require. They are recorded, with a
+proposed order of work, in issue #16, and nothing here has changed because of them
+yet. Until they are fixed, the tool should not be expected to read a real printout.

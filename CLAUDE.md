@@ -7,9 +7,13 @@ numbered, append-only), and docs/designs/ for the larger feature designs.
 
 ## Project
 
-Small, dependency-free Python tools (3.11+, standard library only) that plan and
-check a master-keyed SFIC key system. Code lives in `sfic_solver/`; the root
-`*.py` scripts are thin entry points that must keep working as command lines.
+Small Python tools (3.11+, standard library only, with one bounded exception) that
+plan and check a master-keyed SFIC key system. The exception is reading scans of
+charts (`sfic_solver/scanning/`, D38): it uses an optional `scan` extra and an
+optional Tesseract, nothing outside that subpackage imports them, and every other
+tool and test runs without them. A new feature does not get the same treatment
+without its own decision. Code lives in `sfic_solver/`; the root `*.py` scripts are
+thin entry points that must keep working as command lines.
 
 ```bash
 pip install -e ".[test]"        # pytest is the only extra dependency

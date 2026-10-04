@@ -13,7 +13,9 @@ What counts: a way for a crafted system file or command-line argument to make
 the tools do something they should not (run code, write outside the requested
 output file, and similar). The tools read local files, make no network
 connections and use only the Python standard library, so the attack surface is
-small.
+small. The one exception is `sfic-scan-charts`, which needs optional packages and
+Tesseract: it makes no network connection and runs only on your computer, but it
+reads PDFs with a native library, so run it only on scans you made yourself.
 
 ## Wrong results are ordinary bugs
 
