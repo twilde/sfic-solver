@@ -32,9 +32,10 @@ def run_blocked(code):
 
 
 def test_missing_packages_names_what_to_install(monkeypatch):
-    real = importlib.util.find_spec
-    monkeypatch.setattr(importlib.util, "find_spec",
-                        lambda name, *a: None if name in ("PIL", "pypdfium2") else real(name, *a))
+    # Fake all three packages, so that the answer does not depend on which of them
+    # this machine has: numpy is present, the other two are not (issue #15).
+    present = {"numpy": object()}
+    monkeypatch.setattr(importlib.util, "find_spec", lambda name, *a: present.get(name))
     assert scanning.missing_packages() == ["Pillow", "pypdfium2"]
 
 
