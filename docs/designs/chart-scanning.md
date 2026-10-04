@@ -621,14 +621,15 @@ What a run of 12 charts per condition, 120 in all, showed on the built pipeline:
 No chart was accepted wrong, and zero wrong in 120 charts bounds the true rate only
 below about 2.5%, so this is a sample and not the claim. What it does show is that
 charts are flagged even when the image is clean: 8 of the 120 here, one of them
-among the 12 clean charts. The cause, in the clean case that was looked at, is the dissent check: the last mark of a row (here the
-last chamber of the Bottom row) was read differently by enough of the readings that
-its group's vote was split, and the chart went to review with "its own readings
-disagree with its shape's". That is the tool failing in the intended direction, and
-the sentinel after each row (above) reduced it without removing it. Loosening the
-dissent threshold, or reading the last mark a further way, would change the
-algorithm, so neither is done here; the slow run is what would show their effect on
-wrong charts, and the question is tracked in issue #12.
+among the 12 clean charts. The cause, in the clean case that was looked at, is the
+dissent check: the last mark of a row (here the last chamber of the Bottom row) was
+read differently by enough of the readings that its group's vote was split, and the
+chart went to review with "its own readings disagree with its shape's". That is the
+tool failing in the intended direction, and the sentinel after each row (above)
+reduced it without removing it. Loosening the dissent threshold, or reading the last
+mark a further way, would change the algorithm, so neither is done here; the slow
+run is what would show their effect on wrong charts, and the question is tracked in
+issue #12.
 
 The corruption tests assert what the design asked: a cell erased, a cell inked over
 and a row erased are flagged every time, in every chart of the sample, and a page too
