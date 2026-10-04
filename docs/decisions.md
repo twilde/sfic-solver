@@ -460,3 +460,61 @@ operating keys. The scanner, whose work is suspended (D44), still expects all fo
 header lines and flags a chart without them for review.
 
 Detail: [designs/core-pinning.md, "The chart layout"](designs/core-pinning.md#the-chart-layout).
+
+## D46. CI runs the scanner's slow checks only when a change can affect them
+
+Status: Amended by D47.
+
+The scanner's tests need Tesseract and the `scan` extra and are the slowest in CI, but
+work on the scanner is suspended (D44) and most changes cannot affect it. The `test`
+matrix now installs only pytest and runs the whole suite, so the scanner's tests skip
+there, as for a contributor. A `scanner` matrix, with Tesseract and the extra, runs
+only if `scripts/ci_changes.py` finds a changed file that is the scanner or something
+it uses. Pushes to `main`, tags and any doubt run it. A test keeps the file list in
+step with the scanner's imports. This replaces a TODO item for a job without the extra.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D47. CI runs on pull requests, on `main` and tags, and by hand, not on every push
+
+CI triggered on both `push` and `pull_request`, so every commit on a branch with a
+pull request was tested twice. It now runs for pull requests (which also test the
+merge with `main`, and work for forks), for pushes to `main` and `v*` tags, and on
+demand. The cost: a branch with no pull request gets no CI until it is run by hand or a
+pull request is opened. That is accepted, since such branches exist to be read, not
+merged. Amends D46 only in that the scanner's comparison has no branch-push case.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D48. A new push to a pull request cancels its superseded CI run
+
+Every push to a pull request started a full run while the previous one was still
+going, though its result no longer mattered. CI now cancels it. Only pull request runs
+share a concurrency group; runs on `main`, tags and by hand each get a unique one,
+because GitHub drops an older queued run from a shared group even when cancelling is
+off, which could leave a commit on `main` untested. A test checks both settings.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D49. One required CI check, a timeout on every job, and slowest tests in the log
+
+With the scanner job skipped on most changes and the matrices changing over time, no
+individual check is a stable thing to require. A last job, `CI passed`, always runs and
+passes only if what should have run passed; branch protection requires it alone. Every
+job gets `timeout-minutes` (the default is six hours), and the pytest steps pass
+`--durations=10` to show the slowest tests. Tests run the summary script against each
+combination of results and check that every job has a timeout.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D50. Sessions pick which tests to run by the same rule as CI
+
+The scanner's tests are most of the suite's time, and a session rarely has Tesseract,
+so running them all before every commit costs minutes and checks little. CLAUDE.md now
+says: run the changed module's tests while working; before committing, ask
+`scripts/ci_changes.py` and run the whole suite with only `.[test]`, adding the `scan`
+extra only when it says `scanner=true`; never skip the core suite; say which was run.
+The review procedure follows the same rule. CI remains the backstop for what a session
+could not run.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).

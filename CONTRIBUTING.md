@@ -99,8 +99,9 @@ reliably (issue #10), so the OCR tests skip there. The quality tests in
   its branch, mark it a draft, say "Stacked on #N" in the description, and
   rebase it onto `main` once the base has merged.
 - In the pull request, say what changed and why, and mention any behavior
-  change. CI must pass: the tests on every supported Python version, and the
-  data-file guard.
+  change. CI must pass: the `CI passed` check summarises it (the data-file guard,
+  the tests on every supported Python version, and the scanner's tests when the
+  change can affect the scanner).
 - Review comments are labelled **Should fix** or **Optional**. Please reply to
   each thread: fixed (say in which commit), will follow up (say where), or
   declined (say why). A pull request merges when nothing labelled Should fix is

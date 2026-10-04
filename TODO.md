@@ -7,9 +7,6 @@
 - Generate the `cores` list from an exported CSV of the key matrix.
 - After 2026-11-19 (`ubuntu-latest` fully on Ubuntu 26.04), replace the pinned
   runner images in CI with `ubuntu-latest` (see D14/D15 in docs/decisions.md).
-- A CI job without the `scan` extra, to run the suite the way CONTRIBUTING.md says a
-  contributor can. CI always installs the extra, so a test that assumes it is there
-  passes in CI and fails for a contributor (issue #15 was one).
 - Configurable keyway rules (cut depth range, an explicit allowed-cut set per
   pin) so the tools work for other systems. The pin count is already
   configurable (D22 in docs/decisions.md); the rest is covered by the pinning

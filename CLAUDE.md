@@ -23,7 +23,8 @@ pytest
 
 In a session, pytest is usually not installed globally: make a venv in the
 scratchpad (`python3 -m venv $SCRATCH/venv && $SCRATCH/venv/bin/pip install -e
-".[test]"`) and use its `pytest`.
+".[test]"`) and use its `pytest`. Leave out the `scan` extra unless the change can
+affect the scanner (see "Always test" below); its tests are the slow ones.
 
 ## Privacy (hard rules)
 
@@ -69,7 +70,16 @@ first and explaining why.
 - **Small, isolated commits.** One logical change per commit. (The very first
   commit was the baseline and is the exception.)
 - **Always test.** Strict TDD is optional, but every bug gets a regression test
-  and every behavior change gets tests. Run the full suite before committing.
+  and every behavior change gets tests. While working, run the tests for what you are
+  changing (`tests/test_<module>.py` for `sfic_solver/<module>.py`). Before committing,
+  run the suite that CI would run for the change: ask
+  `python3 scripts/ci_changes.py --base origin/main`. On `scanner=false`, run the whole
+  suite in a venv with only `.[test]` (about 15 seconds; the scanner's tests that need
+  the extra skip, as in CI's `test` job). On `scanner=true`, also install the extra
+  (`pip install -e ".[test,scan]"`) and run the whole suite again. Tesseract is
+  usually not installed in a session, so the scanner's quality tests skip there: say
+  so, and leave those to CI. Never skip the core suite, and say in the commit or pull
+  request which of these you ran. See D50.
 - **Refactor freely, separately.** We do periodic refactor passes, and you
   should suggest or make refactors when you see duplication. If a refactor is
   significant, make it its own commit, separate from the deeper work built on

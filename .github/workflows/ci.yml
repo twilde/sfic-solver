@@ -1,16 +1,31 @@
 name: CI
 
 on:
+  # A branch with a pull request is tested by the pull_request run alone; running on
+  # its pushes too would test every commit twice. A branch with no pull request is
+  # not tested unless run by hand from the Actions tab.
   push:
+    branches: [main]
+    tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# A new push to a pull request cancels the run it makes pointless. Nothing else is
+# ever cancelled: a run on main or a tag gets its own group, because even without
+# cancel-in-progress GitHub drops an older queued run when a newer one joins its
+# group, and that would skip the tests of a commit on main.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.ref) || format('ci-run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   guard:
     name: No stray data files
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -20,15 +35,72 @@ jobs:
       - name: ...and none may ever have been committed
         run: python3 scripts/check_no_stray_data.py --history
 
+  changes:
+    name: Does the change touch the scanner?
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      scanner: ${{ steps.scanner.outputs.scanner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0          # the comparison needs the history back to the branch point
+      - name: Compare with the base (everything runs except on a pull request, and when unsure)
+        id: scanner
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          base=""
+          if [ "$EVENT" = pull_request ]; then
+            base="origin/$BASE_REF"
+          fi
+          python3 scripts/ci_changes.py ${base:+--base "$base"} >> "$GITHUB_OUTPUT"
+
   test:
     name: test (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         # Runners are pinned rather than ubuntu-latest, which is moving to 26.04
         # in late 2026. The matrix stays on 24.04, plus one job on 26.04 with the
         # newest Python to see how the new image behaves ahead of time.
+        os: [ubuntu-24.04]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: ubuntu-26.04
+            python-version: "3.14"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      # Without the scan extra or Tesseract, the way CONTRIBUTING.md says a
+      # contributor can work: the scanner's tests that need them skip.
+      - name: Install
+        run: python -m pip install -e ".[test]"
+      - name: Test
+        run: python -m pytest -q --durations=10
+      - name: Installed commands run
+        run: |
+          sfic-check-system tests/fixtures/clean.json
+          sfic-gen-bittings OOEOEOE -n 3
+          sfic-scan-charts --help > /dev/null
+
+  scanner:
+    # Slow (Tesseract, and drawing and reading charts), so it runs only when the
+    # change can affect the scanner (scripts/ci_changes.py). A skipped job counts as
+    # passing for a required check, but a skipped matrix shows as one unnamed check.
+    name: scanner (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: changes
+    if: needs.changes.outputs.scanner == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30      # the quality tests alone take about six minutes
+    strategy:
+      fail-fast: false
+      matrix:
         os: [ubuntu-24.04]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
         include:
@@ -46,10 +118,35 @@ jobs:
           tesseract --version
       - name: Install
         run: python -m pip install -e ".[test,scan]"
-      - name: Test
-        run: python -m pytest -q
-      - name: Installed commands run
+      - name: Test the scanner
+        run: python -m pytest -q --durations=10 tests/test_scan_*.py
+
+  ci:
+    # The one check to require in branch protection. The jobs above come and go
+    # (matrix entries, the scanner job when skipped), and a required check that is
+    # skipped or renamed blocks a merge or lets one through; this one always runs and
+    # says whether everything that should have run passed.
+    name: CI passed
+    if: always()
+    needs: [guard, changes, test, scanner]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Everything that should have run passed
+        env:
+          GUARD: ${{ needs.guard.result }}
+          CHANGES: ${{ needs.changes.result }}
+          TEST: ${{ needs.test.result }}
+          SCANNER: ${{ needs.scanner.result }}
+          SCANNER_WANTED: ${{ needs.changes.outputs.scanner }}
         run: |
-          sfic-check-system tests/fixtures/clean.json
-          sfic-gen-bittings OOEOEOE -n 3
-          sfic-scan-charts --help > /dev/null
+          ok=true
+          for result in "$GUARD" "$CHANGES" "$TEST"; do
+            [ "$result" = success ] || ok=false
+          done
+          # The scanner must pass when it was wanted and must have been skipped when
+          # it was not; anything else (failed, cancelled, never decided) is a failure.
+          if [ "$SCANNER_WANTED" = true ]; then want=success; else want=skipped; fi
+          [ "$SCANNER" = "$want" ] || ok=false
+          echo "guard=$GUARD changes=$CHANGES test=$TEST scanner=$SCANNER (wanted: $SCANNER_WANTED)"
+          [ "$ok" = true ]

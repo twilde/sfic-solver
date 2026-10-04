@@ -471,6 +471,19 @@ had no build for Ubuntu 26.04, and 3.10 reaches end-of-life in October 2026.
 minimum. Some older idioms (such as `typing.Optional`) remain from the days of
 3.9 and could be modernised in a refactor pass (D2, D15).
 
+**CI runs once per change.** It triggers on pull requests, on pushes to `main` and
+`v*` tags, and by hand (`workflow_dispatch`), not on every push: a branch with a pull
+request is tested by the pull request run, and triggering on its pushes as well tested
+every commit twice. A branch pushed with no pull request, which CLAUDE.md allows for
+getting something reviewed early, is therefore not tested until someone runs CI on it
+from the Actions tab or opens a pull request (D47).
+
+A new push to a pull request cancels that pull request's run still in progress,
+since its result no longer matters (D48). Only pull requests share a concurrency
+group. Runs on `main`, tags and manual runs each get their own, so none is ever
+cancelled: with a shared group GitHub also drops an older queued run when a newer one
+arrives, even without cancel-in-progress, and a commit on `main` could go untested.
+
 **CI** runs a guard job (the stray-data checks over tracked files and over
 history) and a test matrix on Python 3.11 to 3.14 on `ubuntu-24.04`, plus one
 Python 3.14 job on `ubuntu-26.04` so that problems with the new image show up
@@ -478,10 +491,49 @@ early and on our terms. Runners are pinned rather than `ubuntu-latest` because
 `ubuntu-latest` moves to 26.04 from late 2026, and a surprise change of image is
 not the kind of failure to take by surprise. Once the rollout finishes (by
 2026-11-19) the pins can be replaced by `ubuntu-latest`, which is on the TODO
-list. The test jobs install Tesseract and the fonts the scanning tests draw with
-and the `scan` extra, so those tests, the quality tests included, run in every CI
-job and skip elsewhere, and a last step runs the installed commands. Action
-versions are tracked by major tag and chosen to run on Node 24 (D14, D15).
+list. The test jobs install only pytest, as a contributor can, so the scanner's
+tests that need the `scan` extra or Tesseract skip there, which also shows that
+nothing else depends on them (issue #15 was a test that did), and a last step runs
+the installed commands. Action versions are tracked by major tag and chosen to run
+on Node 24 (D14, D15).
+
+**The scanner's checks run only when a change can affect them** (D46). They are the
+slow ones: they install Tesseract and the fonts the tests draw with and the `scan`
+extra, then draw and read charts, the quality tests included, on the same matrix as
+the test job. A small job, `changes`, runs `scripts/ci_changes.py`, which lists the
+files a pull request changes relative to its base and says whether any is the scanner,
+a core module it imports, a root script its tests run, its tests, `pyproject.toml` or
+CI itself. The `scanner` matrix runs if so. Everything that is not a pull request
+(pushes to `main`, tags, a manual run) always runs it, and so does any case where the
+comparison cannot be made (a git failure), since skipping by mistake is worse than
+running by mistake. The list of paths is in the script, and a test reads the imports of
+the scanner's code and tests, and the root scripts the tests run, and fails if one is
+missing from it. Both the filter and the jobs are
+in the workflow rather than a `paths:` filter on it, because that would stop the
+whole workflow, the guard and the core tests with it.
+
+**One check to require.** A final job, `CI passed`, always runs and waits for the
+guard, the comparison, the test matrix and the scanner matrix. It passes only if the
+first three succeeded and the scanner either succeeded, when the comparison asked for
+it, or was skipped, when it did not; a failed, cancelled or undecided job fails it.
+Branch protection should require this check and nothing else, because the individual
+checks are the wrong thing to require: a skipped matrix shows as one check without the
+matrix names, and every change to the Python versions renames them (D49). Every job
+also has a `timeout-minutes`, since the default is six hours and a hung Tesseract
+should not hold a runner that long, and the pytest steps print their ten slowest
+cases (`--durations=10`) so that a test that grows slow shows in the log. A test runs
+the summary job's script against each combination of results.
+
+**Choosing tests in a session.** The comparison that decides whether CI runs the
+scanner's tests is a script, so a session can ask the same question before it
+commits: `scripts/ci_changes.py --base origin/main` prints `scanner=false` or
+`scanner=true`. CLAUDE.md tells sessions to run the tests of the module they are
+changing as they go, and before committing the whole suite in a venv with only
+`.[test]`, adding the `scan` extra and a second run only on `scanner=true`. The
+scanner's tests are about two thirds of the suite's time even without Tesseract, and a
+session usually has none, so the rule saves the most where the check can least be
+made anyway. CI is the backstop, so a session says which it ran rather than claiming
+the full suite. The same rule applies to a reviewer testing a merged head (D50).
 
 **Dependabot** opens one grouped pull request a week for GitHub Actions only,
 because CI uses third-party actions whose runtimes get deprecated. There is
