@@ -437,3 +437,15 @@ the slow run is made, the README is updated with what it showed.
 
 Detail: [design.md, "Reading scanned charts"](design.md#reading-scanned-charts),
 [designs/chart-scanning.md, "What the harness showed"](designs/chart-scanning.md#what-the-harness-showed).
+
+## D44. Work on the chart scanner is suspended
+
+The scanner is built and documented (D38, D42, D43), but a first trial on real scans
+showed it does not yet read printouts usefully (issue #16), and the effort to get it
+there is more than the use justifies, since a chart can be typed in instead. It stays
+in the repository as it is: the README says that work is suspended and what is known,
+and welcomes issues and fixes. Nothing is removed, and the open problems stay
+tracked (#10, #12, #16). If work resumes, the fixes in #16 come first.
+
+Detail: [design.md, "Reading scanned charts"](design.md#reading-scanned-charts),
+[designs/chart-scanning.md, "What cannot be known yet"](designs/chart-scanning.md#what-cannot-be-known-yet).

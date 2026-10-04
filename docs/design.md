@@ -333,7 +333,9 @@ any weight or algorithm for files that do not opt in (D6).
 An owner whose pinning charts exist only on paper needs them as text before
 `check_charts` can run on them. [designs/chart-scanning.md](designs/chart-scanning.md)
 (accepted) designs a local tool for that, and `sfic-scan-charts` is built, with its
-test harness and its README section. What it commits to:
+test harness and its README section. Work on it is suspended (D44): it is not
+being developed, it does not yet read real printouts well, and the README says so;
+issues and fixes are welcome. What it commits to:
 
 The tool transcribes and never repairs. It never consults the pinner or the
 pinning rules to choose a reading, because a tool that quietly "fixes" what it

@@ -11,8 +11,8 @@ in missing bittings (such as a unit master) so as to minimise the risk of it.
 
 Standard library only, with one stated exception: the optional command that reads
 scans of paper charts needs extra packages and Tesseract (see
-[Scanning paper charts](#scanning-paper-charts)). Everything else runs without
-them. Python 3.11 or newer.
+[Scanning paper charts](#scanning-paper-charts); work on it is suspended).
+Everything else runs without them. Python 3.11 or newer.
 
 ## The tools
 
@@ -23,7 +23,7 @@ them. Python 3.11 or newer.
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
 | `./check_charts.py` | `sfic-check-charts` | Checks that the tools' pinning rules reproduce pinning charts from your keying software (`.txt` files kept outside this repository). Reports positions only, never key data. |
-| `./scan_charts.py` | `sfic-scan-charts` | Reads scans (PDF or image) of paper pinning charts and writes them as the text charts `check_charts` reads. Needs the optional `scan` extra and Tesseract; see [Scanning paper charts](#scanning-paper-charts). |
+| `./scan_charts.py` | `sfic-scan-charts` | Reads scans (PDF or image) of paper pinning charts and writes them as the text charts `check_charts` reads. Needs the optional `scan` extra and Tesseract. **Work suspended; does not yet read real printouts well.** See [Scanning paper charts](#scanning-paper-charts). |
 
 The pin count is 7 unless the system file says otherwise (`pins`, or the length
 of `pattern`); `gen_bittings.py` takes it from the pattern's length and
@@ -233,6 +233,14 @@ OK
    decoded.
 
 ## Scanning paper charts
+
+> **Work on this tool is suspended.** It is not being actively developed at the
+> moment, and it does not yet read real printouts well (see what is known, below).
+> You are welcome to try it, and to open an issue or send a fix; the open problems
+> are in issues [#10](https://github.com/twilde/sfic-solver/issues/10),
+> [#12](https://github.com/twilde/sfic-solver/issues/12) and
+> [#16](https://github.com/twilde/sfic-solver/issues/16). If you only have a few
+> charts, typing them in as text is likely to be quicker.
 
 If your pinning charts exist only on paper, `sfic-scan-charts` turns scans of
 them into the text charts `check_charts` reads, so that you do not have to retype
