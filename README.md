@@ -234,6 +234,14 @@ OK
 
 ## Scanning paper charts
 
+> **Work on this tool is suspended.** It is not being actively developed at the
+> moment, and it does not yet read real printouts well (see what is known, below).
+> You are welcome to try it, and to open an issue or send a fix; the open problems
+> are in issues [#10](https://github.com/twilde/sfic-solver/issues/10),
+> [#12](https://github.com/twilde/sfic-solver/issues/12) and
+> [#16](https://github.com/twilde/sfic-solver/issues/16). If you only have a few
+> charts, typing them in as text is likely to be quicker.
+
 If your pinning charts exist only on paper, `sfic-scan-charts` turns scans of
 them into the text charts `check_charts` reads, so that you do not have to retype
 them. It is the one part of this project that is not standard-library only: it

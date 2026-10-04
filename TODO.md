@@ -22,8 +22,9 @@
   digit strings that are not in `system.example.json`, a short list of key-history
   phrases, commit identity and trailers, and the data-file guard over the whole
   history. It is code, so it needs a short design first (D24).
-- Scanning paper charts (docs/designs/chart-scanning.md, accepted; D38): the tool, its
-  harness and its documentation are built (steps 3 to 5). Still to do: run the slow
+- Scanning paper charts (docs/designs/chart-scanning.md, accepted; D38; work
+  suspended, D44): the tool, its harness and its documentation are built (steps 3 to
+  5), and nothing here is being worked on now. If it is picked up again: run the slow
   tier to completion (`pytest --runslow tests/test_scan_harness.py -s`, about two
   hours a condition) and then say in the README what it showed; the dissent check
   that flags some clean charts (issue #12); the three failures on real scans
