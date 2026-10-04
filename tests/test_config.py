@@ -241,6 +241,14 @@ def test_the_pinning_fixture_loads(pinned):
         "masters": ["old_master"], "control": "old_control"}]
 
 
+def test_the_pinning_fixture_mirrors_the_example_system(pinned):
+    """The fixture is the example with pinning switched on: it keeps every example key."""
+    example = json.loads((ROOT / "system.example.json").read_text())
+    for section in ("keys", "retired_keys", "control_keys"):
+        for name, bitting in example[section].items():
+            assert pinned[section][name] == bitting, (section, name)
+
+
 def test_files_that_do_not_opt_in_are_read_as_before():
     for path in (FIXTURES / "clean.json", ROOT / "system.example.json"):
         cfg = load_config(path)
@@ -304,7 +312,7 @@ def test_a_control_is_checked_even_when_pinning_is_off(pinned):
 
 
 def test_retired_cores_match_changes_among_keys_and_retired_keys(pinned):
-    pinned["retired_keys"]["old_area"] = "2210958"
+    assert "old_area" in pinned["retired_keys"]             # from the example, via the fixture
     pinned["retired_cores"][0]["change"] = ["unit:*", "old_area"]
     cfg = parse_config(pinned)
     assert cfg.retired_cores[0]["changes"] == ["unit:101", "unit:102", "unit:103", "old_area"]

@@ -139,7 +139,8 @@ This is `system.example.json` (random placeholder bittings, generic names):
     "unit:103": "7741438"
   },
   "retired_keys": {
-    "old_master": "1327238"
+    "old_master": "1327238",
+    "old_area": "2210958"
   },
   "control_keys": {
     "control_a": "9743854",
