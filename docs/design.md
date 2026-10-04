@@ -509,9 +509,19 @@ manual run) always runs it, and so does any case where the comparison cannot be 
 paths is in the script, and a test reads the imports of the scanner's code and tests
 and fails if a module they use is missing from it. Both the filter and the jobs are
 in the workflow rather than a `paths:` filter on it, because that would stop the
-whole workflow, the guard and the core tests with it. A skipped job counts as passing
-for a required check, but a skipped matrix shows as one check without the matrix
-names, so requiring the individual `scanner (...)` checks would need a summary job.
+whole workflow, the guard and the core tests with it.
+
+**One check to require.** A final job, `CI passed`, always runs and waits for the
+guard, the comparison, the test matrix and the scanner matrix. It passes only if the
+first three succeeded and the scanner either succeeded, when the comparison asked for
+it, or was skipped, when it did not; a failed, cancelled or undecided job fails it.
+Branch protection should require this check and nothing else, because the individual
+checks are the wrong thing to require: a skipped matrix shows as one check without the
+matrix names, and every change to the Python versions renames them (D49). Every job
+also has a `timeout-minutes`, since the default is six hours and a hung Tesseract
+should not hold a runner that long, and the pytest steps print their ten slowest
+cases (`--durations=10`) so that a test that grows slow shows in the log. A test runs
+the summary job's script against each combination of results.
 
 **Dependabot** opens one grouped pull request a week for GitHub Actions only,
 because CI uses third-party actions whose runtimes get deprecated. There is

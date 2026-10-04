@@ -2,7 +2,9 @@
 import ast
 import importlib.util
 import re
+import shutil
 import subprocess
+import textwrap
 
 import pytest
 
@@ -166,7 +168,7 @@ def test_ci_runs_the_script_and_gates_the_scanner_job_on_it():
     """The workflow, the script and the job names must agree."""
     text = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
     assert "scripts/ci_changes.py" in text
-    scanner_job = text[text.index("\n  scanner:"):]
+    scanner_job = text[text.index("\n  scanner:"):text.index("\n  ci:")]
     assert re.search(r"needs\.changes\.outputs\.scanner == 'true'", scanner_job)
     # the core job must not install the extra, or it would not show that the core runs without it
     test_job = text[text.index("\n  test:"):text.index("\n  scanner:")]
@@ -192,3 +194,59 @@ def test_only_pull_requests_cancel_each_other():
     group = next(line for line in lines if line.startswith("group:"))
     assert "github.event_name == 'pull_request'" in group and "github.run_id" in group
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in lines
+
+
+def workflow_jobs():
+    """The workflow's jobs, each as its block of text, by job id."""
+    text = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    section = text[text.index("\njobs:\n") + len("\njobs:\n"):]
+    parts = re.split(r"^  ([a-z][a-z0-9-]*):\n", section, flags=re.M)
+    return dict(zip(parts[1::2], parts[2::2]))
+
+
+def test_every_job_has_a_timeout():
+    """The default is six hours; a hung Tesseract should not run that long."""
+    for name, block in workflow_jobs().items():
+        assert re.search(r"^    timeout-minutes: \d+", block, re.M), f"job {name} has no timeout"
+
+
+def test_the_tests_report_their_slowest_cases():
+    text = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    runs = re.findall(r"run: python -m pytest .*", text)
+    assert len(runs) == 2 and all("--durations=10" in run for run in runs)
+
+
+def test_the_summary_job_waits_for_every_other_job_and_always_runs():
+    jobs = workflow_jobs()
+    summary = jobs["ci"]
+    assert re.search(r"^    if: always\(\)$", summary, re.M)
+    needs = re.search(r"^    needs: \[(.*)\]$", summary, re.M).group(1).split(", ")
+    assert sorted(needs) == sorted(set(jobs) - {"ci"}), "a job is missing from the summary's needs"
+
+
+def summary_script():
+    block = workflow_jobs()["ci"]
+    lines = block[block.index("        run: |\n") + len("        run: |\n"):].splitlines()
+    return textwrap.dedent("\n".join(line for line in lines if line.strip() and not
+                                      line.lstrip().startswith("#")))
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
+@pytest.mark.parametrize("results, wanted, passes", [
+    (("success", "success", "success", "skipped"), "false", True),
+    (("success", "success", "success", "success"), "true", True),
+    (("success", "success", "success", "skipped"), "true", False),     # wanted but not run
+    (("success", "success", "success", "failure"), "true", False),
+    (("success", "success", "success", "cancelled"), "true", False),
+    (("success", "success", "failure", "skipped"), "false", False),
+    (("cancelled", "success", "success", "skipped"), "false", False),
+    (("success", "failure", "success", "skipped"), "", False),         # the comparison failed
+    (("success", "success", "skipped", "skipped"), "false", False),    # tests must not be skipped
+])
+def test_the_summary_passes_only_when_everything_that_should_have_run_did(results, wanted, passes):
+    guard, changes, test, scanner = results
+    env = {"GUARD": guard, "CHANGES": changes, "TEST": test, "SCANNER": scanner,
+           "SCANNER_WANTED": wanted, "PATH": "/usr/bin:/bin"}
+    result = subprocess.run(["bash", "-e", "-c", summary_script()], env=env,
+                            capture_output=True, text=True)
+    assert (result.returncode == 0) is passes, result.stdout + result.stderr

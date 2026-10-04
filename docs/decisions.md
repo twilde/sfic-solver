@@ -495,3 +495,15 @@ because GitHub drops an older queued run from a shared group even when cancellin
 off, which could leave a commit on `main` untested. A test checks both settings.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D49. One required CI check, a timeout on every job, and slowest tests in the log
+
+With the scanner job skipped on most changes and the matrices changing over time, no
+individual check is a stable thing to require. A last job, `CI passed`, always runs and
+passes only if what should have run passed; branch protection requires it alone. Every
+job gets `timeout-minutes` (the default is six hours), and the pytest steps pass
+`--durations=10` to show the slowest tests. Tests run the summary script against each
+combination of results and check that every job has a timeout.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+

@@ -25,6 +25,7 @@ jobs:
   guard:
     name: No stray data files
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -37,6 +38,7 @@ jobs:
   changes:
     name: Does the change touch the scanner?
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       scanner: ${{ steps.scanner.outputs.scanner }}
     steps:
@@ -58,6 +60,7 @@ jobs:
   test:
     name: test (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -79,7 +82,7 @@ jobs:
       - name: Install
         run: python -m pip install -e ".[test]"
       - name: Test
-        run: python -m pytest -q
+        run: python -m pytest -q --durations=10
       - name: Installed commands run
         run: |
           sfic-check-system tests/fixtures/clean.json
@@ -94,6 +97,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.scanner == 'true'
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30      # the quality tests alone take about six minutes
     strategy:
       fail-fast: false
       matrix:
@@ -115,4 +119,34 @@ jobs:
       - name: Install
         run: python -m pip install -e ".[test,scan]"
       - name: Test the scanner
-        run: python -m pytest -q tests/test_scan_*.py
+        run: python -m pytest -q --durations=10 tests/test_scan_*.py
+
+  ci:
+    # The one check to require in branch protection. The jobs above come and go
+    # (matrix entries, the scanner job when skipped), and a required check that is
+    # skipped or renamed blocks a merge or lets one through; this one always runs and
+    # says whether everything that should have run passed.
+    name: CI passed
+    if: always()
+    needs: [guard, changes, test, scanner]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Everything that should have run passed
+        env:
+          GUARD: ${{ needs.guard.result }}
+          CHANGES: ${{ needs.changes.result }}
+          TEST: ${{ needs.test.result }}
+          SCANNER: ${{ needs.scanner.result }}
+          SCANNER_WANTED: ${{ needs.changes.outputs.scanner }}
+        run: |
+          ok=true
+          for result in "$GUARD" "$CHANGES" "$TEST"; do
+            [ "$result" = success ] || ok=false
+          done
+          # The scanner must pass when it was wanted and must have been skipped when
+          # it was not; anything else (failed, cancelled, never decided) is a failure.
+          if [ "$SCANNER_WANTED" = true ]; then want=success; else want=skipped; fi
+          [ "$SCANNER" = "$want" ] || ok=false
+          echo "guard=$GUARD changes=$CHANGES test=$TEST scanner=$SCANNER (wanted: $SCANNER_WANTED)"
+          [ "$ok" = true ]
