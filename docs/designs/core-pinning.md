@@ -465,11 +465,12 @@ Control 18 16  8 12 18 14 12
 Bottom   1  1  6  1  0  1  2
 ```
 
-The legacy layout, as older keying software writes it, has exactly four
-header lines: `System`, `Control Key`, `Master Key` and a single `Change Keys` line
-listing every change key, separated by commas. It has no key system name, no core
-name and no date, and its keys are known only by their roles. Every key on the
-master and change lines is an operating key of the one core, so a chart with a
+The legacy layout, as older keying software writes it, has `System`, `Control Key`
+and then a `Master Key` line, a single `Change Keys` line listing every change key,
+separated by commas, or both (a core with nothing above its one key has only one of
+them, and a first reading of real charts showed it, D45). It has no key system name,
+no core name and no date, and its keys are known only by their roles. Every key on
+the master and change lines is an operating key of the one core, so a chart with a
 master and two change keys has three. The example is computed from fake keys:
 
 ```
@@ -490,7 +491,8 @@ separated by lines of dashes, and tells them apart by their labels. A label may 
 followed by `=` or `:`. In the tools' layout it reads `Key System`, `System`,
 `Core`, `Date` and `Control Key`, and takes every other `name = bitting` line as an
 operating key. In the legacy layout it reads `System`, `Control Key`, `Master Key`
-and `Change Keys`, splitting the last on commas and spaces. A chart that mixes the
+and `Change Keys`, either of the last two optional but not both missing, splitting
+the last on commas and spaces. A chart that mixes the
 two is refused. These labels are therefore reserved, and when a pinning system is
 set a system file that names a key `Core` or `Change Keys` would have to be
 refused. The legacy labels are as the maintainer described them and have not been

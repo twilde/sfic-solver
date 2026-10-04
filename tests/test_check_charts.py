@@ -90,6 +90,19 @@ def test_details_show_pin_sizes_and_say_not_to_share_them(tmp_path, capsys):
     assert "chamber 4: chart [2, 6, 8, 8], pinner [1, 6, 8, 8]" in out
 
 
+@pytest.mark.parametrize("line", ["Master Key = 5721276", "Change Keys = 5721276"])
+def test_a_legacy_chart_with_a_single_key_line_is_checked(tmp_path, capsys, line):
+    """A core with one operating key has no master rows: T/D, Control, Bottom."""
+    path = tmp_path / "c.txt"
+    path.write_text(f"System = A2\nControl Key = 9743854\n{line}\n\n"
+                    "T/D      4  6  9 10  5  8  9\nControl 14 10 12 12 16  8  8\n"
+                    "Bottom   5  7  2  1  2  7  6\n")
+    assert main([str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "1 chart(s) agree with the pinner, 0 do not" in out
+    assert out.rstrip().endswith("OK")
+
+
 def test_an_unpinnable_chamber_is_reported_and_explained_only_on_request(tmp_path, capsys):
     # Operating cuts 3 and 4 in the first chamber are 1 apart: no pin that short exists.
     chart_text = (

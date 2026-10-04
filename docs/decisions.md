@@ -449,3 +449,15 @@ tracked (#10, #12, #16). If work resumes, the fixes in #16 come first.
 
 Detail: [design.md, "Reading scanned charts"](design.md#reading-scanned-charts),
 [designs/chart-scanning.md, "What cannot be known yet"](designs/chart-scanning.md#what-cannot-be-known-yet).
+
+## D45. A legacy chart may have a Master Key line, a Change Keys line, or both
+
+The reader first required both lines, because the layout was described from charts
+that had both. A first run on a real set found a chart with one operating key,
+entered on the Master Key line and with no Change Keys line, and refused it as
+unreadable. A core with a single key has nothing above it, so older software has no
+reason to print both lines. The reader now needs at least one, and a chart with
+neither still fails as having no operating keys. The scanner, whose work is suspended
+(D44), still expects all four header lines and flags a chart without them for review.
+
+Detail: [designs/core-pinning.md, "The chart layout"](designs/core-pinning.md#the-chart-layout).
