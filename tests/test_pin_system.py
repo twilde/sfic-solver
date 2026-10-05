@@ -153,6 +153,18 @@ def test_out_does_not_replace_an_existing_file_unless_forced(tmp_path):
     assert forced.returncode == 0 and target.read_text() == chart_text()
 
 
+def test_a_bad_out_path_is_a_one_line_error_and_writes_nothing(tmp_path):
+    missing = tmp_path / "NOT_A_REAL_DIR" / "charts.txt"
+    proc = run_script("pin_system", PINNING, "--out", missing)
+    assert proc.returncode == 1 and f"error: cannot write {missing}" in proc.stderr
+    assert "Traceback" not in proc.stderr and not missing.parent.exists()
+    directory = tmp_path / "a_directory"
+    directory.mkdir()
+    proc = run_script("pin_system", PINNING, "--out", directory, "--force")
+    assert proc.returncode == 1 and f"error: cannot write {directory}" in proc.stderr
+    assert "Traceback" not in proc.stderr
+
+
 def test_the_console_script_and_module_forms_work(monkeypatch, capsys):
     assert call_main(pin_system.main, [PINNING, "--date", DATE], monkeypatch) == 0
     assert capsys.readouterr().out == chart_text()

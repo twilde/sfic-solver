@@ -77,8 +77,6 @@ def main(argv=None):
         sys.exit(f"error: {args.config}: the system file does not set pinning, which the pin "
                  f"sizes need (for example \"pinning\": \"A2\")")
     out = Path(args.out) if args.out else None
-    if out and out.exists() and not args.force:
-        sys.exit(f"error: {out} exists; give --force to replace it")
 
     texts, problems = build(cfg, args.date or today())
     if problems:
@@ -91,7 +89,13 @@ def main(argv=None):
         return 1
     text = join_charts(texts)
     if out:
-        out.write_text(text, encoding="utf-8", newline="\n")
+        try:
+            with out.open("w" if args.force else "x", encoding="utf-8", newline="\n") as f:
+                f.write(text)
+        except FileExistsError:
+            sys.exit(f"error: {out} exists; give --force to replace it")
+        except OSError as e:
+            sys.exit(f"error: cannot write {out}: {e.strerror}")
         print(f"wrote {len(texts)} chart(s) to {out}; they are key data, so keep the file "
               f"outside the repository", file=sys.stderr)
     else:
