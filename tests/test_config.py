@@ -374,13 +374,8 @@ def test_a_retired_core_covers_unit_keys_when_a_wildcard_starts_with_the_unit_pr
     assert parse_config(pinned).retired_cores[0]["covers_units"] is covers
 
 
-def test_more_than_six_retired_cores_covering_units_are_refused(pinned):
+def test_any_number_of_retired_cores_covering_units_is_accepted_by_the_loader(pinned):
     template = pinned["retired_cores"][0]
-    pinned["retired_cores"] = [{**template, "name": f"Old {n}"} for n in range(6)]
-    assert len(parse_config(pinned).retired_cores) == 6
-    pinned["retired_cores"].append({**template, "name": "Old 6"})
-    refused(pinned, "7 retired cores cover unit keys", "at most 6 are supported")
-    del pinned["pinning"]
-    for core in pinned["cores"]:
-        core.pop("control")
-    parse_config(pinned)         # without pinning the list is ignored, so the limit is moot
+    pinned["retired_cores"] = [{**template, "name": f"Old {n}"} for n in range(8)]
+    cfg = parse_config(pinned)         # the checker, not the loader, limits what it combines
+    assert len(cfg.retired_cores) == 8 and all(c["covers_units"] for c in cfg.retired_cores)

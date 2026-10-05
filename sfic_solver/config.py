@@ -20,8 +20,6 @@ TOP_LEVEL_FIELDS = {"name", "pins", "pattern", "max_step", "min_diff", "unit_pre
                     *SECTIONS}
 CORE_FIELDS = {"name", "change", "masters", "control"}
 RETIRED_CORE_FIELDS = {"name", "change", "masters", "control"}
-MAX_COVERING_RETIRED_CORES = 6      # the population of undecoded unit keys is counted by
-                                    # inclusion and exclusion over them: 2**n - 1 terms
 
 
 class ConfigError(ValueError):
@@ -292,12 +290,6 @@ def parse_config(raw, allow_null=False):
                               "control": control, "covers_units": covers_units})
     if retired_cores and not pinning_system:
         warnings.append("retired_cores is ignored, because the system does not set pinning")
-    covering = [core["name"] for core in retired_cores if core["covers_units"]]
-    if pinning_system and len(covering) > MAX_COVERING_RETIRED_CORES:
-        raise ConfigError(f"{len(covering)} retired cores cover unit keys (a 'change' wildcard "
-                          f"starting with {unit_prefix!r}), but at most "
-                          f"{MAX_COVERING_RETIRED_CORES} are supported, since the population "
-                          f"of undecoded unit keys is counted exactly over all of them")
 
     return Config(raw=raw, space=space, min_diff=min_diff, unit_prefix=unit_prefix,
                   unit_count=unit_count, close_check_units=close_check_units, keys=keys,

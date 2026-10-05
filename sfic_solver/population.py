@@ -11,6 +11,12 @@ master and control key. See docs/designs/pinnable-solving.md.
 from .model import Population
 from .pinning import PinningError, pin_chamber
 
+# The population of undecoded unit keys is a union over the covering retired cores,
+# counted by inclusion and exclusion: 2**n - 1 terms for one key, and (2**n - 1)**2
+# pair counts, one of them about 1.2 ms, for the unit-to-unit figure, for every candidate
+# master the solver scores. Three cores is 49 (60 ms); six would be nearly 5 s.
+MAX_COVERING_CORES = 3
+
 
 def pinnable_cuts(system, cuts, others, control):
     """The cuts, out of `cuts`, that can be pinned in one chamber beside the cuts of the
@@ -33,22 +39,29 @@ def pinnable_sets(system, base_sets, operating_keys, control):
                  for p in range(len(control)))
 
 
+def covering_cores(cfg):
+    """The retired cores that cover unit keys, decoded or not."""
+    return [core for core in cfg.retired_cores if core["covers_units"]]
+
+
 def retired_population(cfg):
     """The population of undecoded unit keys the retired cores describe, or None.
 
-    None means no evidence: the system does not set pinning, or no retired core covers
-    unit keys, and the caller keeps its uniform assumption. Several covering cores
-    give the union of what each allows, since a unit key sat in one of them and which
-    is not known. Raises ValueError if no bitting could have sat in any of them.
+    None means the caller keeps its uniform assumption: the system does not set
+    pinning, no retired core covers unit keys, or more than MAX_COVERING_CORES do (the
+    caller says so, using `covering_cores`; a file is not refused for it). Several
+    covering cores give the union of what each allows, since a unit key sat in one of
+    them and which is not known. Raises ValueError if no bitting could have sat in any.
     """
     if not cfg.pinning:
+        return None
+    covering = covering_cores(cfg)
+    if not covering or len(covering) > MAX_COVERING_CORES:
         return None
     products = [pinnable_sets(cfg.pinning, cfg.space.digits,
                               [cfg.retired_keys[m] for m in core["masters"]],
                               cfg.retired_keys[core["control"]])
-                for core in cfg.retired_cores if core["covers_units"]]
-    if not products:
-        return None
+                for core in covering]
     population = Population.union_of(products)
     if cfg.space.population_size(population) == 0:
         raise ValueError("no valid bitting could have been pinned in the retired cores that "

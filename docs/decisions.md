@@ -579,7 +579,8 @@ bittings that old core could have been pinned with, found with the pinner, and t
 report says so. Each unit core gains a second figure, the undecoded unit keys
 expected to be unable to take its master and control key, whose cores would need
 rekeying. Populations are signed sums of per-position set products, counted
-exactly, so several covering cores (at most six) give an exact union. Files without
-`pinning` print what they did, to the byte. The solver does not use it until 5b.
+exactly, so up to three covering cores give an exact union; more fall back to the
+uniform population with a printed line, not a refusal. Files without `pinning` print
+what they did, to the byte. The solver does not use it until 5b.
 
 Detail: [design.md, "Pinning"](design.md#pinning).

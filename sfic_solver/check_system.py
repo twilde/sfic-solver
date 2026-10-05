@@ -47,7 +47,8 @@ import sys
 from .config import load_or_exit
 from .model import distance, operates, options_for
 from .pinning import pin_chambers
-from .population import false_key_share, pinnable_fraction, retired_population
+from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pinnable_fraction,
+                         retired_population)
 
 MAX_LISTED = 30        # lines per list before "... and N more"
 
@@ -209,8 +210,11 @@ def main(argv=None):
         print(f"\n== Residual risk from undecoded unit keys ({decoded} of {unit_count} decoded) ==")
         if population is None:
             print("Estimate only: assumes unknown unit keys are random valid bittings.")
+            if cfg.pinning and len(covering_cores(cfg)) > MAX_COVERING_CORES:
+                print(f"The retired cores were not used: {len(covering_cores(cfg))} of them cover "
+                      f"unit keys, and at most {MAX_COVERING_CORES} can be combined exactly.")
         else:
-            covering = ", ".join(c["name"] for c in cfg.retired_cores if c["covers_units"])
+            covering = ", ".join(c["name"] for c in covering_cores(cfg))
             print(f"Estimate only: assumes unknown unit keys sat in the retired core(s) "
                   f"{covering}, so at every position each has a cut that chamber could have "
                   f"been pinned with ({space.population_size(population):,} of "

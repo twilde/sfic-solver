@@ -240,8 +240,9 @@ The same description improves the residual-risk section. A unit key that sat in 
 old core cannot be just any bitting, so when a retired core covers the units (its
 `change` has a wildcard starting with the unit prefix, such as `"unit:*"`), the
 estimate assumes the undecoded unit keys are the bittings that old core could have
-been pinned with, and says so. Several covering cores give the union of what each
-allows. With `pinning` set, each unit core also gets a second figure, how many of the
+been pinned with, and says so. Up to three covering cores give the union of what each
+allows; with more, the report says the retired cores were not used and assumes every
+valid bitting. With `pinning` set, each unit core also gets a second figure, how many of the
 undecoded unit keys cannot be pinned under its master and control key at all, which
 means that unit's core could not take the master and would have to be rekeyed:
 

@@ -6,8 +6,9 @@ import pytest
 from sfic_solver import model, pinning
 from sfic_solver.config import parse_config
 from sfic_solver.pinning import A2, PinningError, pin_core
-from sfic_solver.population import (false_key_share, pinnable_cuts, pinnable_fraction,
-                                    pinnable_sets, retired_population)
+from sfic_solver.population import (MAX_COVERING_CORES, covering_cores, false_key_share,
+                                    pinnable_cuts, pinnable_fraction, pinnable_sets,
+                                    retired_population)
 
 ALL = [k for k in itertools.product(range(10), repeat=3)]
 
@@ -78,6 +79,26 @@ def test_several_covering_retired_cores_give_the_union():
                 and (fits(k, "old_master", "old_control") or fits(k, "area_master", "area_control"))}
     assert {k for k in ALL if cfg.space.population_contains(population, k)} == expected
     assert cfg.space.population_size(population) == len(expected)
+
+
+def retired(n):
+    return [{"name": f"Old {i}", "change": "unit:*", "masters": ["old_master"],
+             "control": "old_control"} for i in range(n)]
+
+
+def test_up_to_the_limit_of_covering_cores_are_combined_exactly():
+    one = retired_population(system(retired_cores=retired(1)))
+    many = retired_population(system(retired_cores=retired(MAX_COVERING_CORES)))
+    cfg = system(retired_cores=retired(MAX_COVERING_CORES))
+    # Identical cores give the same union as one of them.
+    assert cfg.space.population_size(many) == cfg.space.population_size(one)
+    assert len(covering_cores(cfg)) == MAX_COVERING_CORES == 3
+
+
+def test_more_covering_cores_than_the_limit_fall_back_to_no_population():
+    cfg = system(retired_cores=retired(MAX_COVERING_CORES + 1))
+    assert len(covering_cores(cfg)) == MAX_COVERING_CORES + 1
+    assert retired_population(cfg) is None
 
 
 def test_a_retired_core_that_covers_no_unit_keys_gives_no_population():

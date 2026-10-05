@@ -387,3 +387,17 @@ def test_an_impossible_description_of_the_old_cores_is_an_error(pinned, write_cf
     proc = check(write_cfg, pinned)
     assert proc.returncode == 1
     assert "no valid bitting could have been pinned in the retired cores" in proc.stderr
+
+
+def test_more_covering_retired_cores_than_the_limit_fall_back_to_the_uniform_population(
+        pinned, write_cfg):
+    template = pinned["retired_cores"][0]
+    pinned["retired_cores"] = [{**template, "name": f"Old {n}"} for n in range(4)]
+    proc = check(write_cfg, pinned)
+    section = residual(proc.stdout)
+    assert proc.returncode == 0, proc.stdout       # a disputed description does not fail the file
+    assert "Estimate only: assumes unknown unit keys are random valid bittings." in section
+    assert "The retired cores were not used: 4 of them cover unit keys, and at most 3 " \
+        "can be combined exactly." in section
+    three = dict(pinned, retired_cores=pinned["retired_cores"][:3])
+    assert "sat in the retired core(s) Old 0, Old 1, Old 2" in residual(check(write_cfg, three).stdout)
