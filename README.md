@@ -236,6 +236,27 @@ Either the description of the old cores is wrong or the rules are too strict.
 A warning is not a problem: it does not change the exit status, and the last line
 counts it (`OK, 1 warning(s)`). It means the description or the rules need a look.
 
+The same description improves the residual-risk section. A unit key that sat in an
+old core cannot be just any bitting, so when a retired core covers the units (its
+`change` has a wildcard starting with the unit prefix, such as `"unit:*"`), the
+estimate assumes the undecoded unit keys are the bittings that old core could have
+been pinned with, and says so. Several covering cores give the union of what each
+allows. With `pinning` set, each unit core also gets a second figure, how many of the
+undecoded unit keys cannot be pinned under its master and control key at all, which
+means that unit's core could not take the master and would have to be rekeyed:
+
+```console
+== Residual risk from undecoded unit keys (3 of 100 decoded) ==
+Estimate only: assumes unknown unit keys sat in the retired core(s) Original cores, so at every position each has a cut that chamber could have been pinned with (549,745 of 3,027,314 valid bittings).
+...
+Unit cores: about 1.0 unit-to-unit cross-operations expected by chance; re-check after decoding
+    97 undecoded unit key(s): about 76.7 expected to be unable to take this master and control key (79%), so their cores would need rekeying
+```
+
+With a parity pattern the second figure is always 0%. Without one it can be large,
+and it depends strongly on the master chosen, which is why it is worth reading
+before dropping the pattern.
+
 ## Typical workflow
 
 1. **Generate keys.** Draw bittings for the non-unit keys, keeping each at

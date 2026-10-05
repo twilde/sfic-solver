@@ -96,8 +96,9 @@ population.
 - The new *expected unpinnable*: for a unit core, the undecoded unit keys expected
   to be unable to take the candidate master and control key. It is the population
   minus the part whose every chamber can be pinned with them, counted the same way,
-  times the number of undecoded units. A unit core with no master (a plain change
-  key) never needs it.
+  times the number of undecoded units. A unit core with no master still has its
+  control key to be pinned with, so the figure covers it too, and only the control
+  key matters there.
 - A one-line statement of which population was used, so the number is never quoted
   without its assumption.
 

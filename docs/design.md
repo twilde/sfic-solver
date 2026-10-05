@@ -349,15 +349,31 @@ may be wrong, or the rules may be stricter than the hardware, and the report say
 so. Warnings do not change the exit status; the closing line counts them beside any
 problems (D53).
 
+**The population of undecoded unit keys** is a `model.Population`: a signed sum of
+products of per-position cut sets, which is how a union of products is written by
+inclusion and exclusion, counted by the same exact dynamic programming over
+positions as every other count (D55). `population.py` builds one from the retired
+cores that cover unit keys, a core covering them when a `change` wildcard starts
+with the unit prefix. At each position it keeps the cuts for which that chamber
+could have been pinned with the retired masters and control, found with the pinner
+chamber by chamber and not with a hard-coded neighbour rule, so a pinning system
+with other pin ranges needs no change. Several covering cores give the union, up to
+six, since a unit key sat in one of them and which is not known. With no covering
+core the population is every valid bitting, as before. `check_system` uses it in the
+residual-risk section, says which population it assumed, and for each unit core adds
+how many undecoded unit keys cannot be pinned under that core's masters and control
+key; a unit core with no master is asked about its control key alone. Without
+`pinning` the section is unchanged to the byte.
+
 **What is built and what is not.** The key-space object (step 1), the pinning
-library and simulated lock (step 2), and the guard and the conformance script
-(step 3) are built, and so is step 4: the loader, the pinnability and control checks and the retired-core
-consistency check. The rest is not: the generator and solver working without a
-pattern, the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
-additive and are held for the maintainer's agreement when their turn comes:
-pinnability as a hard rule for the solver alongside cross-operation and
-duplicates, and a new population for the residual-risk estimate. Neither changes
-any weight or algorithm for files that do not opt in (D6).
+library and simulated lock (step 2), the guard and the conformance script (step 3),
+the config and checker for opted-in files (step 4) and part 5a of step 5, the
+population and the expected-unpinnable figure in the checker, are built. The rest
+is not: part 5b, the solver treating an unpinnable core as a hard conflict and
+scoring the new figure, and the generator running without a pattern (agreed in
+[designs/pinnable-solving.md](designs/pinnable-solving.md), D54); the chart-printing
+command; and ASCII and PDF output. None of it changes any weight or algorithm for
+files that do not opt in (D6).
 
 ## Reading scanned charts
 

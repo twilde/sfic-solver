@@ -569,3 +569,16 @@ design is in its own document and has been accepted, with a weight of one for th
 new term; files that do not set `pinning` are unaffected.
 
 Detail: [designs/pinnable-solving.md](designs/pinnable-solving.md).
+
+## D55. The residual-risk estimate takes its population from the retired cores
+
+Part 5a of step 5. With `pinning` set, undecoded unit keys are no longer assumed
+uniform among valid bittings when a retired core covers unit keys: they are the
+bittings that old core could have been pinned with, found with the pinner, and the
+report says so. Each unit core gains a second figure, the undecoded unit keys
+expected to be unable to take its master and control key, whose cores would need
+rekeying. Populations are signed sums of per-position set products, counted
+exactly, so several covering cores (at most six) give an exact union. Files without
+`pinning` print what they did, to the byte. The solver does not use it until 5b.
+
+Detail: [design.md, "Pinning"](design.md#pinning).
