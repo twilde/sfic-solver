@@ -589,6 +589,8 @@ Detail: [design.md, "Pinning"](design.md#pinning).
 
 ## D56. With pinning set, the solver rejects unpinnable cores and scores the unpinnable figure
 
+Status: Amended by D60.
+
 Part 5b of step 5, as agreed in the design. For a file that sets `pinning`, a core that
 cannot be pinned with the keys assigned so far is a hard conflict, one penalty per
 failing chamber, and the expected number of undecoded unit keys that cannot take the
@@ -623,3 +625,31 @@ with a reminder that charts are key data. The writer is its own module, sharing 
 reader's labels, and a test reads back what it writes.
 
 Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D59. The solver says when it did not solve
+
+The solver used to write a result and print `Wrote ...` whatever its best score; the only
+sign of failure was the last line of the full check. After the search it now looks at
+each unknown key's chosen bitting, and if any still carries a hard penalty (a
+cross-operation, a duplicate or an unpinnable chamber) it prints a `NOT SOLVED` line
+naming those keys, before `Wrote` and again after the full check, so the verdict is
+the last line. The exit status stays 0 when a result was written (D8): changing it is
+a maintainer decision, and it is not made here. Conflicts between known keys alone do
+not trigger the line, since no choice of the solver's can change them.
+
+Detail: [design.md, "The code"](design.md#the-code).
+
+## D60. With pinning set, the solver builds pinnable answers exactly instead of drawing them
+
+Amends D56. Drawing random keys and changing one at a time left about half the runs of
+a file with two blank masters sharing cores with known keys stuck on an unpinnable core
+(issue 26). Pinning is decided one chamber at a time, so for each group of unknown keys
+that share cores (up to three keys) the digit combinations that leave every involved
+chamber pinnable are listed per position, then drawn from, or all enumerated when few,
+subject to the adjacent-cut limit. Candidates are scored exactly as before: weights,
+closeness and the unpinnable figure do not change. The solver says so when no pinnable
+answer exists (`NOT SOLVED`, D59). Larger groups, and files without `pinning`, keep the
+old search, which is byte-identical for the latter.
+
+Detail: [designs/pinnable-solving.md, "Building pinnable keys exactly"](designs/pinnable-solving.md#building-pinnable-keys-exactly).
+

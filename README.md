@@ -34,7 +34,7 @@ Run them straight from a checkout (`./check_system.py system.json`), as modules
 (`python3 -m sfic_solver.check_system system.json`), or install the package
 (`pip install .`) to get the `sfic-*` commands. Every tool exits with status 1
 if it flagged anything (`solve_system` always exits 0 when it wrote a result;
-read the check report that follows).
+read the check report that follows, and look for a `NOT SOLVED` line).
 
 ## The theory, in plain language
 
@@ -336,6 +336,12 @@ the checker's own pinner computed.
    the operating system's randomness (`--seed` exists only for reproducible
    tests, never use it for real keys). Review the result; it is a suggestion.
 
+   If the best result still has a hard conflict, the solver says so: a line
+   starting `NOT SOLVED` names the unknown keys involved, before `Wrote ...` and
+   again as the last line after the check. It still exits 0 and writes the file,
+   so look for that line (or `problem(s) flagged`) and do not use the result;
+   run it again, since each run draws different candidates.
+
    If the file sets `pinning` (see [Pinning](#pinning-optional)), the solver
    also treats a core that cannot be pinned as a hard conflict, and adds the
    expected number of undecoded unit keys that cannot take the unit master and
@@ -346,6 +352,16 @@ the checker's own pinner computed.
    rekeying. It prints the figure for the chosen master, against a typical random
    one, after its summary of chance cross-operation, and again in the check that
    follows.
+
+   With `pinning` set the solver does not draw candidates at random: for each
+   group of unknown keys that share cores (up to three keys) it lists, position by
+   position, the digits that leave every involved core pinnable with the known
+   keys, and draws (or, when few, tries all of) the whole bittings that can be
+   cut from them. It therefore finds a pinnable answer whenever one exists, and
+   says so when none does: `NOT SOLVED: no bitting for ... can be pinned with the
+   known keys`, with the positions where nothing works. Running it again will not
+   help then; a known key (usually a decoded unit key) has to change. A group of
+   more than three keys is searched one key at a time and may fail.
 
 5. **Check after every decode batch.**
 
@@ -462,7 +478,9 @@ digit; never paste or describe the page itself.
   bittings.** They are estimates for planning, and say nothing about keys that
   were chosen differently.
 - Searches are heuristic. The solver is not guaranteed to find the best
-  possible bitting, or any solution when fixed keys already conflict.
+  possible bitting, or any solution when fixed keys already conflict. With `pinning` set it finds a
+  pinnable answer whenever one exists, except among more than three unknown keys
+  that share cores, which it still searches one at a time.
 
 ## Privacy
 

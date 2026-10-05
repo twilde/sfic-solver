@@ -2,6 +2,9 @@
 
 Status: Implemented
 
+Amended after step 5 was built by the last section, "Building pinnable keys exactly" (D60),
+which changes how the solver generates candidates.
+
 This document describes step 5 of [core pinning](core-pinning.md): making the
 solver, the residual-risk estimate and the generator work for a system that sets
 `pinning` and has no parity pattern. It was written before any code, accepted, and
@@ -166,11 +169,11 @@ each candidate scored exactly. Three changes, all only when the system sets
    as in `check_system`, through the same function, so the two always print the
    same numbers.
 
-Candidate generation is unchanged: the solver already draws cuts from the key
-space's digits, which are all ten depths when there is no pattern. The solver's
-printed line "N% of random candidates were free of hard conflicts" will fall
-sharply without parity, and the document records that so nobody reads it as a
-fault.
+Candidate generation, as built in step 5, is unchanged: the solver already draws cuts
+from the key space's digits, which are all ten depths when there is no pattern. The
+solver's printed line "N% of random candidates were free of hard conflicts" will fall
+sharply without parity, and the document records that so nobody reads it as a fault.
+(This changed after step 5 was built: see "Building pinnable keys exactly" below.)
 
 ## What changes in the generator
 
@@ -250,3 +253,68 @@ comparison of seeded runs for files that do not opt in.
   over per-position sets that are much smaller than a full key space.
 - Pinning every involved core inside the scoring loop needed no caching: the figure
   for a unit core is computed per candidate and is fast enough as it stands.
+
+## Building pinnable keys exactly
+
+Step 5b was used on a system with two blank master keys that share cores with each
+other and with known keys, and it failed about half the time, whatever `--trials` and
+`--sweeps` were set to (issue 26). The cause is in the search, not in the scoring, and
+the way out changes how candidates are generated, which is why it has an entry (D60)
+and is written here.
+
+**What went wrong.** Suppose a known key has cut 6 at some position of a core and
+another core's key has 8, and both masters happen to be placed at 7. Neither master can
+move alone to fix it: moving the first to a safe digit leaves the second at 7, still one
+from 6, so the number of failing chambers is the same, and the hill climb accepts only a
+strictly lower score. The random part of the pool finds a pinnable pair only by luck. The
+first pass is no better: while the other master is unassigned, every core that uses it
+scores no unpinnable penalty (a core is skipped until all its keys are assigned), so the
+first master is chosen blind to them. A system with seven decoded unit keys (drawn at random, in the fake fixture) can have
+only about two dozen pinnable unit masters among three million, which two thousand random candidates
+almost never include, and one with enough decoded units has none.
+
+**The model.** Pinning is decided one chamber at a time. Whether the cuts at position p
+can be pinned depends only on the cuts at p of the keys of one core and its control key,
+so for a group of u unknown keys the combinations of digits that leave every involved
+chamber pinnable can be listed for each position on its own, with the known keys' cuts
+fixed: at most 10 ** u of them, and in practice a few. Only the adjacent-cut limit couples
+positions, and it is the same dynamic programme over positions as the counting code's,
+done on the lists. That counts every pinnable set of bittings exactly, draws one
+uniformly, or lists all of them, and says so when there are none. It also names the
+positions where the list is empty, which is the reason to show the owner.
+
+**A group** is the unknown keys that share a core, in any role: as change key, master or
+control key. Every core a key takes part in then has all its unknown keys chosen together,
+and no pinning constraint crosses groups, so groups are independent. Unknown control keys
+are in the same scheme because the pinner treats them as one more cut at the position.
+
+**What it does not change.** The score is as it was: hard penalties, closeness and the
+expected-unpinnable figure with its weight (D6 holds). Only where candidates come from
+changes. A group's candidates are the pinnable combinations, all of them when there are no
+more than `--trials`, else that many drawn uniformly; each is scored as the sum of its
+keys' scores, and the best is kept. The sweeps that follow are as before, so a pinnable
+start stays pinnable, since a move is taken only if it lowers the score. Files without
+`pinning` do not touch any of this.
+
+**The limit.** A group of more than three keys (`MAX_JOINT_KEYS`) is searched one key at
+a time as before, with a printed line, because the lists grow as 10 ** u and the counting
+as their square. A system that leaves every key blank is such a case. Joint moves for
+larger groups, or a decomposition of one chain of cores into smaller ones, are possible
+later and are not proposed here.
+
+**Failure is reported.** If the lists leave no pinnable answer for a group the solver says
+which positions have none, still writes a result from the old search so that there is a
+file to look at, and ends with `NOT SOLVED` and the reason (D59, D60). That verdict says
+running it again will not help, unlike the one for a conflict that a better draw might
+avoid. The exit status is unchanged (D8).
+
+**The printed line.** For a group built this way the line reads "N% of the pinnable
+candidates were free of other hard conflicts", because every candidate is pinnable by
+construction and the figure now measures the other hard rules. The line "N% of random
+candidates were free of hard conflicts" remains for keys searched the old way.
+
+**Alternatives considered.** *Joint moves in the hill climb* (changing the same position of
+every pair of unknown keys that share a core) fixes the case above but not a tie of three
+keys and cannot say that no answer exists. *More trials or sweeps* does not help: 20,000
+trials left the stuck case stuck. *Normalising the penalty so a move that fixes one of two
+chambers looks better* does not apply, since neither key's move fixes a chamber alone.

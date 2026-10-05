@@ -288,3 +288,165 @@ def test_the_summary_says_the_unpinnable_figure_was_weighed_first(pinned, write_
 def test_without_pinning_the_summary_has_no_unpinnable_line(unsolved, write_cfg, tmp_path):
     proc, _ = solve(write_cfg, unsolved, tmp_path, seed=1)
     assert "The solver weighed this first" not in proc.stdout
+
+
+# -- saying so when the search failed (issue 26, part 1) -----------------------------
+
+@pytest.fixture
+def no_pinnable_master(pinned):
+    """Ten decoded units whose first cuts are 0 to 9: whatever the master cuts there, it is one
+    from a unit's cut, so some core cannot be pinned (no pin of size 1 exists)."""
+    for digit in range(10):
+        pinned["keys"][f"unit:{200 + digit}"] = f"{digit}555555"
+    return pinned
+
+
+def test_a_result_that_still_has_hard_conflicts_says_it_was_not_solved(
+        no_pinnable_master, write_cfg, tmp_path):
+    proc, out = solve(write_cfg, no_pinnable_master, tmp_path, seed=4)
+    assert proc.returncode == 0, proc.stderr           # the exit status stays 0 (README)
+    assert out.exists()
+    lines = proc.stdout.splitlines()
+    marks = [i for i, ln in enumerate(lines) if ln.startswith("NOT SOLVED")]
+    wrote = next(i for i, ln in enumerate(lines) if ln.startswith("Wrote"))
+    assert len(marks) == 2 and marks[0] < wrote < marks[1] == len(lines) - 1
+    assert "unit_master" in lines[marks[0]] and "UNPINNABLE" in proc.stdout
+
+
+def test_a_solved_result_does_not_say_it_was_not_solved(pinned, write_cfg, tmp_path):
+    proc, _ = solve(write_cfg, pinned, tmp_path, seed=4)
+    assert "NOT SOLVED" not in proc.stdout
+
+
+def test_failed_keys_names_the_unknown_keys_with_a_hard_penalty(pinned):
+    prob = problem(pinned)
+    unit = json.loads((FIXTURES / "pinning.json").read_text())["keys"]["unit:101"]
+    prob.assign["unit_master"] = (int(unit[0]) + 1, *map(int, unit[1:]))
+    (name, count), = solve_system.failed_keys(prob)
+    assert name == "unit_master" and count >= 1
+    line, = solve_system.not_solved_lines(prob)
+    assert line.startswith("NOT SOLVED") and f"unit_master ({count})" in line
+    assert "see the check below" in line
+    assert "see the check above" in solve_system.not_solved_lines(prob, "above")[0]
+    prob.assign["unit_master"] = unit_clear_master(prob)
+    assert solve_system.failed_keys(prob) == []
+    assert solve_system.not_solved_lines(prob) == []
+
+
+def unit_clear_master(prob):
+    """A master that pins over every decoded unit key, found by drawing."""
+    rng = random.Random(1)
+    for _ in range(2000):
+        cand = prob.random_candidate(rng)
+        if prob.score_key("unit_master", cand) < solve_system.HARD:
+            return cand
+    raise AssertionError("no clean master drawn")
+
+
+# -- building pinnable answers exactly (issue 26, part 2) ------------------------------
+
+@pytest.fixture
+def two_blank_masters(pinned):
+    """The fixture with both masters left for the solver, which share cores with each other
+    and with the decoded keys of the area cores (it used to leave about half the runs stuck)."""
+    pinned["keys"]["master_top"] = None
+    pinned["keys"]["master_sub"] = None
+    pinned["keys"]["unit_master"] = json.loads((FIXTURES / "pinning.json").read_text())[
+        "keys"]["unit_master"]
+    return pinned
+
+
+def assert_every_core_pins(path):
+    cfg = parse_config(json.loads(path.read_text()))
+    for core in cfg.cores:
+        for ch in core["changes"]:
+            operating = [cfg.keys[ch]] + [cfg.keys[m] for m in core["masters"]]
+            assert not pin_chambers(cfg.pinning, operating,
+                                    cfg.control_keys[core["control"]])[1], (core["name"], ch)
+
+
+@pytest.mark.parametrize("seed", [5, 6, 7, 9, 11])     # 5, 6, 7, 9, 11 got stuck before
+def test_two_blank_masters_sharing_cores_with_known_keys_come_out_pinnable(
+        two_blank_masters, write_cfg, tmp_path, seed):
+    proc, out = solve(write_cfg, two_blank_masters, tmp_path, seed=seed)
+    assert proc.returncode == 0, proc.stderr
+    assert "pinnable combinations with the known keys; scored" in proc.stdout
+    assert "NOT SOLVED" not in proc.stdout and "UNPINNABLE" not in proc.stdout
+    assert_every_core_pins(out)
+
+
+def decoded_units(prob, count, seed=1):
+    """Fake decoded unit keys, drawn at random: with seven of them a unit master has few
+    pinnable bittings among about three million."""
+    rng = random.Random(seed)
+    return {f"unit:{300 + i}": "".join(map(str, prob.random_candidate(rng)))
+            for i in range(count)}
+
+
+def test_with_few_pinnable_masters_the_solver_scores_every_one_of_them(
+        pinned, write_cfg, tmp_path):
+    pinned["keys"].update(decoded_units(problem(pinned), 7))
+    prob = problem(pinned)
+    pinnable, _ = prob.pinnable_set(["unit_master"])
+    # Count them without the construction: every bitting whose cuts can all be pinned.
+    expected = brute_force_pinnable_masters(prob)
+    assert 0 < expected < 2000 and pinnable.count == expected
+    proc, out = solve(write_cfg, pinned, tmp_path, seed=3)
+    assert f"unit_master: {expected} pinnable bittings with the known keys; scored all of them" \
+        in proc.stdout
+    assert "NOT SOLVED" not in proc.stdout and "UNPINNABLE" not in proc.stdout
+    assert_every_core_pins(out)
+
+
+def brute_force_pinnable_masters(prob):
+    """How many MACS-valid bittings pin over every decoded unit, tried one position at a
+    time (a per-position filter, then a plain walk over what is left)."""
+    import itertools
+    control = prob.assign["control_b"]
+    units = [prob.assign[n] for n in prob.assign if n.startswith("unit:")]
+    per_position = [[d for d in prob.space.digits[p]
+                     if all(not pin_chambers(prob.pinning, [(u[p],), (d,)], (control[p],))[1]
+                            for u in units)]
+                    for p in range(prob.space.pins)]
+    return sum(1 for cuts in itertools.product(*per_position) if prob.space.macs_ok(cuts))
+
+
+def test_a_system_with_no_pinnable_master_says_so_and_that_running_again_will_not_help(
+        no_pinnable_master, write_cfg, tmp_path):
+    proc, out = solve(write_cfg, no_pinnable_master, tmp_path, seed=4)
+    assert proc.returncode == 0 and out.exists()
+    assert "unit_master: NO bitting can be pinned with the known keys: no cut at position 1 " \
+        "leaves every core there pinnable" in proc.stdout
+    lines = [ln for ln in proc.stdout.splitlines() if ln.startswith("NOT SOLVED")]
+    assert len(lines) == 2 and lines[-1] == proc.stdout.splitlines()[-1]
+    assert "running it again will not help" in lines[0] and "a known key has to change" in lines[0]
+    assert "hard conflicts involving" not in proc.stdout      # not also reported as a bad draw
+
+
+def test_a_group_larger_than_the_limit_is_searched_a_key_at_a_time_and_says_so(
+        two_blank_masters, write_cfg, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(solve_system, "MAX_JOINT_KEYS", 1)
+    out = tmp_path / "solved.json"
+    rc = call_main(solve_system.main, [write_cfg(two_blank_masters), "--out", out, "--trials", 100,
+                                      "--seed", 5], monkeypatch)
+    assert rc == 0 and out.exists()
+    printed = capsys.readouterr().out
+    assert "master_top, master_sub share cores and are more than the 1 keys that can be " \
+        "built together: searching one key at a time" in printed
+    assert "of random candidates were free of hard conflicts" in printed
+
+
+def test_keys_that_share_a_core_are_grouped_and_others_are_not(pinned):
+    pinned["keys"]["master_top"] = None
+    pinned["keys"]["master_sub"] = None
+    pinned["control_keys"]["control_b"] = None
+    groups = problem(pinned).joint_groups()
+    assert sorted(sorted(g) for g in groups) == [["control_b", "unit_master"],
+                                                 ["master_sub", "master_top"]]
+
+
+def test_without_pinning_no_group_is_built_and_the_search_is_the_old_one(unsolved, write_cfg,
+                                                                         tmp_path):
+    proc, _ = solve(write_cfg, unsolved, tmp_path, seed=1)
+    assert "pinnable" not in proc.stdout
+    assert "of random candidates were free of hard conflicts" in proc.stdout

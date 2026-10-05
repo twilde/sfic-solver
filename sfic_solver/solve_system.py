@@ -39,6 +39,7 @@ from functools import lru_cache
 
 from . import check_system, model
 from .config import load_or_exit
+from .joint import JointSet, allowed_tuples, bittings, why_none
 from .model import distance, operates
 from .pinning import pin_chambers
 from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pinnable_fraction,
@@ -46,6 +47,8 @@ from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pi
 
 HARD = 1_000_000.0
 CLOSE_WEIGHT = 1_000.0
+MAX_JOINT_KEYS = 3             # most unknown keys sharing cores that are built together: each
+                               # position lists up to 10 ** this digit combinations
 UNPINNABLE_WEIGHT = 1.0        # one undecoded unit key that cannot take the master counts as
                                # one expected cross-operation; with the scale of the two terms
                                # it makes avoiding rekeyed unit cores the primary goal
@@ -81,6 +84,7 @@ class Problem:
         self.pinning = cfg.pinning
         self.population = None
         self.population_note = None
+        self.impossible = []                  # (keys, reason) for groups with no pinnable bitting
         self.uniform = self.space.uniform()
         if self.pinning:
             if len(covering_cores(cfg)) > MAX_COVERING_CORES:
@@ -91,6 +95,46 @@ class Problem:
                     self.population = retired_population(cfg)
                 except ValueError:
                     self.population_note = "no valid bitting could have been pinned in them"
+
+    # -- joint construction (pinning only) ---------------------------------------
+    def joint_groups(self):
+        """The unknown keys, grouped so that keys sharing a core (as change key, master or
+        control key) are in the same group: a core's pinning couples exactly those."""
+        parent = {k: k for k in self.unknown}
+
+        def find(k):
+            while parent[k] != k:
+                parent[k] = parent[parent[k]]
+                k = parent[k]
+            return k
+
+        for core in self.cores:
+            names = [n for n in (*core["changes"], *core["masters"], core["control"])
+                     if n in parent]
+            for n in names[1:]:
+                parent[find(n)] = find(names[0])
+        groups = {}
+        for k in self.unknown:
+            groups.setdefault(find(k), []).append(k)
+        return list(groups.values())
+
+    def pin_constraints(self, group):
+        """(operating key names, control key name) for each core and change key that has a
+        key of `group` in it: the chambers whose pinning the group's cuts decide."""
+        found = []
+        for core in self.cores:
+            for ch in core["changes"]:
+                ops = [ch] + core["masters"]
+                if any(n in group for n in (*ops, core["control"])):
+                    found.append((ops, core["control"]))
+        return found
+
+    def pinnable_set(self, group):
+        """(JointSet of the group's pinnable bittings, the digit tuples it was built from)."""
+        known = {n: c for n, c in self.assign.items() if n not in group}
+        allowed = allowed_tuples(self.space, self.pinning, group, self.pin_constraints(group),
+                                 known)
+        return JointSet(allowed, self.space.max_step), allowed
 
     # -- candidate generation -------------------------------------------------
     def random_candidate(self, rng):
@@ -195,9 +239,55 @@ class Problem:
                 self.assign[k] = previous
 
 
+def solve_jointly(prob, group, trials, rng, report):
+    """Pick the bittings of a group of unknown keys that share cores, drawing them only from
+    those that leave every involved chamber pinnable (all of them when there are few enough).
+    Returns False, with the reason noted on the problem, if there are none."""
+    names = ", ".join(group)
+    pinnable, allowed = prob.pinnable_set(group)
+    if not pinnable.count:
+        reason = why_none(allowed)
+        prob.impossible.append((group, reason))
+        print(f"  {names}: NO bitting can be pinned with the known keys: {reason}")
+        return False
+    if pinnable.count <= trials:
+        chosen, how = list(pinnable.enumerate()), "scored all of them"
+    else:
+        chosen = list(dict((tuple(c), c) for c in (pinnable.draw(rng) for _ in range(trials)))
+                      .values())
+        how = f"scored {len(chosen)} drawn from them"
+    noun = "bitting" if len(group) == 1 else "combination"
+    print(f"  {names}: {pinnable.count:,} pinnable {noun}{'' if pinnable.count == 1 else 's'} "
+          f"with the known keys; {how}")
+    scored = []
+    for i, cand in enumerate(chosen):
+        for k, cuts in zip(group, bittings(cand)):
+            prob.assign[k] = cuts
+        scored.append((sum(prob.score_key(k, prob.assign[k]) for k in group), i))
+    scored.sort()
+    best_score, best = scored[0]
+    clean = sum(1 for sc, _ in scored if sc < HARD) / len(scored)
+    for k, cuts in zip(group, bittings(chosen[best])):
+        prob.assign[k] = cuts
+        report[k] = (clean, prob.score_key(k, cuts))
+        print(f"  {k}: picked {''.join(map(str, cuts))} "
+              f"({clean * 100:.0f}% of the pinnable candidates were free of other hard conflicts)")
+    return True
+
+
 def solve(prob, trials, sweeps, rng):
     report = {}
+    handled = set()
+    if prob.pinning:
+        for group in prob.joint_groups():
+            if len(group) > MAX_JOINT_KEYS:
+                print(f"  {', '.join(group)} share cores and are more than the {MAX_JOINT_KEYS} "
+                      f"keys that can be built together: searching one key at a time")
+            elif solve_jointly(prob, group, trials, rng, report):
+                handled.update(group)
     for k in prob.unknown:
+        if k in handled:
+            continue
         scored = [(prob.score_key(k, c), c) for c in
                   (prob.random_candidate(rng) for _ in range(trials))]
         scored.sort()
@@ -230,6 +320,38 @@ def solve(prob, trials, sweeps, rng):
         if not improved:
             break
     return report
+
+
+def failed_keys(prob):
+    """The unknown keys whose chosen bitting still has a hard conflict, as (name, count)
+    pairs: the count is how many hard penalties its score carries (a cross-operation, a
+    duplicate or an unpinnable chamber each count once, so a conflict shared by two keys
+    is counted for both). Keys that have no pinnable bitting at all are left out: they
+    are reported as that, since running the search again cannot help."""
+    none_exist = {k for group, _ in prob.impossible for k in group}
+    failed = []
+    for k in prob.unknown:
+        hard = int(prob.score_key(k, prob.assign[k]) // HARD)
+        if hard and k not in none_exist:
+            failed.append((k, hard))
+    return failed
+
+
+def not_solved_lines(prob, check="below"):
+    """The lines that say the search failed, none when it did not. `check` says where the
+    full check of the result is, for the lines to point at: they are printed before it and
+    again after it."""
+    lines = []
+    for group, reason in prob.impossible:
+        lines.append(f"NOT SOLVED: no bitting for {', '.join(group)} can be pinned with the "
+                     f"known keys ({reason}), so running it again will not help; a known key "
+                     f"has to change. See the check {check}.")
+    failed = failed_keys(prob)
+    if failed:
+        named = ", ".join(f"{k} ({n})" for k, n in failed)
+        lines.append(f"NOT SOLVED: the result still has hard conflicts involving {named}. Run it "
+                     f"again (a different random draw may do better), or see the check {check}.")
+    return lines
 
 
 def unit_pair_summary(prob, rng, samples=300):
@@ -300,10 +422,14 @@ def main(argv=None):
     out = args.out or os.path.splitext(args.config)[0] + ".solved.json"
     with open(out, "w") as f:
         json.dump(raw, f, indent=2)
+    for line in not_solved_lines(prob):
+        print(f"\n{line}")
     print(f"\nWrote {out}. Full check of the result:\n")
     sys.stdout.flush()
     check_system.main([out])      # report only; its exit status is not ours (as before)
-    return 0
+    for line in not_solved_lines(prob, "above"):
+        print(f"\n{line}")
+    return 0     # exit status 0 whenever a result was written (README); the verdict is the line
 
 
 if __name__ == "__main__":
