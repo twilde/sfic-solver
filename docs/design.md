@@ -92,7 +92,11 @@ cross-operation and duplicates, then closeness among non-unit keys, then the
 expected number of chance cross-operations involving undecoded unit keys. The
 weights (`HARD`, `CLOSE_WEIGHT`) and the algorithms were carried over unchanged
 from the first version and are changed only with a stated reason and the
-maintainer's agreement (D6).
+maintainer's agreement (D6). For a file that sets `pinning` there are two more,
+agreed in designs/pinnable-solving.md (D56): a core that cannot be pinned, with the
+keys assigned so far, is a hard conflict like a cross-operation, and the expected
+number of undecoded unit keys that cannot be pinned under a unit master and its
+control key joins the expected-conflict score with a weight of one (`UNPINNABLE_WEIGHT`).
 
 ## The code
 
@@ -157,9 +161,9 @@ what it did. If `pins` and `pattern` disagree the usual pattern error is reporte
 count, with the error saying what count was expected. The count is deliberately
 not inferred from the bittings, since `null` bittings carry no length and a typo
 in one bitting should be an error, not a new pin count. The command-line tools
-follow the same order: `gen_bittings` always has a pattern, so its count is the
-pattern's length, and `check_bittings` takes `--pins`, else the length of
-`--pattern`, else 7. The default `min_diff` is `min(5, pins)` (`min(3, pins)` for
+follow the same order: `check_bittings` takes `--pins`, else the length of
+`--pattern`, else 7, and `gen_bittings` the same since its pattern became optional
+(D57), taking it from the pattern when there is one. The default `min_diff` is `min(5, pins)` (`min(3, pins)` for
 `gen_bittings`) and an explicit value above the pin count is an error, because no
 two keys could satisfy it; without that, a 5-pin file that never mentions
 `min_diff` would be valid at 7 pins and impossible at 4 (D22).
@@ -369,15 +373,31 @@ how many undecoded unit keys cannot be pinned under that core's masters and cont
 key; a unit core with no master is asked about its control key alone. Without
 `pinning` the section is unchanged to the byte.
 
+**The solver** takes the same population and figures. For a file that sets `pinning`
+it pins every core a candidate key takes part in, as change key, master or control key,
+with the keys assigned so far, and adds the hard penalty for each chamber that cannot
+be pinned, so that fixing one of three bad chambers is progress for the hill climb. A
+control key being solved for is scored against every core that uses it. A core
+whose keys, or whose control key, are not all assigned yet is skipped until they are,
+as the cross-operation test already does. The expected-unpinnable figure is added to the
+unit core's expected-conflict term with a weight of one. On the fake pinning fixture
+without a parity pattern the solver picks a unit master that about a fifth of the
+undecoded units cannot take, against about four fifths for a random one. The population
+is the checker's, through the same functions, and when the retired cores cannot be used
+the solver prints the same line the checker does. Its summary of chance cross-operation
+is followed, for such files, by the unpinnable figure against a random master's, because
+the chosen master can have more chance cross-operation than a random one and look worse
+without it. Files that do not set `pinning` give
+byte-identical output and files, which is shown by seeded runs before and after (D56).
+
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), the guard and the conformance script (step 3),
-the config and checker for opted-in files (step 4) and part 5a of step 5, the
-population and the expected-unpinnable figure in the checker, are built. The rest
-is not: part 5b, the solver treating an unpinnable core as a hard conflict and
-scoring the new figure, and the generator running without a pattern (agreed in
-[designs/pinnable-solving.md](designs/pinnable-solving.md), D54); the chart-printing
-command; and ASCII and PDF output. None of it changes any weight or algorithm for
-files that do not opt in (D6).
+the config and checker for opted-in files (step 4) and step 5, which finishes the
+design in [designs/pinnable-solving.md](designs/pinnable-solving.md) (D54): the
+population and the expected-unpinnable figure in the checker, the solver's use of
+them, and the generator running without a pattern (D55 to D57). The rest is not:
+the chart-printing command, and ASCII and PDF output. None of it changes any weight
+or algorithm for files that do not opt in (D6).
 
 ## Reading scanned charts
 

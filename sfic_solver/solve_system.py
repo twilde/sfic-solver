@@ -19,6 +19,13 @@ What it optimizes, in priority order:
   3. Lowest expected number of chance cross-operations involving unit keys
      you have not decoded yet (needs unit_count in the config)
 
+If the file sets `pinning`, a core that cannot be pinned (a chamber whose cuts
+leave a pin outside the pinning system's sizes) is a hard conflict like a cross-
+operation, and the expected number of undecoded unit keys that cannot be pinned
+under a unit master and control key is added to the score of item 3 with a
+weight of one (docs/designs/pinnable-solving.md). The undecoded keys are then
+taken from the retired cores when they describe the units.
+
 Method: random search plus single-cut hill climbing, scoring each candidate
 exactly. Each key has only a few tens of thousands of valid bittings, so a few
 thousand trials per key is plenty.
@@ -33,9 +40,15 @@ from functools import lru_cache
 from . import check_system, model
 from .config import load_or_exit
 from .model import distance, operates
+from .pinning import pin_chambers
+from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pinnable_fraction,
+                         retired_population)
 
 HARD = 1_000_000.0
 CLOSE_WEIGHT = 1_000.0
+UNPINNABLE_WEIGHT = 1.0        # one undecoded unit key that cannot take the master counts as
+                               # one expected cross-operation; with the scale of the two terms
+                               # it makes avoiding rekeyed unit cores the primary goal
 
 
 @lru_cache(maxsize=None)
@@ -62,6 +75,23 @@ class Problem:
                     self.assign[name] = cuts
         self.cores = cfg.cores
 
+        # Pinning: only for files that set it. The population of undecoded unit keys comes
+        # from the retired cores when they describe the units, and `population_note` says
+        # why not when they cannot be used (the checker prints the same line).
+        self.pinning = cfg.pinning
+        self.population = None
+        self.population_note = None
+        self.uniform = self.space.uniform()
+        if self.pinning:
+            if len(covering_cores(cfg)) > MAX_COVERING_CORES:
+                self.population_note = (f"{len(covering_cores(cfg))} of them cover unit keys, "
+                                        f"and at most {MAX_COVERING_CORES} can be combined exactly")
+            else:
+                try:
+                    self.population = retired_population(cfg)
+                except ValueError:
+                    self.population_note = "no valid bitting could have been pinned in them"
+
     # -- candidate generation -------------------------------------------------
     def random_candidate(self, rng):
         while True:
@@ -87,17 +117,40 @@ class Problem:
             return 0.0
         if core["is_unit"]:
             masters = [self.assign[m] for m in core["masters"]]
-            p = self.space.pair_conflict_probability(masters)
-            return (self.unit_count * (self.unit_count - 1) - decoded * (decoded - 1)) * p
+            p = self.space.pair_conflict_probability(masters, self.population)
+            total = (self.unit_count * (self.unit_count - 1) - decoded * (decoded - 1)) * p
+            if self.pinning and core["control"] in self.assign:
+                total += UNPINNABLE_WEIGHT * unknown * self.cannot_take(core, masters)
+            return total
         total = 0.0
         for ch in core["changes"]:
             names = [ch] + core["masters"]
             if any(n not in self.assign for n in names):
                 continue
             opts = cached_options(self.assign[ch], tuple(self.assign[m] for m in core["masters"]))
+            if self.population is not None:
+                total += unknown * false_key_share(self.space, self.population, opts,
+                                                   [self.assign[n] for n in names])
+                continue
             size = self.space.operating_set_size(opts)
             total += unknown * max(size - len(names), 0) / self.space.total_valid
         return total
+
+    def cannot_take(self, core, masters):
+        """The share of undecoded unit keys that cannot be pinned in a unit core with these
+        masters and the core's control key (which must be assigned)."""
+        population = self.uniform if self.population is None else self.population
+        return 1 - pinnable_fraction(self.space, population, self.pinning, masters,
+                                     self.assign[core["control"]])
+
+    def unpinnable_chambers(self, core, ch):
+        """How many chambers of the core with change key `ch` cannot be pinned, with the keys
+        assigned so far (0 while any of its keys, or its control key, is unassigned)."""
+        names = [ch] + core["masters"]
+        if any(n not in self.assign for n in names) or core["control"] not in self.assign:
+            return 0
+        operating = [self.assign[n] for n in names]
+        return len(pin_chambers(self.pinning, operating, self.assign[core["control"]])[1])
 
     def score_key(self, k, cuts):
         previous = self.assign.get(k)
@@ -122,6 +175,9 @@ class Problem:
                         continue
                     opts = cached_options(self.assign[ch],
                                           tuple(self.assign[m] for m in core["masters"]))
+                    if self.pinning and (k in names or k == core["control"]):
+                        involves = True
+                        s += HARD * self.unpinnable_chambers(core, ch)
                     if k in names:
                         involves = True
                         for n, other in self.assign.items():
@@ -184,17 +240,28 @@ def unit_pair_summary(prob, rng, samples=300):
         unknown_masters = [m for m in core["masters"] if m in prob.unknown]
         if not unknown_masters:
             continue
-        chosen = prob.space.pair_conflict_probability([prob.assign[m] for m in core["masters"]])
-        total = 0.0
+        chosen = prob.space.pair_conflict_probability([prob.assign[m] for m in core["masters"]],
+                                                      prob.population)
+        total = cannot_total = 0.0
         for _ in range(samples):
             masters = [prob.random_candidate(rng) if m in unknown_masters else prob.assign[m]
                        for m in core["masters"]]
-            total += prob.space.pair_conflict_probability(masters)
+            total += prob.space.pair_conflict_probability(masters, prob.population)
+            if prob.pinning:
+                cannot_total += prob.cannot_take(core, masters)
         typical = total / samples
         pairs = prob.unit_count * (prob.unit_count - 1)
         print(f"\nUnit-to-unit cross-operation by chance (all {prob.unit_count} units): "
               f"about {pairs * chosen:.1f} pairs with the chosen master vs "
               f"{pairs * typical:.1f} for a typical random one.")
+        if prob.pinning:
+            decoded = sum(1 for n in prob.assign if n.startswith(prob.unit_prefix))
+            unknown = prob.unit_count - decoded
+            mine = prob.cannot_take(core, [prob.assign[m] for m in core["masters"]])
+            print(f"The solver weighed this first: the undecoded unit keys that cannot take the "
+                  f"chosen master and control key are about {unknown * mine:.1f} of {unknown} "
+                  f"({mine * 100:.0f}%) vs {cannot_total / samples * 100:.0f}% for a typical "
+                  f"random one, so a master with more chance cross-operation can be the better one.")
 
 
 def main(argv=None):
@@ -217,6 +284,11 @@ def main(argv=None):
     rng = random.Random(args.seed) if args.seed is not None else random.SystemRandom()
 
     print(f"Solving for {len(prob.unknown)} unknown key(s): {', '.join(prob.unknown)}")
+    if prob.population is not None:
+        print("Undecoded unit keys are assumed to have sat in the retired core(s) "
+              + ", ".join(c["name"] for c in covering_cores(cfg)) + ".")
+    elif prob.population_note:
+        print(f"The retired cores were not used: {prob.population_note}.")
     solve(prob, args.trials, args.sweeps, rng)
     unit_pair_summary(prob, rng)
 

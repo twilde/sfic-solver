@@ -1,14 +1,15 @@
 # Solving for pinnable systems (core pinning, step 5)
 
-Status: Accepted
+Status: Implemented
 
 This document describes step 5 of [core pinning](core-pinning.md): making the
 solver, the residual-risk estimate and the generator work for a system that sets
-`pinning` and has no parity pattern. It was written before any code and has been
-accepted, including its changes to what the solver scores (D6) and the weight of
-one for the new term, confirmed with the scale of both terms in view (see "What
-changes in the solver"). Files that do not set `pinning` are unaffected throughout; a
-test will show that their output is byte for byte what it is today.
+`pinning` and has no parity pattern. It was written before any code, accepted, and
+is built (D55 to D57), including its changes to what the solver scores (D6) and the
+weight of one for the new term, confirmed with the scale of both terms in view (see
+"What changes in the solver"). Files that do not set `pinning` are unaffected
+throughout: seeded runs of the solver and the checker before and after the change
+gave identical output and files.
 
 ## Why do this
 
@@ -100,7 +101,8 @@ counts by dynamic programming over positions). Two populations are defined.
   solver's candidates. At about 1.2 ms a pair count that is 1 for one core, 9 for
   two (11 ms a candidate), 49 for three (60 ms), 225 for four (0.3 s) and 3,969 for
   six (nearly 5 s), against the few thousand candidates a solve scores. The limit is
-  therefore **three** covering cores, about five minutes for a solve at the limit.
+  therefore **three** covering cores, estimated at about five minutes for a solve at
+  the limit (it measured far less: see the end of this document).
   With more than three, the tools do not refuse the file (D53 made problems with the
   description of the old cores warnings, so that a disputed description does not
   fail a file): they fall back to the uniform population and print a line saying
@@ -236,14 +238,15 @@ Two pull requests, because the first can be reviewed and used without the solver
 Each part gets its own log entry and README text, and 5b a before-and-after
 comparison of seeded runs for files that do not opt in.
 
-## Details to settle while building
+## Details settled while building
 
-- The exact wording of the new report lines, and where the population statement
-  sits in the residual-risk section.
-- How the solver reports, per unit core, the two figures and the population, so a
-  run's output can be compared with `check_system`'s.
-- How slow a solve at the limit of three covering cores really is, which is
-  estimated above at about five minutes and is measured when 5b is built.
-- Performance of pinning every involved core inside the scoring loop; if it is
-  slow, the per-position sets of pinnable cuts can be computed once per core and
-  reused, since they depend only on the other keys of the core.
+- The report lines are as the README shows them. The solver prints the population it
+  assumed (or why the retired cores were not used) and leaves the two figures to the
+  full check it runs on its result, which prints them for the chosen master, so the
+  two tools cannot disagree.
+- A solve for the unit master on the fake fixture, without a parity pattern, takes
+  about 7 seconds with one covering retired core and about 29 seconds with three, the
+  limit. The estimate of five minutes above was pessimistic, because the counts run
+  over per-position sets that are much smaller than a full key space.
+- Pinning every involved core inside the scoring loop needed no caching: the figure
+  for a unit core is computed per candidate and is fast enough as it stands.
