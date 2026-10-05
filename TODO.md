@@ -2,6 +2,9 @@
 
 ## Ideas for later
 
+- A solver for pinnable answers among more than three unknown keys that share cores
+  (a system with every key blank): joint moves, or splitting the chain of cores
+  (docs/designs/pinnable-solving.md, "Building pinnable keys exactly").
 - A mode that screens candidate unit masters against decoded unit keys.
 - `--avoid-file` for the generator.
 - Generate the `cores` list from an exported CSV of the key matrix.
@@ -14,8 +17,9 @@
 - Core pinning (docs/designs/core-pinning.md): steps 1 to 6 are done (the key-space
   object, the pinning library, the `.txt` guard and the conformance script, the config
   and checker for files that set `pinning`, the solver and generator for them, designed
-  in docs/designs/pinnable-solving.md, and the chart command `pin_system.py`). Step 7
-  is the output ideas below, each with its own design document first.
+  in docs/designs/pinnable-solving.md, and the chart command `pin_system.py`; D60 made
+  the solver build pinnable answers exactly, up to three unknown keys sharing cores).
+  Step 7 is the output ideas below, each with its own design document first.
 - Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
   drawing of each core's pin stacks inside the chart output, and optional PDF
   output of all the charts as one document.

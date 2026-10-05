@@ -112,7 +112,7 @@ path (D1).
 
 The shared modules are `model.py` (the pure maths, built around `KeySpace`),
 `config.py` (loading and validating a system file), `pinning.py` (pinning system
-records and the pinner), `lock.py` (the simulated lock) and `charts.py` (reading
+records and the pinner), `joint.py` (the exact construction of pinnable bittings, D60), `lock.py` (the simulated lock) and `charts.py` (reading
 pinning charts). The tools are `gen_bittings`, `check_bittings`, `check_system`,
 `solve_system`, `check_charts` and `scan_charts`, whose scanning stages live in
 the subpackage `sfic_solver/scanning/` so that the optional imports are in one
@@ -397,6 +397,22 @@ is followed, for such files, by the unpinnable figure against a random master's,
 the chosen master can have more chance cross-operation than a random one and look worse
 without it. Files that do not set `pinning` give
 byte-identical output and files, which is shown by seeded runs before and after (D56).
+
+**Building pinnable answers exactly.** The one-key-at-a-time hill climb cannot fix two
+keys that are both wrong at a position when changing either alone leaves the number of
+failing chambers unchanged, and random draws hit a pinnable pair only by luck. Since
+pinning is decided one chamber at a time, `joint.py` lists, for each position, the digit
+tuples of a group of unknown keys that leave every core involved pinnable with the known
+keys, then counts the whole bittings exactly with the adjacent-cut limit (a dynamic
+programme over positions) and draws uniformly from them, or lists them all when there
+are no more than `--trials`. A group is the unknown keys that share a core, as change
+key, master or control key, so that all the keys of any one core are chosen together; a
+group has at most three keys (`MAX_JOINT_KEYS`, 10 ** 3 tuples a position), and a larger
+one falls back to the single-key search with a printed line. The candidates are scored
+with the existing score, so weights, closeness and the unpinnable figure are unchanged;
+only where the candidates come from is. When a group has no pinnable bitting the solver
+says which positions have none and ends with `NOT SOLVED`, since only a known key can
+change that (D60). Files without `pinning` are byte-identical.
 
 **The chart command** (`pin_system.py`, `sfic-pin-system`) prints the charts of the
 layout in core-pinning.md for every core of a file that sets `pinning`, one chart per core

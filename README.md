@@ -353,6 +353,16 @@ the checker's own pinner computed.
    one, after its summary of chance cross-operation, and again in the check that
    follows.
 
+   With `pinning` set the solver does not draw candidates at random: for each
+   group of unknown keys that share cores (up to three keys) it lists, position by
+   position, the digits that leave every involved core pinnable with the known
+   keys, and draws (or, when few, tries all of) the whole bittings that can be
+   cut from them. It therefore finds a pinnable answer whenever one exists, and
+   says so when none does: `NOT SOLVED: no bitting for ... can be pinned with the
+   known keys`, with the positions where nothing works. Running it again will not
+   help then; a known key (usually a decoded unit key) has to change. A group of
+   more than three keys is searched one key at a time and may fail.
+
 5. **Check after every decode batch.**
 
    ```bash
@@ -468,7 +478,9 @@ digit; never paste or describe the page itself.
   bittings.** They are estimates for planning, and say nothing about keys that
   were chosen differently.
 - Searches are heuristic. The solver is not guaranteed to find the best
-  possible bitting, or any solution when fixed keys already conflict.
+  possible bitting, or any solution when fixed keys already conflict. With `pinning` set it finds a
+  pinnable answer whenever one exists, except among more than three unknown keys
+  that share cores, which it still searches one at a time.
 
 ## Privacy
 
