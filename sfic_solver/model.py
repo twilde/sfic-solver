@@ -106,23 +106,26 @@ class KeySpace:
         when, at every position, its cut equals A's cut or a master's cut.
         Exact (dynamic programming over positions), no sampling.
         """
-        digits = self.digits
+        return self.pair_count(masters, self.digits, self.digits) / self.total_valid ** 2
 
+    def pair_count(self, masters, a_sets, b_sets):
+        """Pairs (A, B) of MACS-valid keys, A from `a_sets` and B from `b_sets` (per-position
+        cut sets), where B operates the core pinned with A and `masters`."""
         def allowed(p, a):
-            return {a, *(m[p] for m in masters)} & set(digits[p])
+            return {a, *(m[p] for m in masters)} & set(b_sets[p])
 
-        states = {(a, b): 1 for a in digits[0] for b in allowed(0, a)}
+        states = {(a, b): 1 for a in a_sets[0] for b in allowed(0, a)}
         for p in range(1, self.pins):
             new = {}
             for (a0, b0), w in states.items():
-                for a in digits[p]:
+                for a in a_sets[p]:
                     if abs(a - a0) > self.max_step:
                         continue
                     for b in allowed(p, a):
                         if abs(b - b0) <= self.max_step:
                             new[(a, b)] = new.get((a, b), 0) + w
             states = new
-        return sum(states.values()) / self.total_valid ** 2
+        return sum(states.values())
 
 
 def distance(a, b):
