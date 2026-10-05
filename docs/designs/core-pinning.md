@@ -239,7 +239,9 @@ The second is a better population for the residual-risk estimate. Today it assum
 every undecoded unit key is uniform among all valid bittings. The retired cores
 let it say instead: uniform among valid bittings that also avoid the neighbours of
 the retired keys pinned with them. Each retired key removes at most two of the ten
-depths at each position, so the population stays large, but it is now exactly
+depths at each position for the operating gap, and the control key and the pin
+ranges remove a few more (the example in [pinnable-solving.md](pinnable-solving.md)
+keeps 7 or 8 of the ten), so the population stays large, but it is now exactly
 described, and the counting that already works from per-position sets of cuts
 adapts to it. The estimate gains a second figure beside the chance of
 cross-operation: the chance that an undecoded unit key cannot be pinned under a
