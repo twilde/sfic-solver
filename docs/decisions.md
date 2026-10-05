@@ -571,3 +571,18 @@ been confirmed, since avoiding rekeyed unit cores is the primary goal. Files tha
 do not set `pinning` are unaffected.
 
 Detail: [designs/pinnable-solving.md](designs/pinnable-solving.md).
+
+## D55. The residual-risk estimate takes its population from the retired cores
+
+Part 5a of step 5. With `pinning` set, undecoded unit keys are no longer assumed
+uniform among valid bittings when a retired core covers unit keys: they are the
+bittings that old core could have been pinned with, found with the pinner, and the
+report says so. Each unit core gains a second figure, the undecoded unit keys
+expected to be unable to take its master and control key, whose cores would need
+rekeying. Populations are signed sums of per-position set products, counted
+exactly, so up to three covering cores give an exact union; more fall back to the
+uniform population with a printed line, not a refusal, and so does a description in
+which no bitting could have been pinned, which is also reported as warnings. Files without `pinning` print
+what they did, to the byte. The solver does not use it until 5b.
+
+Detail: [design.md, "Pinning"](design.md#pinning).

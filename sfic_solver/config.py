@@ -41,7 +41,8 @@ class Config:
     warnings: List[str] = field(default_factory=list)
     name: Optional[str] = None                  # the key system's name, for charts
     pinning: Optional[PinningSystem] = None     # set only if the file opts in to pinning
-    retired_cores: List[dict] = field(default_factory=list)   # {name, changes, masters, control}
+    retired_cores: List[dict] = field(default_factory=list)   # {name, changes, masters, control,
+                                                              #  covers_units}
 
 
 def _no_duplicate_keys(pairs):
@@ -268,6 +269,9 @@ def parse_config(raw, allow_null=False):
         changes = resolve_changes(where, spec.get("change"),
                                   pool={**keys, **groups["retired_keys"]},
                                   empty_wildcards_ok=True)
+        patterns = [spec["change"]] if isinstance(spec["change"], str) else spec["change"]
+        covers_units = any(pat.startswith(unit_prefix) and any(c in pat for c in "*?[")
+                           for pat in patterns)
         masters = _string_list(spec.get("masters", []), f"{where}: masters")
         for pos, master in enumerate(masters):
             if master not in groups["retired_keys"]:
@@ -283,7 +287,7 @@ def parse_config(raw, allow_null=False):
             raise ConfigError(f"{where}: needs 'control', the name of an entry in retired_keys"
                               f"{hint_for(control, 'retired_keys')}")
         retired_cores.append({"name": name, "changes": changes, "masters": masters,
-                              "control": control})
+                              "control": control, "covers_units": covers_units})
     if retired_cores and not pinning_system:
         warnings.append("retired_cores is ignored, because the system does not set pinning")
 

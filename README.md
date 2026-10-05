@@ -236,6 +236,32 @@ Either the description of the old cores is wrong or the rules are too strict.
 A warning is not a problem: it does not change the exit status, and the last line
 counts it (`OK, 1 warning(s)`). It means the description or the rules need a look.
 
+The same description improves the residual-risk section. A unit key that sat in an
+old core cannot be just any bitting, so when a retired core covers the units (its
+`change` has a wildcard starting with the unit prefix, such as `"unit:*"`), the
+estimate assumes the undecoded unit keys are the bittings that old core could have
+been pinned with, and says so. Only a wildcard that starts with the unit prefix counts,
+so a core whose `change` is `"*"` does not describe the units. Up to three covering
+cores give the union of what each allows. When the retired cores cannot be used (more
+than three cover the units, or no bitting could have been pinned in them), the report
+says so and assumes every valid bitting instead of stopping. With `pinning` set, each unit core also gets a second figure, how many of the
+undecoded unit keys cannot be pinned under its master and control key at all, which
+means that unit's core could not take the master and would have to be rekeyed:
+
+```console
+== Residual risk from undecoded unit keys (3 of 100 decoded) ==
+Estimate only: assumes unknown unit keys sat in the retired core(s) Original cores, so at every position each has a cut that chamber could have been pinned with (549,745 of 3,027,314 valid bittings).
+...
+Unit cores: about 1.0 unit-to-unit cross-operations expected by chance; re-check after decoding
+    97 undecoded unit key(s): about 76.7 expected to be unable to take this master and control key (79%), so their cores would need rekeying
+```
+
+With a parity pattern the second figure is often 0%, because the operating cuts
+are already two apart; a control key cut that sits too close to an operating cut
+can still make it positive. Without a pattern it can be large, and it depends
+strongly on the master and the control key chosen, which is why it is worth reading
+before dropping the pattern.
+
 ## Typical workflow
 
 1. **Generate keys.** Draw bittings for the non-unit keys, keeping each at

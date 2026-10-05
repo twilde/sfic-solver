@@ -47,6 +47,8 @@ import sys
 from .config import load_or_exit
 from .model import distance, operates, options_for
 from .pinning import pin_chambers
+from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pinnable_fraction,
+                         retired_population)
 
 MAX_LISTED = 30        # lines per list before "... and N more"
 
@@ -201,17 +203,48 @@ def main(argv=None):
     if unit_count:
         decoded = sum(1 for n in keys if n.startswith(unit_prefix))
         unknown = unit_count - decoded
+        unused = None          # why the retired cores were not used, if they were not
+        try:
+            population = retired_population(cfg)
+        except ValueError:
+            population = None
+            unused = "no valid bitting could have been pinned in them"
+        if cfg.pinning and len(covering_cores(cfg)) > MAX_COVERING_CORES:
+            unused = (f"{len(covering_cores(cfg))} of them cover unit keys, and at most "
+                      f"{MAX_COVERING_CORES} can be combined exactly")
         print(f"\n== Residual risk from undecoded unit keys ({decoded} of {unit_count} decoded) ==")
-        print("Estimate only: assumes unknown unit keys are random valid bittings.")
+        if population is None:
+            print("Estimate only: assumes unknown unit keys are random valid bittings.")
+            if unused:
+                print(f"The retired cores were not used: {unused}.")
+        else:
+            covering = ", ".join(c["name"] for c in covering_cores(cfg))
+            print(f"Estimate only: assumes unknown unit keys sat in the retired core(s) "
+                  f"{covering}, so at every position each has a cut that chamber could have "
+                  f"been pinned with ({space.population_size(population):,} of "
+                  f"{total_valid:,} valid bittings).")
         for core in cores:
             p = group_p[core["name"]]
             if core["is_unit"]:
                 pairs = unit_count * (unit_count - 1) - decoded * (decoded - 1)
-                p = space.pair_conflict_probability([keys[m] for m in core["masters"]])
+                masters = [keys[m] for m in core["masters"]]
+                p = space.pair_conflict_probability(masters, population)
                 expected = pairs * p
                 print(f"{core['name']}: about {expected:.1f} unit-to-unit cross-operations expected "
                       f"by chance; re-check after decoding")
+                if cfg.pinning:
+                    cannot = 1 - pinnable_fraction(space, population or space.uniform(),
+                                                   cfg.pinning, masters,
+                                                   control[core["control"]])
+                    print(f"    {unknown} undecoded unit key(s): about {unknown * cannot:.1f} "
+                          f"expected to be unable to take this master and control key "
+                          f"({cannot * 100:.0f}%), so their cores would need rekeying")
             else:
+                if population is not None:
+                    p = sum(false_key_share(space, population,
+                                            options_for(keys[ch], [keys[m] for m in core["masters"]]),
+                                            [keys[ch]] + [keys[m] for m in core["masters"]])
+                            for ch in core["changes"]) / len(core["changes"])
                 n_inst = len(core["changes"])
                 expected = unknown * p * n_inst
                 at_least_one = 1 - (1 - p) ** (unknown * n_inst)

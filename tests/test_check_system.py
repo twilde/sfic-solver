@@ -310,3 +310,114 @@ def test_the_control_lines_are_capped_too(pinned, write_cfg):
     section = out.split("== Pinning")[1].split("\n\n")[0]
     assert len([ln for ln in section.splitlines() if ln.startswith("CONTROL")]) == 30
     assert re.search(r"\.\.\. and \d+ more\n?$", section)
+
+
+# -- residual risk with pinning: the population and the expected-unpinnable figure ----
+
+def residual(out):
+    return out.split("== Residual risk")[1]
+
+
+def test_the_retired_cores_set_the_population_of_undecoded_unit_keys(pinned):
+    proc = run_script("check_system", FIXTURES / "pinning.json")
+    section = residual(proc.stdout)
+    assert ("assumes unknown unit keys sat in the retired core(s) Original cores, so at every "
+            "position each has a cut that chamber could have been pinned with "
+            "(24,156 of 28,384 valid bittings)") in section
+    assert "random valid bittings" not in section
+
+
+def test_without_retired_cores_the_population_stays_uniform_but_the_figure_is_printed(
+        pinned, write_cfg):
+    del pinned["retired_cores"]
+    out = check(write_cfg, pinned).stdout
+    section = residual(out)
+    assert "Estimate only: assumes unknown unit keys are random valid bittings." in section
+    assert "97 undecoded unit key(s): about 0.0 expected to be unable to take" in section
+
+
+def test_parity_leaves_no_undecoded_unit_key_unable_to_take_the_fixtures_master(pinned):
+    section = residual(run_script("check_system", FIXTURES / "pinning.json").stdout)
+    assert "about 0.0 expected to be unable to take this master and control key (0%)" in section
+
+
+def test_a_control_key_cut_too_close_to_an_operating_cut_makes_the_figure_positive_with_parity(
+        pinned, write_cfg):
+    # The pattern keeps operating cuts apart, but not a control cut from a unit key's: a
+    # control cut of 0 in the second chamber rules out a unit key's 9 there.
+    control = pinned["control_keys"]["control_b"]
+    pinned["control_keys"]["control_b"] = control[0] + "0" + control[2:]
+    assert pinned["pattern"] == "OOEOEOE" and pinned["retired_keys"]["old_control"][1] != "0"
+    figure = re.search(r"about ([\d.]+) expected to be unable to take this master and control "
+                       r"key \((\d+)%\)", residual(check(write_cfg, pinned).stdout))
+    assert figure and float(figure.group(1)) > 0 and 0 < int(figure.group(2)) < 20
+
+
+def test_without_a_pattern_most_undecoded_unit_keys_cannot_take_the_example_master(
+        pinned, write_cfg):
+    del pinned["pattern"]
+    pinned["min_diff"] = 3          # the keys no longer follow a pattern; keep the file clean
+    out = check(write_cfg, pinned).stdout
+    figure = re.search(r"(\d+) undecoded unit key\(s\): about ([\d.]+) expected to be unable "
+                       r"to take this master and control key \((\d+)%\)", residual(out))
+    assert figure and figure.group(1) == "97"
+    assert 70 <= int(figure.group(3)) <= 85          # 79% in the design's prototype
+    assert float(figure.group(2)) == pytest.approx(97 * int(figure.group(3)) / 100, abs=0.6)
+    assert "(549,745 of 3,027,314 valid bittings)" in residual(out)
+
+
+def test_a_unit_core_with_no_master_is_asked_about_its_control_key_only(pinned, write_cfg):
+    del pinned["pattern"]
+    pinned["cores"][-1]["masters"] = []
+    # A control cut of 0 in the second chamber rules out a unit key's 9 there, and nothing
+    # else (the old control key has no 0 there, so the population still allows a 9).
+    control = pinned["control_keys"]["control_b"]
+    pinned["control_keys"]["control_b"] = control[0] + "0" + control[2:]
+    assert pinned["retired_keys"]["old_control"][1] != "0"
+    out = residual(check(write_cfg, pinned).stdout)
+    figure = re.search(r"unable to take this master and control key \((\d+)%\)", out)
+    assert figure and 0 < int(figure.group(1)) < 50
+
+
+def test_the_population_changes_the_estimate_for_the_other_cores_too(pinned, write_cfg):
+    with_population = residual(run_script("check_system", FIXTURES / "pinning.json").stdout)
+    del pinned["retired_cores"]
+    uniform = residual(check(write_cfg, pinned).stdout)
+    line = "Area A cores: "
+    assert [ln for ln in with_population.splitlines() if ln.startswith(line)] != \
+        [ln for ln in uniform.splitlines() if ln.startswith(line)]
+
+
+def test_files_without_pinning_print_no_pinning_lines_in_the_residual_section():
+    section = residual(run_script("check_system", FIXTURES / "clean.json").stdout)
+    assert "unable to take" not in section and "retired core" not in section
+
+
+def test_an_impossible_description_of_the_old_cores_falls_back_without_ending_the_report(
+        pinned, write_cfg):
+    pinned["retired_keys"]["old_master"] = "9" * 7
+    pinned["retired_keys"]["old_control"] = "0" * 7
+    proc = check(write_cfg, pinned)
+    assert proc.returncode == 0, proc.stdout + proc.stderr    # a disputed description is a warning
+    assert "WARNING   Original cores" in proc.stdout           # the retired-core section said so
+    section = residual(proc.stdout)
+    assert "Estimate only: assumes unknown unit keys are random valid bittings." in section
+    assert "The retired cores were not used: no valid bitting could have been pinned in them." \
+        in section
+    assert "unable to take this master and control key" in section   # the rest of the report
+    assert re.search(r"\nOK, \d+ warning\(s\)$", proc.stdout.strip())
+
+
+
+def test_more_covering_retired_cores_than_the_limit_fall_back_to_the_uniform_population(
+        pinned, write_cfg):
+    template = pinned["retired_cores"][0]
+    pinned["retired_cores"] = [{**template, "name": f"Old {n}"} for n in range(4)]
+    proc = check(write_cfg, pinned)
+    section = residual(proc.stdout)
+    assert proc.returncode == 0, proc.stdout       # a disputed description does not fail the file
+    assert "Estimate only: assumes unknown unit keys are random valid bittings." in section
+    assert "The retired cores were not used: 4 of them cover unit keys, and at most 3 " \
+        "can be combined exactly." in section
+    three = dict(pinned, retired_cores=pinned["retired_cores"][:3])
+    assert "sat in the retired core(s) Old 0, Old 1, Old 2" in residual(check(write_cfg, three).stdout)

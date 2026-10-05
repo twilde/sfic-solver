@@ -238,7 +238,7 @@ def test_the_pinning_fixture_loads(pinned):
         "Unit cores": "control_b"}
     assert cfg.retired_cores == [{
         "name": "Original cores", "changes": ["unit:101", "unit:102", "unit:103"],
-        "masters": ["old_master"], "control": "old_control"}]
+        "masters": ["old_master"], "control": "old_control", "covers_units": True}]
 
 
 def test_the_pinning_fixture_mirrors_the_example_system(pinned):
@@ -362,3 +362,20 @@ def test_misspelled_retired_core_fields_warn(pinned):
     pinned["retired_cores"][0]["master"] = ["old_master"]
     assert "retired core 'Original cores': unknown field 'master' is ignored (misspelled?)" \
         in parse_config(pinned).warnings
+
+
+@pytest.mark.parametrize("change, covers", [
+    ("unit:*", True), (["unit:*"], True), (["old_area", "unit:1*"], True),
+    ("unit:101", False), ("old_area", False), ("flat:*", False), (["unit:101", "old_area"], False),
+])
+def test_a_retired_core_covers_unit_keys_when_a_wildcard_starts_with_the_unit_prefix(
+        pinned, change, covers):
+    pinned["retired_cores"][0]["change"] = change
+    assert parse_config(pinned).retired_cores[0]["covers_units"] is covers
+
+
+def test_any_number_of_retired_cores_covering_units_is_accepted_by_the_loader(pinned):
+    template = pinned["retired_cores"][0]
+    pinned["retired_cores"] = [{**template, "name": f"Old {n}"} for n in range(8)]
+    cfg = parse_config(pinned)         # the checker, not the loader, limits what it combines
+    assert len(cfg.retired_cores) == 8 and all(c["covers_units"] for c in cfg.retired_cores)

@@ -176,3 +176,82 @@ def test_depth_count_limits_digits_and_counts(depths):
 def test_digits_follow_the_parity_pattern():
     space = model.KeySpace(3, "EOE")
     assert space.digits == ((0, 2, 4, 6, 8), (1, 3, 5, 7, 9), (0, 2, 4, 6, 8))
+
+
+# -- populations: sets of bittings counted exactly ----------------------------------
+
+def random_sets(rng, pins, depths):
+    return tuple(tuple(sorted(rng.sample(range(depths), rng.randint(1, depths))))
+                 for _ in range(pins))
+
+
+def members(sets, space):
+    return {k for k in itertools.product(*sets) if space.macs_ok(k)}
+
+
+@pytest.fixture
+def small():
+    return model.KeySpace(pins=3, pattern=None, max_step=3, depths=6)
+
+
+def test_the_uniform_population_is_every_valid_bitting(small):
+    uniform = small.uniform()
+    assert small.population_size(uniform) == small.total_valid
+    example = model.KeySpace(7, "OOEOEOE")
+    assert example.population_size(example.uniform()) == 28384
+    assert small.pair_conflict_probability([(1, 2, 3)], uniform) == \
+        small.pair_conflict_probability([(1, 2, 3)])
+
+
+def test_a_product_of_sets_is_counted_exactly(small):
+    rng = random.Random(1)
+    for _ in range(20):
+        sets = random_sets(rng, 3, 6)
+        assert small.population_size(model.Population.of_sets(sets)) == len(members(sets, small))
+
+
+@pytest.mark.parametrize("count", [1, 2, 3, 5])
+def test_a_union_of_products_is_counted_by_inclusion_and_exclusion(small, count):
+    rng = random.Random(count)
+    for _ in range(10):
+        products = [random_sets(rng, 3, 6) for _ in range(count)]
+        union = set().union(*(members(p, small) for p in products))
+        population = model.Population.union_of(products)
+        assert small.population_size(population) == len(union)
+        for key in itertools.product(range(6), repeat=3):
+            assert small.population_contains(population, key) == (key in union)
+
+
+def test_operating_counts_are_taken_within_the_population(small):
+    rng = random.Random(7)
+    for _ in range(20):
+        sets = random_sets(rng, 3, 6)
+        options = model.options_for((1, 2, 3), [(4, 0, 5), (2, 2, 1)])
+        population = model.Population.union_of([sets, random_sets(rng, 3, 6)])
+        expected = sum(1 for k in itertools.product(range(6), repeat=3)
+                       if small.population_contains(population, k) and model.operates(k, options))
+        assert small.population_operating(population, options) == expected
+
+
+def test_restricting_a_population_keeps_the_members_with_cuts_in_the_sets(small):
+    rng = random.Random(3)
+    population = model.Population.union_of([random_sets(rng, 3, 6), random_sets(rng, 3, 6)])
+    sets = random_sets(rng, 3, 6)
+    narrowed = population.restricted(sets)
+    for key in itertools.product(range(6), repeat=3):
+        inside = all(c in sets[i] for i, c in enumerate(key))
+        assert narrowed.contains(key) == (population.contains(key) and inside)
+
+
+def test_pair_conflicts_are_counted_within_the_population(small):
+    rng = random.Random(11)
+    masters = [(4, 0, 5), (2, 2, 1)]
+    for _ in range(5):
+        population = model.Population.union_of([random_sets(rng, 3, 6),
+                                                random_sets(rng, 3, 6)])
+        valid = [k for k in itertools.product(range(6), repeat=3)
+                 if small.population_contains(population, k)]
+        pairs = sum(1 for a in valid for b in valid
+                    if all(b[p] == a[p] or b[p] in (m[p] for m in masters) for p in range(3)))
+        assert small.pair_conflict_probability(masters, population) == \
+            pytest.approx(pairs / len(valid) ** 2, abs=0, rel=1e-12)

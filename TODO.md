@@ -16,7 +16,7 @@
   script, and the config and checker for files that set `pinning`). Step 5 changes
   the solver's scoring and the residual-risk population, and is designed and
   accepted in docs/designs/pinnable-solving.md: part 5a (the population and the
-  expected-unpinnable figure) is next, then 5b (the solver and the generator).
+  expected-unpinnable figure) is done, then 5b (the solver and the generator).
   Step 6 is the chart command.
 - Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
   drawing of each core's pin stacks inside the chart output, and optional PDF
