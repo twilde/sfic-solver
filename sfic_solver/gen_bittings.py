@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""Generate random key bittings from an even/odd pattern.
+"""Generate random key bittings, optionally from an even/odd pattern.
 
 The pattern has one E or O per pin (7 for an SFIC system, but any length works).
 Each cut is 0-9 with the parity the pattern asks for, and adjacent cuts
-may differ by at most --max-step (default 5).
+may differ by at most --max-step (default 5). Without a pattern any cut 0-9 is
+allowed at every position (7 pins unless --pins says otherwise), which suits a
+system whose cores are pinned for real (see "Pinning" in the README): whether
+keys can be pinned together depends on the core, so check_system and
+solve_system are where that is tested, not this command.
 
 Examples:
     ./gen_bittings.py OOEOEOE
     ./gen_bittings.py OOEOEOE -n 20
     ./gen_bittings.py OOEOEOE -n 5 --avoid 5961634 7305496 --min-diff 4
+    ./gen_bittings.py --pins 7 -n 5             # any parity
 """
 import argparse
 import secrets
@@ -52,7 +57,11 @@ def differs_enough(cuts, avoid, min_diff):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pattern", help="one E/O per pin, e.g. OOEOEOE (its length is the pin count)")
+    ap.add_argument("pattern", nargs="?",
+                    help="one E/O per pin, e.g. OOEOEOE (its length is the pin count); "
+                         "leave it out to allow any parity")
+    ap.add_argument("--pins", type=int,
+                    help="number of pins (default: the length of the pattern, else 7)")
     ap.add_argument("-n", "--count", type=int, default=10, help="how many bittings")
     ap.add_argument("--max-step", type=int, default=5,
                     help="max difference between adjacent cuts (default 5)")
@@ -66,16 +75,21 @@ def main(argv=None):
 
     if args.max_step < 1:
         ap.error("--max-step must be at least 1")
+    if args.pins is not None and args.pins < 1:
+        ap.error("--pins must be at least 1")
     try:
-        pattern = parse_pattern(args.pattern)
-        space = model.KeySpace(pins=len(pattern), pattern=pattern, max_step=args.max_step)
+        pattern = parse_pattern(args.pattern) if args.pattern is not None else None
+        pins = len(pattern) if pattern else (args.pins or model.DEFAULT_PINS)
+        if pattern and args.pins is not None and args.pins != pins:
+            ap.error(f"--pins {args.pins} disagrees with the {pins} pins of the pattern")
+        space = model.KeySpace(pins=pins, pattern=pattern, max_step=args.max_step)
         avoid = [parse_bitting(b, space) for b in args.avoid]
     except ValueError as err:
         ap.error(str(err))
     if args.min_diff is None:
-        args.min_diff = min(3, len(pattern))
-    elif args.min_diff > len(pattern):
-        ap.error(f"--min-diff {args.min_diff} is more than the {len(pattern)} pins in the pattern")
+        args.min_diff = min(3, pins)
+    elif args.min_diff > pins:
+        ap.error(f"--min-diff {args.min_diff} is more than the {pins} pins")
 
     accepted = []
     attempts = 0

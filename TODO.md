@@ -11,14 +11,10 @@
   pin) so the tools work for other systems. The pin count is already
   configurable (D22 in docs/decisions.md); the rest is covered by the pinning
   system records in docs/designs/core-pinning.md.
-- Core pinning (docs/designs/core-pinning.md): steps 1 to 4 are done (the
-  key-space object, the pinning library, the `.txt` guard and the conformance
-  script, and the config and checker for files that set `pinning`). Step 5 changes
-  the solver's scoring and the residual-risk population, and is designed and
-  accepted in docs/designs/pinnable-solving.md: part 5a (the population and the
-  expected-unpinnable figure) and the solver half of 5b are done, then the generator
-  without a pattern.
-  Step 6 is the chart command.
+- Core pinning (docs/designs/core-pinning.md): steps 1 to 5 are done (the key-space
+  object, the pinning library, the `.txt` guard and the conformance script, the config
+  and checker for files that set `pinning`, and the solver and generator for them,
+  designed in docs/designs/pinnable-solving.md). Step 6 is the chart command.
 - Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
   drawing of each core's pin stacks inside the chart output, and optional PDF
   output of all the charts as one document.

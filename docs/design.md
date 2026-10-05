@@ -161,9 +161,9 @@ what it did. If `pins` and `pattern` disagree the usual pattern error is reporte
 count, with the error saying what count was expected. The count is deliberately
 not inferred from the bittings, since `null` bittings carry no length and a typo
 in one bitting should be an error, not a new pin count. The command-line tools
-follow the same order: `gen_bittings` always has a pattern, so its count is the
-pattern's length, and `check_bittings` takes `--pins`, else the length of
-`--pattern`, else 7. The default `min_diff` is `min(5, pins)` (`min(3, pins)` for
+follow the same order: `check_bittings` takes `--pins`, else the length of
+`--pattern`, else 7, and `gen_bittings` the same since its pattern became optional
+(D57), taking it from the pattern when there is one. The default `min_diff` is `min(5, pins)` (`min(3, pins)` for
 `gen_bittings`) and an explicit value above the pin count is an error, because no
 two keys could satisfy it; without that, a 5-pin file that never mentions
 `min_diff` would be valid at 7 pins and impossible at 4 (D22).
@@ -389,12 +389,12 @@ byte-identical output and files, which is shown by seeded runs before and after 
 
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), the guard and the conformance script (step 3),
-the config and checker for opted-in files (step 4) and, of step 5, the population and
-the expected-unpinnable figure in the checker (5a) and the solver's use of them (5b)
-are built. The rest is not: the generator running without a pattern (5b, agreed in
-[designs/pinnable-solving.md](designs/pinnable-solving.md), D54); the chart-printing
-command; and ASCII and PDF output. None of it changes any weight or algorithm for
-files that do not opt in (D6).
+the config and checker for opted-in files (step 4) and step 5, which finishes the
+design in [designs/pinnable-solving.md](designs/pinnable-solving.md) (D54): the
+population and the expected-unpinnable figure in the checker, the solver's use of
+them, and the generator running without a pattern (D55 to D57). The rest is not:
+the chart-printing command, and ASCII and PDF output. None of it changes any weight
+or algorithm for files that do not opt in (D6).
 
 ## Reading scanned charts
 

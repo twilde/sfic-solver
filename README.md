@@ -18,7 +18,7 @@ Everything else runs without them. Python 3.11 or newer.
 
 | Command (from a checkout) | Installed as | What it does |
 | --- | --- | --- |
-| `./gen_bittings.py` | `sfic-gen-bittings` | Random bittings from a parity pattern, optionally staying away from existing bittings. |
+| `./gen_bittings.py` | `sfic-gen-bittings` | Random bittings from a parity pattern, or with any parity if you give none, optionally staying away from existing bittings. |
 | `./check_bittings.py` | `sfic-check-bittings` | Quick check of a few `NAME=BITTING` values: format, parity, adjacent-cut limit, pairwise closeness. |
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
@@ -26,8 +26,8 @@ Everything else runs without them. Python 3.11 or newer.
 | `./scan_charts.py` | `sfic-scan-charts` | Reads scans (PDF or image) of paper pinning charts and writes them as the text charts `check_charts` reads. Needs the optional `scan` extra and Tesseract. **Work suspended; does not yet read real printouts well.** See [Scanning paper charts](#scanning-paper-charts). |
 
 The pin count is 7 unless the system file says otherwise (`pins`, or the length
-of `pattern`); `gen_bittings.py` takes it from the pattern's length and
-`check_bittings.py` from `--pins` or `--pattern`.
+of `pattern`); `gen_bittings.py` and `check_bittings.py` take it from `--pins`, else the length of
+the pattern (`gen_bittings.py` has the pattern as its argument).
 
 Run them straight from a checkout (`./check_system.py system.json`), as modules
 (`python3 -m sfic_solver.check_system system.json`), or install the package

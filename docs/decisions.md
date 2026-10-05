@@ -598,3 +598,15 @@ solver uses the checker's population and says when the retired cores were not us
 Files without `pinning` give byte-identical solver output, shown by seeded runs.
 
 Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D57. The generator's pattern is optional
+
+`gen_bittings` required a parity pattern, which is why it could not be used for a
+system that has dropped parity. The pattern is now optional, with `--pins` for the
+length (default 7, as `check_bittings` has it), and without one any MACS-valid key is
+drawn. Invocations with a pattern behave as before. The generator still does not
+check that keys can be pinned together, since that depends on the core and the
+generator draws keys with no core in mind: `check_system` and `solve_system` test
+that. Rejected: a `--pinnable-with` option, which is possible later.
+
+Detail: [design.md, "Pinning"](design.md#pinning).
