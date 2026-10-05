@@ -557,7 +557,7 @@ rightly dispute.
 
 Detail: [design.md, "Pinning"](design.md#pinning).
 
-## D54. Step 5 is designed before it is built, because it changes what the solver scores
+## D54. Step 5 is designed before it is built, and the design is accepted
 
 Step 5 of core pinning makes an unpinnable core a hard conflict in the solver, adds
 an expected-unpinnable figure for undecoded unit keys beside the expected
@@ -565,7 +565,7 @@ cross-operation, takes the population of undecoded keys from the retired cores w
 they cover units, and lets the generator run without a pattern. Without parity a
 random master leaves most undecoded units unable to take it, so the figure is
 needed, and a hill-climb under the closeness rule still leaves about a quarter. The
-design is a draft in its own document; no code is written until it is accepted, and
-files that do not set `pinning` are unaffected.
+design is in its own document and has been accepted, with a weight of one for the
+new term; files that do not set `pinning` are unaffected.
 
 Detail: [designs/pinnable-solving.md](designs/pinnable-solving.md).

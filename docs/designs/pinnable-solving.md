@@ -1,14 +1,13 @@
 # Solving for pinnable systems (core pinning, step 5)
 
-Status: Draft
+Status: Accepted
 
-This document proposes step 5 of [core pinning](core-pinning.md): making the
+This document describes step 5 of [core pinning](core-pinning.md): making the
 solver, the residual-risk estimate and the generator work for a system that sets
-`pinning` and has no parity pattern. It is written before any code, to be
-discussed and changed. Unlike steps 1 to 4 it changes what the solver scores, so
-it does not start until it is accepted (D6). Files that do not set `pinning` are
-unaffected throughout; a test will show that their output is byte for byte what it
-is today.
+`pinning` and has no parity pattern. It was written before any code and has been
+accepted, including its changes to what the solver scores (D6) and the weight of
+one for the new term. Files that do not set `pinning` are unaffected throughout; a
+test will show that their output is byte for byte what it is today.
 
 ## Why do this
 
