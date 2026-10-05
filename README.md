@@ -240,9 +240,11 @@ The same description improves the residual-risk section. A unit key that sat in 
 old core cannot be just any bitting, so when a retired core covers the units (its
 `change` has a wildcard starting with the unit prefix, such as `"unit:*"`), the
 estimate assumes the undecoded unit keys are the bittings that old core could have
-been pinned with, and says so. Up to three covering cores give the union of what each
-allows; with more, the report says the retired cores were not used and assumes every
-valid bitting. With `pinning` set, each unit core also gets a second figure, how many of the
+been pinned with, and says so. Only a wildcard that starts with the unit prefix counts,
+so a core whose `change` is `"*"` does not describe the units. Up to three covering
+cores give the union of what each allows. When the retired cores cannot be used (more
+than three cover the units, or no bitting could have been pinned in them), the report
+says so and assumes every valid bitting instead of stopping. With `pinning` set, each unit core also gets a second figure, how many of the
 undecoded unit keys cannot be pinned under its master and control key at all, which
 means that unit's core could not take the master and would have to be rekeyed:
 
@@ -254,8 +256,10 @@ Unit cores: about 1.0 unit-to-unit cross-operations expected by chance; re-check
     97 undecoded unit key(s): about 76.7 expected to be unable to take this master and control key (79%), so their cores would need rekeying
 ```
 
-With a parity pattern the second figure is always 0%. Without one it can be large,
-and it depends strongly on the master chosen, which is why it is worth reading
+With a parity pattern the second figure is often 0%, because the operating cuts
+are already two apart; a control key cut that sits too close to an operating cut
+can still make it positive. Without a pattern it can be large, and it depends
+strongly on the master and the control key chosen, which is why it is worth reading
 before dropping the pattern.
 
 ## Typical workflow

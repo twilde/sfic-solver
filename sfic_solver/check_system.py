@@ -203,16 +203,20 @@ def main(argv=None):
     if unit_count:
         decoded = sum(1 for n in keys if n.startswith(unit_prefix))
         unknown = unit_count - decoded
+        unused = None          # why the retired cores were not used, if they were not
         try:
             population = retired_population(cfg)
-        except ValueError as err:
-            sys.exit(f"error: {argv[0]}: {err}")
+        except ValueError:
+            population = None
+            unused = "no valid bitting could have been pinned in them"
+        if cfg.pinning and len(covering_cores(cfg)) > MAX_COVERING_CORES:
+            unused = (f"{len(covering_cores(cfg))} of them cover unit keys, and at most "
+                      f"{MAX_COVERING_CORES} can be combined exactly")
         print(f"\n== Residual risk from undecoded unit keys ({decoded} of {unit_count} decoded) ==")
         if population is None:
             print("Estimate only: assumes unknown unit keys are random valid bittings.")
-            if cfg.pinning and len(covering_cores(cfg)) > MAX_COVERING_CORES:
-                print(f"The retired cores were not used: {len(covering_cores(cfg))} of them cover "
-                      f"unit keys, and at most {MAX_COVERING_CORES} can be combined exactly.")
+            if unused:
+                print(f"The retired cores were not used: {unused}.")
         else:
             covering = ", ".join(c["name"] for c in covering_cores(cfg))
             print(f"Estimate only: assumes unknown unit keys sat in the retired core(s) "

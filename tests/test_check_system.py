@@ -336,9 +336,21 @@ def test_without_retired_cores_the_population_stays_uniform_but_the_figure_is_pr
     assert "97 undecoded unit key(s): about 0.0 expected to be unable to take" in section
 
 
-def test_parity_keeps_every_undecoded_unit_key_able_to_take_the_master(pinned):
+def test_parity_leaves_no_undecoded_unit_key_unable_to_take_the_fixtures_master(pinned):
     section = residual(run_script("check_system", FIXTURES / "pinning.json").stdout)
     assert "about 0.0 expected to be unable to take this master and control key (0%)" in section
+
+
+def test_a_control_key_cut_too_close_to_an_operating_cut_makes_the_figure_positive_with_parity(
+        pinned, write_cfg):
+    # The pattern keeps operating cuts apart, but not a control cut from a unit key's: a
+    # control cut of 0 in the second chamber rules out a unit key's 9 there.
+    control = pinned["control_keys"]["control_b"]
+    pinned["control_keys"]["control_b"] = control[0] + "0" + control[2:]
+    assert pinned["pattern"] == "OOEOEOE" and pinned["retired_keys"]["old_control"][1] != "0"
+    figure = re.search(r"about ([\d.]+) expected to be unable to take this master and control "
+                       r"key \((\d+)%\)", residual(check(write_cfg, pinned).stdout))
+    assert figure and float(figure.group(1)) > 0 and 0 < int(figure.group(2)) < 20
 
 
 def test_without_a_pattern_most_undecoded_unit_keys_cannot_take_the_example_master(
@@ -381,12 +393,20 @@ def test_files_without_pinning_print_no_pinning_lines_in_the_residual_section():
     assert "unable to take" not in section and "retired core" not in section
 
 
-def test_an_impossible_description_of_the_old_cores_is_an_error(pinned, write_cfg):
+def test_an_impossible_description_of_the_old_cores_falls_back_without_ending_the_report(
+        pinned, write_cfg):
     pinned["retired_keys"]["old_master"] = "9" * 7
     pinned["retired_keys"]["old_control"] = "0" * 7
     proc = check(write_cfg, pinned)
-    assert proc.returncode == 1
-    assert "no valid bitting could have been pinned in the retired cores" in proc.stderr
+    assert proc.returncode == 0, proc.stdout + proc.stderr    # a disputed description is a warning
+    assert "WARNING   Original cores" in proc.stdout           # the retired-core section said so
+    section = residual(proc.stdout)
+    assert "Estimate only: assumes unknown unit keys are random valid bittings." in section
+    assert "The retired cores were not used: no valid bitting could have been pinned in them." \
+        in section
+    assert "unable to take this master and control key" in section   # the rest of the report
+    assert re.search(r"\nOK, \d+ warning\(s\)$", proc.stdout.strip())
+
 
 
 def test_more_covering_retired_cores_than_the_limit_fall_back_to_the_uniform_population(
