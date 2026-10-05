@@ -232,6 +232,30 @@ def solve(prob, trials, sweeps, rng):
     return report
 
 
+def failed_keys(prob):
+    """The unknown keys whose chosen bitting still has a hard conflict, as (name, count)
+    pairs: the count is how many hard penalties its score carries (a cross-operation, a
+    duplicate or an unpinnable chamber each count once, so a conflict shared by two keys
+    is counted for both)."""
+    failed = []
+    for k in prob.unknown:
+        hard = int(prob.score_key(k, prob.assign[k]) // HARD)
+        if hard:
+            failed.append((k, hard))
+    return failed
+
+
+def not_solved_line(failed, check="below"):
+    """The line that says the search failed, or None when it did not. `check` says where the
+    full check of the result is, for the line to point at: the line is printed before it and
+    again after it."""
+    if not failed:
+        return None
+    named = ", ".join(f"{k} ({n})" for k, n in failed)
+    return (f"NOT SOLVED: the result still has hard conflicts involving {named}. Run it again "
+            f"(a different random draw may do better), or see the check {check}.")
+
+
 def unit_pair_summary(prob, rng, samples=300):
     """Compare the chosen unit-core masters with typical random choices."""
     for core in prob.cores:
@@ -291,6 +315,8 @@ def main(argv=None):
         print(f"The retired cores were not used: {prob.population_note}.")
     solve(prob, args.trials, args.sweeps, rng)
     unit_pair_summary(prob, rng)
+    failed = failed_keys(prob)
+    verdict = not_solved_line(failed)
 
     raw = cfg.raw
     for label in ("keys", "control_keys"):
@@ -300,10 +326,14 @@ def main(argv=None):
     out = args.out or os.path.splitext(args.config)[0] + ".solved.json"
     with open(out, "w") as f:
         json.dump(raw, f, indent=2)
+    if verdict:
+        print(f"\n{verdict}")
     print(f"\nWrote {out}. Full check of the result:\n")
     sys.stdout.flush()
     check_system.main([out])      # report only; its exit status is not ours (as before)
-    return 0
+    if verdict:
+        print(f"\n{not_solved_line(failed, 'above')}")
+    return 0     # exit status 0 whenever a result was written (README); the verdict is the line
 
 
 if __name__ == "__main__":

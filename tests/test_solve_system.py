@@ -288,3 +288,53 @@ def test_the_summary_says_the_unpinnable_figure_was_weighed_first(pinned, write_
 def test_without_pinning_the_summary_has_no_unpinnable_line(unsolved, write_cfg, tmp_path):
     proc, _ = solve(write_cfg, unsolved, tmp_path, seed=1)
     assert "The solver weighed this first" not in proc.stdout
+
+
+# -- saying so when the search failed (issue 26, part 1) -----------------------------
+
+@pytest.fixture
+def no_pinnable_master(pinned):
+    """Ten decoded units whose first cuts are 0 to 9: whatever the master cuts there, it is one
+    from a unit's cut, so some core cannot be pinned (no pin of size 1 exists)."""
+    for digit in range(10):
+        pinned["keys"][f"unit:{200 + digit}"] = f"{digit}555555"
+    return pinned
+
+
+def test_a_result_that_still_has_hard_conflicts_says_it_was_not_solved(
+        no_pinnable_master, write_cfg, tmp_path):
+    proc, out = solve(write_cfg, no_pinnable_master, tmp_path, seed=4)
+    assert proc.returncode == 0, proc.stderr           # the exit status stays 0 (README)
+    assert out.exists()
+    lines = proc.stdout.splitlines()
+    marks = [i for i, ln in enumerate(lines) if ln.startswith("NOT SOLVED")]
+    wrote = next(i for i, ln in enumerate(lines) if ln.startswith("Wrote"))
+    assert len(marks) == 2 and marks[0] < wrote < marks[1] == len(lines) - 1
+    assert "unit_master" in lines[marks[0]] and "UNPINNABLE" in proc.stdout
+
+
+def test_a_solved_result_does_not_say_it_was_not_solved(pinned, write_cfg, tmp_path):
+    proc, _ = solve(write_cfg, pinned, tmp_path, seed=4)
+    assert "NOT SOLVED" not in proc.stdout
+
+
+def test_failed_keys_names_the_unknown_keys_with_a_hard_penalty(pinned):
+    prob = problem(pinned)
+    unit = json.loads((FIXTURES / "pinning.json").read_text())["keys"]["unit:101"]
+    prob.assign["unit_master"] = (int(unit[0]) + 1, *map(int, unit[1:]))
+    (name, count), = solve_system.failed_keys(prob)
+    assert name == "unit_master" and count >= 1
+    assert f"unit_master ({count})" in solve_system.not_solved_line([(name, count)])
+    prob.assign["unit_master"] = unit_clear_master(prob)
+    assert solve_system.failed_keys(prob) == []
+    assert solve_system.not_solved_line([]) is None
+
+
+def unit_clear_master(prob):
+    """A master that pins over every decoded unit key, found by drawing."""
+    rng = random.Random(1)
+    for _ in range(2000):
+        cand = prob.random_candidate(rng)
+        if prob.score_key("unit_master", cand) < solve_system.HARD:
+            return cand
+    raise AssertionError("no clean master drawn")

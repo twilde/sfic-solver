@@ -623,3 +623,16 @@ with a reminder that charts are key data. The writer is its own module, sharing 
 reader's labels, and a test reads back what it writes.
 
 Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D59. The solver says when it did not solve
+
+The solver used to write a result and print `Wrote ...` whatever its best score; the only
+sign of failure was the last line of the full check. After the search it now looks at
+each unknown key's chosen bitting, and if any still carries a hard penalty (a
+cross-operation, a duplicate or an unpinnable chamber) it prints a `NOT SOLVED` line
+naming those keys, before `Wrote` and again after the full check, so the verdict is
+the last line. The exit status stays 0 when a result was written (D8): changing it is
+a maintainer decision, and it is not made here. Conflicts between known keys alone do
+not trigger the line, since no choice of the solver's can change them.
+
+Detail: [design.md, "The code"](design.md#the-code).

@@ -130,6 +130,14 @@ written a result. It then runs the checker in-process, after flushing its own
 output (it used to be a subprocess whose output could appear before the solver's
 own lines when redirected), and the checker's status is not the solver's (D8).
 
+**Saying that it failed.** Exit status 0 does not mean the solver succeeded, only that
+it wrote a result. After the search it scores each unknown key's chosen bitting once more
+and, if any still carries a hard penalty, prints a `NOT SOLVED` line that names those keys
+and how many penalties each carries (a conflict between two unknown keys counts for both).
+The line comes before `Wrote ...` and again after the full check, so it is the last line of
+the output; the exit status is unchanged. A conflict between known keys alone does not
+trigger it: nothing the solver chooses can change that, and the check reports it (D59).
+
 ## The key space
 
 The rules that decide which bittings can be cut live in one frozen object,
