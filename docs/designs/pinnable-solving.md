@@ -5,7 +5,9 @@ Status: Accepted
 This document describes step 5 of [core pinning](core-pinning.md): making the
 solver, the residual-risk estimate and the generator work for a system that sets
 `pinning` and has no parity pattern. It was written before any code and has been
-accepted, including its changes to what the solver scores (D6). Files that do not set `pinning` are unaffected throughout; a
+accepted, including its changes to what the solver scores (D6) and the weight of
+one for the new term, confirmed with the scale of both terms in view (see "What
+changes in the solver"). Files that do not set `pinning` are unaffected throughout; a
 test will show that their output is byte for byte what it is today.
 
 ## Why do this
@@ -152,11 +154,11 @@ each candidate scored exactly. Three changes, all only when the system sets
    unpinnable keys average 77 (63 to 84) and 76 (48 to 87). With a weight of 1 the
    unpinnable term is two to three hundred times larger and varies far more between
    candidates, so the solver in effect minimises it first and uses cross-operation
-   only to choose among near-ties. That is the behavior proposed, because without
-   parity a unit core that cannot take the master is a certain cost, a core to rekey,
-   while a chance cross-operation is rare, and the output prints both figures
-   separately so the effect can be seen. If a balance were wanted, the weight would
-   have to be much smaller or the terms normalised, and that is a change to this
+   only to choose among near-ties. That is the intended behavior, and the maintainer
+   has confirmed it: the primary goal is to avoid rekeying unit cores, which without
+   parity is a certain cost, while a chance cross-operation is rare. The output
+   prints both figures separately so the effect can be seen. A balance would need a
+   much smaller weight or normalised terms, and that would be a change to this
    paragraph, not an implementation detail.
 3. **The population comes from the retired cores**, in the solver's own estimate
    as in `check_system`, through the same function, so the two always print the
