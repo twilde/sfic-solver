@@ -5,9 +5,10 @@ bittings can be cut (how many pins, how many depths, the adjacent-cut limit and
 the optional parity pattern) live together in a `KeySpace`; functions that need
 them are its methods, and the rest read what they need off their arguments.
 """
+import itertools
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Optional
+from typing import Optional, Tuple
 
 DEFAULT_PINS = 7
 DEFAULT_DEPTHS = 10
@@ -26,6 +27,56 @@ def normalize_pattern(text, pins):
     if len(pattern) != pins or set(pattern) - {"E", "O"}:
         raise ValueError(f"pattern must be {pins} characters of E/O, got {text!r}")
     return pattern
+
+
+@dataclass(frozen=True)
+class Population:
+    """A set of bittings, as a signed sum of products of per-position cut sets.
+
+    Each term is (sign, sets) with one tuple of allowed cuts per position, so a term
+    is every bitting whose cut at each position is in that position's set. A union of
+    such products is written by inclusion and exclusion: a term for each subset, with
+    sign + for an odd number of products and - for an even number. Counting a
+    population is then a sum of the per-term counts, which the KeySpace methods do
+    exactly (the MACS limit couples the positions, so the counts are dynamic
+    programming, not products).
+    """
+    terms: Tuple[Tuple[int, Tuple[Tuple[int, ...], ...]], ...]
+
+    @classmethod
+    def of_sets(cls, sets):
+        """The bittings whose cut at each position is in the given set."""
+        return cls(((1, tuple(tuple(sorted(s)) for s in sets)),))
+
+    @classmethod
+    def union_of(cls, products):
+        """The bittings in at least one of several per-position set products.
+
+        Writes the union by inclusion and exclusion, so it has 2**n - 1 terms before
+        empty ones are dropped: callers keep n small.
+        """
+        terms = []
+        for size in range(1, len(products) + 1):
+            for chosen in itertools.combinations(products, size):
+                sets = tuple(tuple(sorted(set.intersection(*(set(p[i]) for p in chosen))))
+                             for i in range(len(chosen[0])))
+                if all(sets):
+                    terms.append(((-1) ** (size + 1), sets))
+        return cls(tuple(terms))
+
+    def restricted(self, sets):
+        """The part of the population whose cut at each position is also in `sets`."""
+        terms = []
+        for sign, own in self.terms:
+            narrowed = tuple(tuple(c for c in own[i] if c in sets[i]) for i in range(len(own)))
+            if all(narrowed):
+                terms.append((sign, narrowed))
+        return Population(tuple(terms))
+
+    def contains(self, cuts):
+        """True if the bitting is in the population (the MACS limit is not considered)."""
+        return sum(sign for sign, sets in self.terms
+                   if all(c in sets[i] for i, c in enumerate(cuts))) == 1
 
 
 @dataclass(frozen=True)
@@ -99,14 +150,37 @@ class KeySpace:
                     for d in options[p]}
         return sum(ways.values())
 
-    def pair_conflict_probability(self, masters):
+    def uniform(self):
+        """The population of every valid bitting: the parity pattern's cuts, any MACS-valid key."""
+        return Population.of_sets(self.digits)
+
+    def population_size(self, population):
+        """Number of MACS-valid bittings in the population."""
+        return sum(sign * self.operating_set_size(sets) for sign, sets in population.terms)
+
+    def population_operating(self, population, options):
+        """Number of MACS-valid bittings in the population that a core accepts, where
+        `options` is the per-position cuts the core accepts (see `options_for`)."""
+        return self.population_size(population.restricted(options))
+
+    def population_contains(self, population, cuts):
+        """True if the bitting is in the population and MACS-valid."""
+        return self.macs_ok(cuts) and population.contains(cuts)
+
+    def pair_conflict_probability(self, masters, population=None):
         """Chance that a random valid key B operates the core of a random valid key A.
 
         The core is pinned with A as change key and `masters` above it, so B works
         when, at every position, its cut equals A's cut or a master's cut.
-        Exact (dynamic programming over positions), no sampling.
+        Exact (dynamic programming over positions), no sampling. With a population,
+        A and B are both drawn from it instead of from every valid bitting.
         """
-        return self.pair_count(masters, self.digits, self.digits) / self.total_valid ** 2
+        if population is None:
+            return self.pair_count(masters, self.digits, self.digits) / self.total_valid ** 2
+        pairs = sum(a_sign * b_sign * self.pair_count(masters, a_sets, b_sets)
+                    for a_sign, a_sets in population.terms
+                    for b_sign, b_sets in population.terms)
+        return pairs / self.population_size(population) ** 2
 
     def pair_count(self, masters, a_sets, b_sets):
         """Pairs (A, B) of MACS-valid keys, A from `a_sets` and B from `b_sets` (per-position
