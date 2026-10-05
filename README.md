@@ -299,6 +299,15 @@ before dropping the pattern.
    the operating system's randomness (`--seed` exists only for reproducible
    tests, never use it for real keys). Review the result; it is a suggestion.
 
+   If the file sets `pinning` (see [Pinning](#pinning-optional)), the solver
+   also treats a core that cannot be pinned as a hard conflict, and adds the
+   expected number of undecoded unit keys that cannot take the unit master and
+   its control key to the score of the last item, counting each as one chance
+   cross-operation. That term is far larger than the other (in the example,
+   by more than a hundred times), so in effect the solver first minimises
+   the cores that would need rekeying. It prints the figure for the chosen
+   master in the check that follows.
+
 5. **Check after every decode batch.**
 
    ```bash
