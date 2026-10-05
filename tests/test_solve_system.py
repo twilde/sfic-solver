@@ -1,6 +1,7 @@
 """solve_system: fills null bittings without touching known keys."""
 import json
 import random
+import re
 
 import pytest
 
@@ -188,7 +189,7 @@ def test_without_pinning_the_rule_is_off_and_retired_cores_are_ignored(pinned):
     off = without_pinning(pinned)
     prob = problem(off)
     assert prob.pinning is None and prob.population is None and prob.population_note is None
-    assert pinning_adds(pinned, master) >= solve_system.HARD    # switched on, it matters
+    assert problem(off).score_key("unit_master", master) < solve_system.HARD   # no penalty off
 
 
 def test_the_unpinnable_figure_is_added_to_the_score_with_its_weight(pinned):
@@ -271,3 +272,19 @@ def test_an_impossible_description_of_the_old_cores_is_not_used_and_the_solver_s
     prob = problem(pinned)
     assert prob.population is None
     assert prob.population_note == "no valid bitting could have been pinned in them"
+
+
+def test_the_summary_says_the_unpinnable_figure_was_weighed_first(pinned, write_cfg, tmp_path):
+    proc, _ = solve(write_cfg, pinned, tmp_path, seed=4)
+    line = next(ln for ln in proc.stdout.splitlines()
+                if ln.startswith("The solver weighed this first:"))
+    figure = re.search(r"about ([\d.]+) of (\d+) \((\d+)%\) vs (\d+)% for a typical random one",
+                       line)
+    assert figure and int(figure.group(2)) == 97
+    assert int(figure.group(3)) < 50 < int(figure.group(4))
+    assert "a master with more chance cross-operation can be the better one" in line
+
+
+def test_without_pinning_the_summary_has_no_unpinnable_line(unsolved, write_cfg, tmp_path):
+    proc, _ = solve(write_cfg, unsolved, tmp_path, seed=1)
+    assert "The solver weighed this first" not in proc.stdout

@@ -384,7 +384,10 @@ unit core's expected-conflict term with a weight of one. On the fake pinning fix
 without a parity pattern the solver picks a unit master that about a fifth of the
 undecoded units cannot take, against about four fifths for a random one. The population
 is the checker's, through the same functions, and when the retired cores cannot be used
-the solver prints the same line the checker does. Files that do not set `pinning` give
+the solver prints the same line the checker does. Its summary of chance cross-operation
+is followed, for such files, by the unpinnable figure against a random master's, because
+the chosen master can have more chance cross-operation than a random one and look worse
+without it. Files that do not set `pinning` give
 byte-identical output and files, which is shown by seeded runs before and after (D56).
 
 **What is built and what is not.** The key-space object (step 1), the pinning

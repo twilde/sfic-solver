@@ -120,10 +120,7 @@ class Problem:
             p = self.space.pair_conflict_probability(masters, self.population)
             total = (self.unit_count * (self.unit_count - 1) - decoded * (decoded - 1)) * p
             if self.pinning and core["control"] in self.assign:
-                cannot = 1 - pinnable_fraction(
-                    self.space, self.uniform if self.population is None else self.population,
-                    self.pinning, masters, self.assign[core["control"]])
-                total += UNPINNABLE_WEIGHT * unknown * cannot
+                total += UNPINNABLE_WEIGHT * unknown * self.cannot_take(core, masters)
             return total
         total = 0.0
         for ch in core["changes"]:
@@ -138,6 +135,13 @@ class Problem:
             size = self.space.operating_set_size(opts)
             total += unknown * max(size - len(names), 0) / self.space.total_valid
         return total
+
+    def cannot_take(self, core, masters):
+        """The share of undecoded unit keys that cannot be pinned in a unit core with these
+        masters and the core's control key (which must be assigned)."""
+        population = self.uniform if self.population is None else self.population
+        return 1 - pinnable_fraction(self.space, population, self.pinning, masters,
+                                     self.assign[core["control"]])
 
     def unpinnable_chambers(self, core, ch):
         """How many chambers of the core with change key `ch` cannot be pinned, with the keys
@@ -238,16 +242,26 @@ def unit_pair_summary(prob, rng, samples=300):
             continue
         chosen = prob.space.pair_conflict_probability([prob.assign[m] for m in core["masters"]],
                                                       prob.population)
-        total = 0.0
+        total = cannot_total = 0.0
         for _ in range(samples):
             masters = [prob.random_candidate(rng) if m in unknown_masters else prob.assign[m]
                        for m in core["masters"]]
             total += prob.space.pair_conflict_probability(masters, prob.population)
+            if prob.pinning:
+                cannot_total += prob.cannot_take(core, masters)
         typical = total / samples
         pairs = prob.unit_count * (prob.unit_count - 1)
         print(f"\nUnit-to-unit cross-operation by chance (all {prob.unit_count} units): "
               f"about {pairs * chosen:.1f} pairs with the chosen master vs "
               f"{pairs * typical:.1f} for a typical random one.")
+        if prob.pinning:
+            decoded = sum(1 for n in prob.assign if n.startswith(prob.unit_prefix))
+            unknown = prob.unit_count - decoded
+            mine = prob.cannot_take(core, [prob.assign[m] for m in core["masters"]])
+            print(f"The solver weighed this first: the undecoded unit keys that cannot take the "
+                  f"chosen master and control key are about {unknown * mine:.1f} of {unknown} "
+                  f"({mine * 100:.0f}%) vs {cannot_total / samples * 100:.0f}% for a typical "
+                  f"random one, so a master with more chance cross-operation can be the better one.")
 
 
 def main(argv=None):
