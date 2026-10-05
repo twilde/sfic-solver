@@ -152,9 +152,9 @@ each candidate scored exactly. Three changes, all only when the system sets
    unit-to-unit cross-operations average 0.19 (0.15 to 0.24) under the uniform
    population and 0.45 (0.07 to 1.11) under the retired-core one, while the expected
    unpinnable keys average 77 (63 to 84) and 76 (48 to 87). With a weight of 1 the
-   unpinnable term is two to three hundred times larger and varies far more between
-   candidates, so the solver in effect minimises it first and uses cross-operation
-   only to choose among near-ties. That is the intended behavior, and the maintainer
+   unpinnable term is more than a hundred times larger (about 400 and 170 times) and
+   varies far more between candidates, so the solver in effect minimises it first and
+   uses cross-operation only to choose among near-ties. That is the intended behavior, and the maintainer
    has confirmed it: the primary goal is to avoid rekeying unit cores, which without
    parity is a certain cost, while a chance cross-operation is rare. The output
    prints both figures separately so the effect can be seen. A balance would need a
