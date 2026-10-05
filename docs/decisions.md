@@ -566,7 +566,8 @@ they cover units, and lets the generator run without a pattern. Without parity a
 random master leaves most undecoded units unable to take it, so the figure is
 needed, and a hill-climb under the closeness rule still leaves about a quarter. The
 design is in its own document and has been accepted; the document states the scale
-of the new term against the old and what a weight of one therefore means. Files that
+of the new term against the old, and the weight of one that makes it dominate has
+been confirmed, since avoiding rekeyed unit cores is the primary goal. Files that
 do not set `pinning` are unaffected.
 
 Detail: [designs/pinnable-solving.md](designs/pinnable-solving.md).
