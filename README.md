@@ -22,6 +22,7 @@ Everything else runs without them. Python 3.11 or newer.
 | `./check_bittings.py` | `sfic-check-bittings` | Quick check of a few `NAME=BITTING` values: format, parity, adjacent-cut limit, pairwise closeness. |
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
+| `./pin_system.py` | `sfic-pin-system` | Prints the pinning chart of every core of a system file that sets `pinning`, in the layout `check_charts` reads: the pins to put in each chamber. |
 | `./check_charts.py` | `sfic-check-charts` | Checks that the tools' pinning rules reproduce pinning charts from your keying software (`.txt` files kept outside this repository). Reports positions only, never key data. |
 | `./scan_charts.py` | `sfic-scan-charts` | Reads scans (PDF or image) of paper pinning charts and writes them as the text charts `check_charts` reads. Needs the optional `scan` extra and Tesseract. **Work suspended; does not yet read real printouts well.** See [Scanning paper charts](#scanning-paper-charts). |
 
@@ -261,6 +262,42 @@ are already two apart; a control key cut that sits too close to an operating cut
 can still make it positive. Without a pattern it can be large, and it depends
 strongly on the master and the control key chosen, which is why it is worth reading
 before dropping the pattern.
+
+### Printing the pinning charts
+
+With `pinning` set and every key known, `pin_system.py` prints the pins for every core,
+one chart for each core and, for a core with several change keys such as `unit:*`,
+each key:
+
+```console
+$ ./pin_system.py system.json --date 2026-10-01
+Key System = Example building
+System = A2
+Core = Unit cores (unit:101)
+Date = 2026-10-01
+Control Key = 3785412
+unit:101 = 3101658
+unit_master = 7587672
+
+T/D     10  6  5  8  9 12 11
+Control  6 12 10  8  8  4  4
+Master   4  4  8  6 --  2  6
+Bottom   3  1  0  1  6  5  2
+```
+
+The rows run from the top of the stack down, one column per chamber. Master pins fill
+from the bottom, so a chamber with fewer pins shows `--` in the higher rows. The `Key
+System` line is the file's `name` (left out if there is none), the date is today unless
+`--date` says otherwise, and a unit core's `Core` line names the unit key, so a chart
+says which door it is for. Charts are separated by a line of dashes. If any core cannot
+be pinned, nothing is printed and the cores and chambers are listed, as `check_system`
+lists them. `--out FILE` writes a file instead (and will not replace one without
+`--force`).
+
+**The charts are key data**: the pin sizes give the bittings away. Keep them outside
+this repository, like the system file (see [Privacy](#privacy)). `check_charts` reads
+this layout, so it can check a chart you printed, and the printed pins are the ones
+the checker's own pinner computed.
 
 ## Typical workflow
 

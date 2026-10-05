@@ -610,3 +610,16 @@ generator draws keys with no core in mind: `check_system` and `solve_system` tes
 that. Rejected: a `--pinnable-with` option, which is possible later.
 
 Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D58. `pin_system` prints the pinning charts, from the file, never partially
+
+Step 6 of core pinning. `pin_system.py` (`sfic-pin-system`) prints one chart per core
+and change key in the layout the design fixed and the reader accepts, with the key
+system's name, the date (today, or `--date`) and, for unit cores, the unit key in the
+`Core` line. If any core cannot be pinned it prints nothing and lists the chambers,
+because a set of charts with a core missing looks complete. Output goes to standard
+output, or to `--out` for a file that does not exist yet (`--force` to replace one),
+with a reminder that charts are key data. The writer is its own module, sharing the
+reader's labels, and a test reads back what it writes.
+
+Detail: [design.md, "Pinning"](design.md#pinning).

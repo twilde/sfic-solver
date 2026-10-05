@@ -11,10 +11,11 @@
   pin) so the tools work for other systems. The pin count is already
   configurable (D22 in docs/decisions.md); the rest is covered by the pinning
   system records in docs/designs/core-pinning.md.
-- Core pinning (docs/designs/core-pinning.md): steps 1 to 5 are done (the key-space
+- Core pinning (docs/designs/core-pinning.md): steps 1 to 6 are done (the key-space
   object, the pinning library, the `.txt` guard and the conformance script, the config
-  and checker for files that set `pinning`, and the solver and generator for them,
-  designed in docs/designs/pinnable-solving.md). Step 6 is the chart command.
+  and checker for files that set `pinning`, the solver and generator for them, designed
+  in docs/designs/pinnable-solving.md, and the chart command `pin_system.py`). Step 7
+  is the output ideas below, each with its own design document first.
 - Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
   drawing of each core's pin stacks inside the chart output, and optional PDF
   output of all the charts as one document.

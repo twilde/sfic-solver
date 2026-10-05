@@ -390,13 +390,24 @@ the chosen master can have more chance cross-operation than a random one and loo
 without it. Files that do not set `pinning` give
 byte-identical output and files, which is shown by seeded runs before and after (D56).
 
+**The chart command** (`pin_system.py`, `sfic-pin-system`) prints the charts of the
+layout in core-pinning.md for every core of a file that sets `pinning`, one chart per core
+and change key. The writer (`chartwriter.py`) is a separate module from the reader so
+that the reader's label table is the writer's too, and a test reads back what it prints
+and checks it with the conformance checker. A core's `Core` line carries the key's name
+for a unit core or one with several change keys. The date is today unless `--date`, which
+tests and diffs use. A core that cannot be pinned stops the run with the checker's
+`UNPINNABLE` lines and no chart, since a set of charts with a core missing would look
+complete. Output goes to standard output, or to `--out` for a new file only, with a reminder
+that it is key data; the command never writes inside the repository on its own (D58).
+
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), the guard and the conformance script (step 3),
 the config and checker for opted-in files (step 4) and step 5, which finishes the
 design in [designs/pinnable-solving.md](designs/pinnable-solving.md) (D54): the
 population and the expected-unpinnable figure in the checker, the solver's use of
-them, and the generator running without a pattern (D55 to D57). The rest is not:
-the chart-printing command, and ASCII and PDF output. None of it changes any weight
+them, and the generator running without a pattern (D55 to D57), and step 6, the chart
+command (D58). The rest is not: ASCII and PDF output. None of it changes any weight
 or algorithm for files that do not opt in (D6).
 
 ## Reading scanned charts
