@@ -110,13 +110,13 @@ the maths directly, the commands people use do not change, and the alternative o
 flat scripts gives no installable commands and makes one tool import another by
 path (D1).
 
-The shared modules are `model.py` (the pure maths, built around `KeySpace`),
-`config.py` (loading and validating a system file), `pinning.py` (pinning system
-records and the pinner), `joint.py` (the exact construction of pinnable bittings, D60),
-`lock.py` (the simulated lock) and `charts.py` (reading pinning charts). The tools are `gen_bittings`, `check_bittings`, `check_system`,
-`solve_system`, `check_charts` and `scan_charts`, whose scanning stages live in
-the subpackage `sfic_solver/scanning/` so that the optional imports are in one
-place and the core stays importable without them.
+The shared modules are `model.py` (the pure maths, built around `KeySpace`), `config.py`
+(loading and validating a system file), `pinning.py` (pinning system records and the
+pinner), `joint.py` (the exact construction of pinnable bittings, D60), `lock.py` (the
+simulated lock) and `charts.py` (reading pinning charts). The tools are `gen_bittings`,
+`check_bittings`, `check_system`, `solve_system`, `check_charts` and `scan_charts`,
+whose scanning stages live in the subpackage `sfic_solver/scanning/` so that the
+optional imports are in one place and the core stays importable without them.
 
 **Exit statuses** mean the same thing in every tool. A malformed command line is
 a usage error: `usage:` and a one-line message on stderr, status 2, which is
