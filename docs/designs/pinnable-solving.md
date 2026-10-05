@@ -5,8 +5,7 @@ Status: Accepted
 This document describes step 5 of [core pinning](core-pinning.md): making the
 solver, the residual-risk estimate and the generator work for a system that sets
 `pinning` and has no parity pattern. It was written before any code and has been
-accepted, including its changes to what the solver scores (D6) and the weight of
-one for the new term. Files that do not set `pinning` are unaffected throughout; a
+accepted, including its changes to what the solver scores (D6). Files that do not set `pinning` are unaffected throughout; a
 test will show that their output is byte for byte what it is today.
 
 ## Why do this
@@ -42,26 +41,37 @@ them no longer hold once the pattern is dropped.
 
 Before proposing weights, here is what the new figure looks like, because it
 decides whether the work is worth doing. These are measured on the fake system in
-`tests/fixtures/pinning.json` (seven pins, a retired master and control, three
-decoded units) with a prototype that is not in the repository. They are
-illustrations of scale, not claims about any real system, and the tests of the real
-implementation will reproduce them exactly.
+`tests/fixtures/pinning.json` with its parity pattern removed (seven pins, a retired
+master and control, three decoded units, 97 undecoded) by a throwaway script that is
+not in the repository. They are illustrations of scale, not claims about any real
+system. The script's draws are seeded (300 random masters from seed 1, fifteen
+hill-climbs from fixed seeds), and the tests of the real implementation will use
+seeded draws of their own and assert ranges, not these figures. Each row names the
+population the undecoded unit keys are drawn from, because the answers differ a lot:
+"uniform" is the only population the tools had before step 4, and "retired core" is
+the one this document proposes, where a unit key must be one the old core could have
+been pinned with (549,745 of the 3,027,314 valid bittings here).
 
-| Key space | Valid bittings | Unit master chosen | Undecoded unit keys that cannot take it |
+| Key space | Population | Unit master chosen | Undecoded unit keys that cannot take it |
 | --- | --- | --- | --- |
-| Parity pattern `OOEOEOE` | 28,384 | any valid key | 0% (parity guarantees it; 0% in every draw tried) |
-| No pattern | 3,027,314 | a random valid key | typically 82% (52% to 92% over 300 draws) |
-| No pattern | 3,027,314 | the best a hill-climb finds, ignoring closeness | 8% |
-| No pattern | 3,027,314 | the best it finds with the closeness rule (at least 5 positions from every other non-unit key, retired keys included) | 24% (median restart 43%) |
+| Parity pattern `OOEOEOE` (28,384 valid) | retired core | any valid key | 0% (parity guarantees it; 0% in every draw tried) |
+| No pattern | uniform | a random valid key | mean 79% (61% to 88%) |
+| No pattern | uniform | best of 15 hill-climbs, with or without the closeness rule | 42% (every restart) |
+| No pattern | retired core | a random valid key | mean 80% (52% to 92%) |
+| No pattern | retired core | best of 15 hill-climbs, ignoring closeness | 0% (median restart 8%) |
+| No pattern | retired core | best of 15 hill-climbs, with the closeness rule (at least 5 positions from every other non-unit key, retired keys included) | 24% (median restart 34%) |
 
 Three things follow. Dropping parity makes the master matter: a careless choice
-leaves most undecoded units unable to take it, and a careful one leaves a
-quarter. The hill-climb's best answer matches the retired master at most
-positions, which the closeness rule forbids past two, so the trade the design
-document predicted is real and the closeness rule is the thing that sets the
-floor. And the figure is large enough that an owner choosing whether to drop the
-pattern needs it in front of them, with the number of units still undecoded, to
-see the expected count of cores that will need rekeying.
+leaves about four undecoded units in five unable to take it. The retired-core
+population is what makes a low figure reachable at all. The low rows come from
+masters that match the retired master at several positions, where every unit key of
+the old core is compatible, and the closeness rule allows at most two matching
+positions, so it sets the floor at about a quarter. An owner whose retired cores do
+not cover the units has only the uniform population and gets 42% at best, so for them
+the figure is a warning that dropping the pattern will cost rekeyed cores. And the
+figure is large enough that an owner choosing whether to drop the pattern needs it in
+front of them, with the number of units still undecoded, to see the expected count of
+cores that will need rekeying.
 
 ## The model
 
@@ -81,23 +91,37 @@ counts by dynamic programming over positions). Two populations are defined.
   of its `change` entries is a wildcard that starts with the unit prefix (for
   example `unit:*`). If several retired cores cover units, an undecoded key sat in
   one of them and we do not know which, so the population is the union of their
-  sets, counted exactly by inclusion and exclusion over the covering cores (a few at
-  most; a system with more than six is refused with a message, not approximated).
-  With none, the population is uniform.
+  sets, counted exactly by inclusion and exclusion over the covering cores. That
+  costs `2^n - 1` terms for a count of one key but `(2^n - 1)^2` pair counts for the
+  unit-to-unit figure, where both keys of a pair come from the union, and the pair
+  counts depend on the candidate master, so nothing can be cached across the
+  solver's candidates. At about 1.2 ms a pair count that is 1 for one core, 9 for
+  two (11 ms a candidate), 49 for three (60 ms), 225 for four (0.3 s) and 3,969 for
+  six (nearly 5 s), against the few thousand candidates a solve scores. The limit is
+  therefore **three** covering cores, about five minutes for a solve at the limit.
+  With more than three, the tools do not refuse the file (D53 made problems with the
+  description of the old cores warnings, so that a disputed description does not
+  fail a file): they fall back to the uniform population and print a line saying
+  that the retired cores were not used and why. With none, the population is uniform.
 
 **Figures.** Three numbers about undecoded unit keys, each an exact count over the
 population.
 
 - The existing *expected cross-operation*: for a non-unit core, unit keys expected
   to operate it; for a unit core, unit-to-unit pairs expected to cross-operate. The
-  formulas stay as they are, with the population in place of "all valid bittings"
-  (the count of bittings that operate the core is taken within the population, and
-  the denominator is the population's size).
+  counts are taken within the population and divided by its size. One detail changes:
+  today the estimate subtracts the core's own keys from its operating set, which is
+  right when every valid bitting is a candidate. Within a population only the
+  intended keys that lie in it come off, often none, because a non-unit core's keys
+  are generally not among the bittings an old unit core could have held. Copying the
+  count of intended keys into the new counting would bias the figure low.
 - The new *expected unpinnable*: for a unit core, the undecoded unit keys expected
   to be unable to take the candidate master and control key. It is the population
   minus the part whose every chamber can be pinned with them, counted the same way,
-  times the number of undecoded units. A unit core with no master (a plain change
-  key) never needs it.
+  times the number of undecoded units. It is computed for every unit core. A core
+  with no master is simply asked about its control key alone, which gives a smaller
+  figure but not zero: a change key with a 9 where the control key has a 0 cannot be
+  pinned (the control pin would be 1).
 - A one-line statement of which population was used, so the number is never quoted
   without its assumption.
 
@@ -120,13 +144,20 @@ each candidate scored exactly. Three changes, all only when the system sets
    scored against every core that uses it, which is the shared-control rule of
    core-pinning.md.
 2. **The expected-unpinnable figure joins the residual-risk score.** It is added to
-   the existing expected-conflict term with a weight of 1: one unit core that must
-   be rekeyed counts the same as one expected cross-operation. That weight is a
-   judgment, not a measurement, and is a named constant next to `HARD` and
-   `CLOSE_WEIGHT`. Rekeying a core is a cost but no security failure, and a chance
-   cross-operation is a security failure but a rare, discoverable one, so equal
-   weight is a middle course; the output prints both figures separately, so a
-   different weight can be argued from what the solver reports.
+   the existing expected-conflict term with a weight of 1, a named constant next to
+   `HARD` and `CLOSE_WEIGHT`. That is not a balance, and the document says so plainly:
+   on the fixture, over 100 random masters with 97 undecoded units, the expected
+   unit-to-unit cross-operations average 0.19 (0.15 to 0.24) under the uniform
+   population and 0.45 (0.07 to 1.11) under the retired-core one, while the expected
+   unpinnable keys average 77 (63 to 84) and 76 (48 to 87). With a weight of 1 the
+   unpinnable term is two to three hundred times larger and varies far more between
+   candidates, so the solver in effect minimises it first and uses cross-operation
+   only to choose among near-ties. That is the behavior proposed, because without
+   parity a unit core that cannot take the master is a certain cost, a core to rekey,
+   while a chance cross-operation is rare, and the output prints both figures
+   separately so the effect can be seen. If a balance were wanted, the weight would
+   have to be much smaller or the terms normalised, and that is a change to this
+   paragraph, not an implementation detail.
 3. **The population comes from the retired cores**, in the solver's own estimate
    as in `check_system`, through the same function, so the two always print the
    same numbers.
@@ -172,6 +203,11 @@ to build this.
 probability is never zero without parity, and there is nothing for the solver to
 avoid. It has to be an expectation.
 
+**Refuse a system with more covering retired cores than the limit.** It would make
+the checker fail on a file whose description of the old cores is disputed or merely
+richer than the exact count allows, which D53 chose not to do. Falling back to the
+uniform population with a printed line loses less.
+
 **Estimate by sampling instead of counting.** The existing estimates are exact
 because the validity rules are per-position sets plus a neighbour limit, and the
 pinnability rule is the same kind of set, so exactness comes free and a sample would
@@ -202,10 +238,10 @@ comparison of seeded runs for files that do not opt in.
 
 - The exact wording of the new report lines, and where the population statement
   sits in the residual-risk section.
-- Whether the inclusion-exclusion over covering retired cores needs a cache, which
-  depends on how slow it is with six cores.
 - How the solver reports, per unit core, the two figures and the population, so a
   run's output can be compared with `check_system`'s.
+- How slow a solve at the limit of three covering cores really is, which is
+  estimated above at about five minutes and is measured when 5b is built.
 - Performance of pinning every involved core inside the scoring loop; if it is
   slow, the per-position sets of pinnable cuts can be computed once per core and
   reused, since they depend only on the other keys of the core.

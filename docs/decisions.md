@@ -565,7 +565,8 @@ cross-operation, takes the population of undecoded keys from the retired cores w
 they cover units, and lets the generator run without a pattern. Without parity a
 random master leaves most undecoded units unable to take it, so the figure is
 needed, and a hill-climb under the closeness rule still leaves about a quarter. The
-design is in its own document and has been accepted, with a weight of one for the
-new term; files that do not set `pinning` are unaffected.
+design is in its own document and has been accepted; the document states the scale
+of the new term against the old and what a weight of one therefore means. Files that
+do not set `pinning` are unaffected.
 
 Detail: [designs/pinnable-solving.md](designs/pinnable-solving.md).

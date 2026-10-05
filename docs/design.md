@@ -350,14 +350,14 @@ so. Warnings do not change the exit status; the closing line counts them beside 
 problems (D53).
 
 **What is built and what is not.** The key-space object (step 1), the pinning
-library and simulated lock (step 2), and the guard and the conformance script
-(step 3) are built, and so is step 4: the loader, the pinnability and control checks and the retired-core
-consistency check. The rest is not: the generator and solver working without a
-pattern, the chart-printing command, and ASCII and PDF output. Two parts of step 5 are not
-additive and are held for the maintainer's agreement when their turn comes:
-pinnability as a hard rule for the solver alongside cross-operation and
-duplicates, and a new population for the residual-risk estimate. Neither changes
-any weight or algorithm for files that do not opt in (D6).
+library and simulated lock (step 2), the guard and the conformance script (step 3)
+and the config and checker for opted-in files (step 4) are built. The rest is not:
+step 5, the population and the expected-unpinnable figure in the checker (5a), then
+the solver treating an unpinnable core as a hard conflict and scoring the new figure
+and the generator running without a pattern (5b), which are agreed in
+[designs/pinnable-solving.md](designs/pinnable-solving.md) (D54); the
+chart-printing command; and ASCII and PDF output. None of it changes any weight or
+algorithm for files that do not opt in (D6).
 
 ## Reading scanned charts
 
