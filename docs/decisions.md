@@ -556,3 +556,18 @@ counting warnings as problems, which would fail a file for a fact the owner may
 rightly dispute.
 
 Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D54. Step 5 is designed before it is built, and the design is accepted
+
+Step 5 of core pinning makes an unpinnable core a hard conflict in the solver, adds
+an expected-unpinnable figure for undecoded unit keys beside the expected
+cross-operation, takes the population of undecoded keys from the retired cores when
+they cover units, and lets the generator run without a pattern. Without parity a
+random master leaves most undecoded units unable to take it, so the figure is
+needed, and a hill-climb under the closeness rule still leaves about a quarter. The
+design is in its own document and has been accepted; the document states the scale
+of the new term against the old, and the weight of one that makes it dominate has
+been confirmed, since avoiding rekeyed unit cores is the primary goal. Files that
+do not set `pinning` are unaffected.
+
+Detail: [designs/pinnable-solving.md](designs/pinnable-solving.md).
