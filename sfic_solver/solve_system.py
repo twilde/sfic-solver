@@ -38,8 +38,8 @@ import sys
 from functools import lru_cache
 
 from . import check_system, model
-from .joint import JointSet, allowed_tuples, bittings, why_none
 from .config import load_or_exit
+from .joint import JointSet, allowed_tuples, bittings, why_none
 from .model import distance, operates
 from .pinning import pin_chambers
 from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pinnable_fraction,

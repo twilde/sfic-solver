@@ -112,8 +112,8 @@ path (D1).
 
 The shared modules are `model.py` (the pure maths, built around `KeySpace`),
 `config.py` (loading and validating a system file), `pinning.py` (pinning system
-records and the pinner), `joint.py` (the exact construction of pinnable bittings, D60), `lock.py` (the simulated lock) and `charts.py` (reading
-pinning charts). The tools are `gen_bittings`, `check_bittings`, `check_system`,
+records and the pinner), `joint.py` (the exact construction of pinnable bittings, D60),
+`lock.py` (the simulated lock) and `charts.py` (reading pinning charts). The tools are `gen_bittings`, `check_bittings`, `check_system`,
 `solve_system`, `check_charts` and `scan_charts`, whose scanning stages live in
 the subpackage `sfic_solver/scanning/` so that the optional imports are in one
 place and the core stays importable without them.
