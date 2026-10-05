@@ -20,6 +20,8 @@ TOP_LEVEL_FIELDS = {"name", "pins", "pattern", "max_step", "min_diff", "unit_pre
                     *SECTIONS}
 CORE_FIELDS = {"name", "change", "masters", "control"}
 RETIRED_CORE_FIELDS = {"name", "change", "masters", "control"}
+MAX_COVERING_RETIRED_CORES = 6      # the population of undecoded unit keys is counted by
+                                    # inclusion and exclusion over them: 2**n - 1 terms
 
 
 class ConfigError(ValueError):
@@ -41,7 +43,8 @@ class Config:
     warnings: List[str] = field(default_factory=list)
     name: Optional[str] = None                  # the key system's name, for charts
     pinning: Optional[PinningSystem] = None     # set only if the file opts in to pinning
-    retired_cores: List[dict] = field(default_factory=list)   # {name, changes, masters, control}
+    retired_cores: List[dict] = field(default_factory=list)   # {name, changes, masters, control,
+                                                              #  covers_units}
 
 
 def _no_duplicate_keys(pairs):
@@ -268,6 +271,9 @@ def parse_config(raw, allow_null=False):
         changes = resolve_changes(where, spec.get("change"),
                                   pool={**keys, **groups["retired_keys"]},
                                   empty_wildcards_ok=True)
+        patterns = [spec["change"]] if isinstance(spec["change"], str) else spec["change"]
+        covers_units = any(pat.startswith(unit_prefix) and any(c in pat for c in "*?[")
+                           for pat in patterns)
         masters = _string_list(spec.get("masters", []), f"{where}: masters")
         for pos, master in enumerate(masters):
             if master not in groups["retired_keys"]:
@@ -283,9 +289,15 @@ def parse_config(raw, allow_null=False):
             raise ConfigError(f"{where}: needs 'control', the name of an entry in retired_keys"
                               f"{hint_for(control, 'retired_keys')}")
         retired_cores.append({"name": name, "changes": changes, "masters": masters,
-                              "control": control})
+                              "control": control, "covers_units": covers_units})
     if retired_cores and not pinning_system:
         warnings.append("retired_cores is ignored, because the system does not set pinning")
+    covering = [core["name"] for core in retired_cores if core["covers_units"]]
+    if pinning_system and len(covering) > MAX_COVERING_RETIRED_CORES:
+        raise ConfigError(f"{len(covering)} retired cores cover unit keys (a 'change' wildcard "
+                          f"starting with {unit_prefix!r}), but at most "
+                          f"{MAX_COVERING_RETIRED_CORES} are supported, since the population "
+                          f"of undecoded unit keys is counted exactly over all of them")
 
     return Config(raw=raw, space=space, min_diff=min_diff, unit_prefix=unit_prefix,
                   unit_count=unit_count, close_check_units=close_check_units, keys=keys,

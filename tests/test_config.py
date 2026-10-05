@@ -238,7 +238,7 @@ def test_the_pinning_fixture_loads(pinned):
         "Unit cores": "control_b"}
     assert cfg.retired_cores == [{
         "name": "Original cores", "changes": ["unit:101", "unit:102", "unit:103"],
-        "masters": ["old_master"], "control": "old_control"}]
+        "masters": ["old_master"], "control": "old_control", "covers_units": True}]
 
 
 def test_the_pinning_fixture_mirrors_the_example_system(pinned):
@@ -362,3 +362,25 @@ def test_misspelled_retired_core_fields_warn(pinned):
     pinned["retired_cores"][0]["master"] = ["old_master"]
     assert "retired core 'Original cores': unknown field 'master' is ignored (misspelled?)" \
         in parse_config(pinned).warnings
+
+
+@pytest.mark.parametrize("change, covers", [
+    ("unit:*", True), (["unit:*"], True), (["old_area", "unit:1*"], True),
+    ("unit:101", False), ("old_area", False), ("flat:*", False), (["unit:101", "old_area"], False),
+])
+def test_a_retired_core_covers_unit_keys_when_a_wildcard_starts_with_the_unit_prefix(
+        pinned, change, covers):
+    pinned["retired_cores"][0]["change"] = change
+    assert parse_config(pinned).retired_cores[0]["covers_units"] is covers
+
+
+def test_more_than_six_retired_cores_covering_units_are_refused(pinned):
+    template = pinned["retired_cores"][0]
+    pinned["retired_cores"] = [{**template, "name": f"Old {n}"} for n in range(6)]
+    assert len(parse_config(pinned).retired_cores) == 6
+    pinned["retired_cores"].append({**template, "name": "Old 6"})
+    refused(pinned, "7 retired cores cover unit keys", "at most 6 are supported")
+    del pinned["pinning"]
+    for core in pinned["cores"]:
+        core.pop("control")
+    parse_config(pinned)         # without pinning the list is ignored, so the limit is moot
