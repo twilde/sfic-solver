@@ -355,6 +355,10 @@ def test_none_turns_each_rule_off():
     assert off.violations((5, 5, 5, 5, 5, 5, 5), master=True) == []
 
 
+def test_an_empty_bitting_breaks_no_rule():
+    assert model.ShapeRules(min_total_variation=5).violations((), master=True) == []
+
+
 def test_ok_agrees_with_violations():
     rules = model.ShapeRules()
     assert rules.ok((1, 6, 2, 8, 0, 7, 3), master=True)

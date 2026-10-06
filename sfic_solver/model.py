@@ -254,7 +254,10 @@ class ShapeRules:
     def violations(self, cuts, master=False):
         """The rules this bitting breaks, as (rule name, 1-based pins) in the order of
         SHAPE_RULES. The pins are those in an over-long run or of an over-used depth; the
-        rules about the key as a whole have none. `master` applies the span rule."""
+        rules about the key as a whole have none. `master` applies the span rule. An empty
+        bitting breaks nothing."""
+        if not cuts:
+            return []
         found = []
         if self.max_run is not None:
             pins, start = [], 0
