@@ -16,8 +16,8 @@ from .pinning import PinningSystem, get_system
 
 SECTIONS = ("keys", "retired_keys", "control_keys")
 TOP_LEVEL_FIELDS = {"name", "pins", "pattern", "max_step", "min_diff", "unit_prefix",
-                    "unit_count", "close_check_units", "pinning", "cores", "retired_cores",
-                    *SECTIONS}
+                    "unit_count", "close_check_units", "pinning", "shape", "cores",
+                    "retired_cores", *SECTIONS}
 CORE_FIELDS = {"name", "change", "masters", "control"}
 RETIRED_CORE_FIELDS = {"name", "change", "masters", "control"}
 
@@ -43,6 +43,7 @@ class Config:
     pinning: Optional[PinningSystem] = None     # set only if the file opts in to pinning
     retired_cores: List[dict] = field(default_factory=list)   # {name, changes, masters, control,
                                                               #  covers_units}
+    shape: model.ShapeRules = field(default_factory=model.ShapeRules)   # the file's `shape`
 
 
 def _no_duplicate_keys(pairs):
@@ -66,6 +67,43 @@ def _string_list(value, what):
     if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
         raise ConfigError(f"{what} must be a list of key names, got {value!r}")
     return value
+
+
+def _shape_rules(raw, space):
+    """The ShapeRules for a file: the defaults for its depth count, with the settings of
+    its optional `shape` object on top. A rule set to null is off. Every mistake raises
+    ConfigError, including a rule that no key could meet, since a solve that needs one
+    would otherwise end in NOT SOLVED with nothing wrong in the file to point at. The two
+    bounds ignore the parity pattern, so they never reject a rule that some key could meet
+    but may accept one that none can."""
+    if "shape" not in raw:
+        return model.ShapeRules.for_space(space)
+    settings = raw["shape"]
+    if not isinstance(settings, dict):
+        raise ConfigError(f"shape must be an object of rule settings, got {settings!r}")
+    for name in settings:
+        if name not in model.SHAPE_RULES and not name.startswith("_"):
+            close = difflib.get_close_matches(name, model.SHAPE_RULES, n=1)
+            hint = f" (did you mean {close[0]!r}?)" if close else ""
+            raise ConfigError(f"shape: unknown rule {name!r}{hint}; the rules are "
+                              f"{', '.join(model.SHAPE_RULES)}")
+    fields = {name: value for name, value in settings.items() if name in model.SHAPE_RULES}
+    if fields.get("forbid_monotone", True) is None:
+        fields["forbid_monotone"] = False
+    try:
+        rules = model.ShapeRules.for_space(space, **fields)
+    except ValueError as err:
+        raise ConfigError(f"shape: {err}") from None
+    if rules.master_min_span is not None and rules.master_min_span > space.widest_span:
+        raise ConfigError(f"shape: master_min_span is {rules.master_min_span} but no key can "
+                          f"span more than {space.widest_span} ({space.pins} pins, cuts 0 to "
+                          f"{space.depths - 1}, max_step is {space.max_step})")
+    if (rules.min_total_variation is not None
+            and rules.min_total_variation > space.most_variation):
+        raise ConfigError(f"shape: min_total_variation is {rules.min_total_variation} but no "
+                          f"key of {space.pins} pins can vary by more than "
+                          f"{space.most_variation} (max_step is {space.max_step})")
+    return rules
 
 
 def parse_config(raw, allow_null=False):
@@ -106,6 +144,7 @@ def parse_config(raw, allow_null=False):
     if min_diff > pins:
         raise ConfigError(f"min_diff is {min_diff} but keys have only {pins} pins, so no two "
                           f"keys could differ in that many positions")
+    shape = _shape_rules(raw, space)
     unit_prefix = raw.get("unit_prefix", "unit:")
     if not isinstance(unit_prefix, str) or not unit_prefix:
         raise ConfigError(f"unit_prefix must be a non-empty string, got {unit_prefix!r}")
@@ -295,7 +334,7 @@ def parse_config(raw, allow_null=False):
                   unit_count=unit_count, close_check_units=close_check_units, keys=keys,
                   retired_keys=groups["retired_keys"], control_keys=groups["control_keys"],
                   cores=cores, warnings=warnings, name=system_name, pinning=pinning_system,
-                  retired_cores=retired_cores)
+                  retired_cores=retired_cores, shape=shape)
 
 
 def load_config(path, allow_null=False):

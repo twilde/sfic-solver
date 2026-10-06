@@ -147,6 +147,19 @@ class KeySpace:
         return all(abs(a - b) <= self.max_step for a, b in zip(cuts, cuts[1:]))
 
     @cached_property
+    def widest_span(self):
+        """The most that the deepest cut can exceed the shallowest, for any key: bounded by
+        the depths and by how far `max_step` lets the cuts travel along the pins. It ignores
+        parity, so it is an upper bound (a rule that passes it may still be unmeetable)."""
+        return min(self.depths - 1, (self.pins - 1) * self.max_step)
+
+    @cached_property
+    def most_variation(self):
+        """The most total variation (the sum of adjacent differences) any key can have, again
+        ignoring parity."""
+        return (self.pins - 1) * min(self.max_step, self.depths - 1)
+
+    @cached_property
     def total_valid(self):
         """Number of bittings matching the parity pattern and adjacent-cut limit."""
         return self.operating_set_size(self.digits)
@@ -237,17 +250,17 @@ class ShapeRules:
             value = getattr(self, name)
             if value is not None and (isinstance(value, bool) or not isinstance(value, int)
                                       or value < 1):
-                raise ValueError(f"{name} must be a whole number of at least 1, or None to "
-                                 f"turn the rule off, got {value!r}")
+                raise ValueError(f"{name} must be a whole number of at least 1, or None "
+                                 f"(null in a system file) to turn the rule off, got {value!r}")
         if not isinstance(self.forbid_monotone, bool):
             raise ValueError(f"forbid_monotone must be true or false, got {self.forbid_monotone!r}")
 
     @classmethod
-    def for_depths(cls, depths, **fields):
-        """The defaults for a key space with this many depths, with `fields` replacing any of
-        them. The default master span is capped at depths - 1 (no key can be wider), and
-        the rule is off if there is no span to ask for."""
-        span = min(DEFAULT_MASTER_MIN_SPAN, depths - 1)
+    def for_space(cls, space, **fields):
+        """The defaults for a key space, with `fields` replacing any of them. The default
+        master span is capped at the widest span a key of the space can have, and the rule
+        is off if there is no span to ask for."""
+        span = min(DEFAULT_MASTER_MIN_SPAN, space.widest_span)
         fields.setdefault("master_min_span", span if span >= 1 else None)
         return cls(**fields)
 

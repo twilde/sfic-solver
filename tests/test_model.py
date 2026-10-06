@@ -379,13 +379,27 @@ def test_forbid_monotone_must_be_a_boolean(bad):
         model.ShapeRules(forbid_monotone=bad)
 
 
-def test_for_depths_caps_the_default_span_and_drops_it_when_there_is_none():
-    assert model.ShapeRules.for_depths(10).master_min_span == 6
-    assert model.ShapeRules.for_depths(7).master_min_span == 6
-    assert model.ShapeRules.for_depths(5).master_min_span == 4
-    assert model.ShapeRules.for_depths(1).master_min_span is None
-    assert model.ShapeRules.for_depths(10, master_min_span=3).master_min_span == 3
-    assert model.ShapeRules.for_depths(10, max_run=None).max_run is None
+def test_the_widest_span_and_most_variation_of_a_key_space():
+    assert model.KeySpace(pins=7).widest_span == 9
+    assert model.KeySpace(pins=7).most_variation == 30
+    assert model.KeySpace(pins=5, max_step=1).widest_span == 4
+    assert model.KeySpace(pins=5, max_step=1).most_variation == 4
+    assert model.KeySpace(pins=3, max_step=4, depths=7).widest_span == 6
+    assert model.KeySpace(pins=3, max_step=4, depths=7).most_variation == 8
+    assert model.KeySpace(pins=1).widest_span == 0
+
+
+def test_for_space_caps_the_default_span_and_drops_it_when_there_is_none():
+    assert model.ShapeRules.for_space(model.KeySpace(pins=7)).master_min_span == 6
+    assert model.ShapeRules.for_space(model.KeySpace(pins=7, depths=7)).master_min_span == 6
+    assert model.ShapeRules.for_space(model.KeySpace(pins=7, depths=5)).master_min_span == 4
+    assert model.ShapeRules.for_space(model.KeySpace(pins=5, max_step=1)).master_min_span == 4
+    assert model.ShapeRules.for_space(model.KeySpace(pins=3, max_step=2)).master_min_span == 4
+    assert model.ShapeRules.for_space(model.KeySpace(pins=1)).master_min_span is None
+    assert model.ShapeRules.for_space(model.KeySpace(pins=7, depths=1)).master_min_span is None
+    space = model.KeySpace(pins=7)
+    assert model.ShapeRules.for_space(space, master_min_span=3).master_min_span == 3
+    assert model.ShapeRules.for_space(space, max_run=None).max_run is None
 
 
 @pytest.mark.parametrize("rules", [
