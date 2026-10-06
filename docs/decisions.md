@@ -677,3 +677,16 @@ alternatives. The data-file guard already refuses `.pdf` (D32), so it needs no c
 design is in its own document, has been accepted and is built.
 
 Detail: [designs/pdf-output.md](designs/pdf-output.md).
+
+## D63. The pinning rules have agreed with the keying software's charts for one real A2 system
+
+The conformance run of D31 has now been made: the maintainer compared the pinner's rows with
+charts the keying software had computed for a real A2 system, locally, and every chart
+agreed. The README's limitations section says so instead of saying the pins are untested
+against real charts, and no "unverified" label is added to the output, which the design had
+once planned until this happened. The claim is as narrow as the evidence: one system, and
+agreement says the arithmetic and layout are right, not that the rules are never too
+permissive, so the keying software stays the authority. Nothing from the charts is in the
+repository, and the report of such a run holds counts and positions only (D31).
+
+Detail: [design.md, "Pinning"](design.md#pinning).
