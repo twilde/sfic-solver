@@ -141,6 +141,19 @@ The line comes before `Wrote ...` and again after the full check, so it is the l
 the output; the exit status is unchanged. A conflict between known keys alone does not
 trigger it: nothing the solver chooses can change that, and the check reports it (D59).
 
+**Shape rules in the solver** (D64). Every key the solver chooses follows the file's shape
+rules (`Config.shape`, a `model.ShapeRules`; master means a key in the `masters` of any
+core). They filter the candidates and leave the score alone (D6). The single-key search draws
+candidates with `shaped_candidates` and walks to neighbours that follow the rules; in the
+pinning construction the draws from the exact pinnable set are filtered the same way, and a
+set small enough to list is filtered whole. Each gives up after 20,000 draws the rules turned
+down (and never fewer than 50 for each candidate asked for): the key is left `null` in the
+file, a `NOT SOLVED` line gives the rule tally, and the full check, which would reject the
+null, is skipped. Nothing is relaxed. A thin pinnable set (a unit master among many decoded
+units) can leave no key that follows the rules; that is reported, not repaired. With every
+rule off the same seeded draws are made as before the rules existed, so output is
+byte-identical.
+
 ## The key space
 
 The rules that decide which bittings can be cut live in one frozen object,

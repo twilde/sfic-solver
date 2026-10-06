@@ -123,7 +123,9 @@ only the 7% of bittings with three in a row and leaves the pairs, which is the c
 - **Never silently relaxed.** If no candidate passes (a tight system, or a pinnable set
   with nothing in it that has the right shape), the tool says which rule left nothing, and
   the key stays unsolved under the existing "NOT SOLVED" line (D59). Turning a rule off is
-  the system file's decision, not the tool's.
+  the system file's decision, not the tool's. For the solver, "unsolved" means the key is left
+  `null` in the written file (the file is not complete, so the full check is skipped), and the
+  NOT SOLVED line names the key and the rules, before `Wrote ...` and again last.
 - **Keys that already exist** are not changed. `check_system` and `check_bittings` print
   the ones that break a rule as an advisory `SHAPE` line, with positions only and never
   values. It does not change the exit status or the count of warnings. Decoded unit
@@ -143,8 +145,9 @@ what the tools count alone. The risk figures are unchanged.
 
 ## What changes in each tool
 
-- **Solver, one key at a time.** `random_candidate` and `neighbors` only produce keys that
-  pass, so the search never walks through a bad key. The score is unchanged (D6).
+- **Solver, one key at a time.** The candidates and the neighbours it walks to only include
+  keys that pass, so the search never goes through a bad key. The score is unchanged (D6), and
+  with every rule off the same draws are made as before, so seeded output is byte-identical.
 - **Solver, pinning, keys built together** (D60). The pinnable set is built exactly and
   its draws are uniform; draws that fail the rules are thrown away and drawn again, up to a
   bound, and a set small enough to list is filtered whole. If the bound is reached with
