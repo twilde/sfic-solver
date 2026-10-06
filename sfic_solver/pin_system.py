@@ -9,6 +9,7 @@ carries the key's name so a chart says which door it is for.
 Usage:
     ./pin_system.py system.json                       # charts on standard output
     ./pin_system.py system.json --date 2026-10-01     # a fixed date (default: today)
+    ./pin_system.py system.json --draw                # a drawing of the pin stacks under each chart
     ./pin_system.py system.json --out charts.txt      # to a file (never over an existing one)
 
 If a core cannot be pinned, no chart is printed: the cores and chambers are listed, as
@@ -23,7 +24,7 @@ import re
 import sys
 from pathlib import Path
 
-from .chartwriter import core_label, format_chart, join_charts
+from .chartwriter import core_label, draw_stacks, format_chart, join_charts
 from .config import load_or_exit
 from .pinning import pin_chambers
 
@@ -45,9 +46,10 @@ def iso_date(text):
     return text
 
 
-def build(cfg, date):
+def build(cfg, date, draw=False):
     """(charts, problems): one chart text per core and change key, and an UNPINNABLE line
-    for every chamber that cannot be pinned (then there are no charts)."""
+    for every chamber that cannot be pinned (then there are no charts). With `draw`, each
+    chart is followed by a blank line and a drawing of its pin stacks."""
     texts, problems = [], []
     for core in cfg.cores:
         control = cfg.control_keys[core["control"]]
@@ -57,8 +59,11 @@ def build(cfg, date):
             problems += [f"UNPINNABLE {core['name']} [{change}], chamber {e.chamber}: {e.reason}"
                          for e in errors]
             if not errors:
-                texts.append(format_chart(cfg.name, cfg.pinning.name, core_label(core, change),
-                                          date, control, keys, chambers))
+                text = format_chart(cfg.name, cfg.pinning.name, core_label(core, change),
+                                    date, control, keys, chambers)
+                if draw:
+                    text += "\n" + draw_stacks(cfg.pinning, chambers)
+                texts.append(text)
     return texts, problems
 
 
@@ -67,6 +72,8 @@ def main(argv=None):
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("config")
     ap.add_argument("--date", type=iso_date, help="the date to print, YYYY-MM-DD (default: today)")
+    ap.add_argument("--draw", action="store_true",
+                    help="draw each core's pin stacks, to scale, under its chart")
     ap.add_argument("--out", help="write the charts to this file instead of standard output")
     ap.add_argument("--force", action="store_true",
                     help="let --out replace an existing file")
@@ -78,7 +85,7 @@ def main(argv=None):
                  f"sizes need (for example \"pinning\": \"A2\")")
     out = Path(args.out) if args.out else None
 
-    texts, problems = build(cfg, args.date or today())
+    texts, problems = build(cfg, args.date or today(), args.draw)
     if problems:
         for line in problems[:MAX_LISTED]:
             print(line, file=sys.stderr)

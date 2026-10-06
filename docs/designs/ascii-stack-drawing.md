@@ -54,7 +54,7 @@ verbatim.
 Key System = Example building
 System = A2
 Core = Area A cores
-Date = 2026-10-05
+Date = 2026-10-01
 Control Key = 9743854
 area_a = 5721276
 master_sub = 7305496
@@ -68,7 +68,7 @@ Bottom   5  3  0  1  2  3  4
 
 Stacks (to scale, one line per increment)
 
-      cut    1     2     3     4     5     6     7
+    cut      1     2     3     4     5     6     7
 23         +---+ +---+ +---+ +---+ +---+ +---+ +---+
 22         |   | |   | |   | |   | |   | |   | |   |
 21         | 4 | |   | |   | |   | | 5 | |   | |   |
@@ -93,8 +93,10 @@ Stacks (to scale, one line per increment)
  2  op  2  |   | | 3 | +---+ |   | +---+ | 3 | | 4 |
  1  op  1  |   | |   | | 2 | +-1-+ | 2 | |   | |   |
  0  op  0  +---+ +---+ +-0-+ +---+ +---+ +---+ +---+
+
 At a line marked op N, a joint is on the operating shear line for a key cut N.
 At a line marked ctl N, a joint is on the control shear line for a control key cut N.
+A number on a joint line is a bottom pin of 0 or 1, too short to hold its size.
 ```
 
 To read it: in chamber 1 the joints are at heights 5 and 7, so the bottom pin is 5 and
@@ -108,7 +110,7 @@ bottom pin, which may be 0 or 1. A pin of 2 or more has a line inside it for its
 A bottom pin of 1 has none, and a bottom pin of 0 has no height at all, so those two
 are written on the joint at the top of the bottom pin, as `+-1-+` and `+-0-+`. Only the
 bottom pin can be numbered this way, so a number on a joint line cannot be confused with
-anything else.
+anything else, and a third line under the drawing says so.
 
 ## Where it goes, and how it is asked for
 
@@ -116,9 +118,10 @@ The drawing is printed by `pin_system.py` only when asked, with `--draw`. Withou
 flag the output is byte for byte what it is now, so nothing that reads or files today's
 charts changes, which is the same promise the earlier steps made for files that do not
 opt in. With the flag, each chart is followed by a blank line and the drawing, and the
-separator line between charts is unchanged. A chart with its drawing is 44 lines and
-85 columns at most, so it still fits a page, and the stacks themselves take 8 columns
-for the ruler and 6 for each chamber, which is 50 for seven chambers and 80 for twelve.
+separator line between charts is unchanged. A chart with its drawing is 46 lines and
+85 columns at most, so it still fits a page, and the stacks themselves take 11 columns
+for the ruler and 6 for each chamber (5 for the last), which is 52 for seven chambers and
+82 for twelve.
 
 Only plain ASCII is used (`+`, `-`, `|`, digits and letters), not box-drawing
 characters. That keeps the output safe on any terminal, printer and file encoding, and
@@ -213,7 +216,7 @@ behavior changes.
 
 ## What nobody can know yet
 
-Whether the ruler wording and the two legend lines are clear on a real printed page can
+Whether the ruler wording and the three legend lines are clear on a real printed page can
 only be settled by looking at the output; the wording is easy to change, and the
 read-back test pins the geometry, not the words. A system with more chambers than will
 fit a page's width is a matter of how the owner prints it; the drawing does not wrap.
