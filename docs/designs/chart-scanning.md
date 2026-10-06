@@ -1,14 +1,15 @@
 # Reading scanned pinning charts
 
-Status: Accepted
+Status: Implemented
 
 This document proposes a local tool that turns scans of paper pinning charts into
 the text chart format that `check_charts` reads, so that an owner who has charts
 only on paper can run the conformance check without retyping them. It is written
 before any code, to be discussed and changed. It builds on the chart layouts and
 the privacy rules in [core-pinning.md](core-pinning.md) ("The chart layout",
-"Verification" and "Charts are key data"), and, once agreed, will be summarised in
-the decision log ([D38 in decisions.md](../decisions.md)).
+"Verification" and "Charts are key data"), and is summarised in the decision log
+([D38 in decisions.md](../decisions.md)). It was accepted and the tool is built, as the
+plan below says; work on it is suspended ([D44](../decisions.md)).
 
 ## Why do this
 
@@ -397,10 +398,10 @@ does not fail with a traceback: it exits with status 2 and a message that names
 what is missing and how to install it, and everything else keeps working.
 
 The exception covers this feature and no other. It does not make the other tools
-depend on anything, and a later feature that wants a dependency (PDF output, D25
-step 7, is the likely one) needs its own decision. When step 3 lands, the entry
-for D2 in the log gains a line pointing here, so that a reader of D2 finds the
-exception.
+depend on anything, and a later feature that wants a dependency needs its own decision.
+(PDF output, step 7 of core pinning, was the likely one; it was written by hand and added
+none, D62.) The entry for D2 in the log has a line pointing here, so that a reader of D2
+finds the exception.
 
 The alternative, a recogniser written in the standard library alone, is weighed
 under "Alternatives considered" and not chosen.
@@ -492,12 +493,12 @@ One pull request per step, each ready for review once CI is green.
 | Step | What | Behaviour change |
 | --- | --- | --- |
 | 1 | The data-file guard learns PDFs and images (done, D32) | Guard only |
-| 2 | This document and its log entry, agreed before any code | None |
-| 3 | The tool: `sfic-scan-charts` and `scan_charts.py`, in these commits: the `scan` extra and page loading (PDF and images) with the missing-dependency message and the pointer from D2 to the exception; cleaning, deskew, lines and tokens; the Tesseract wrapper and character-level reading; shape groups and voting; chart assembly, the checks and the writers; the command line | New command, optional dependencies |
-| 4 | The synthetic-image harness, and CI installing Tesseract and the extra | Tests only |
-| 5 | README ("scanning paper charts", and its "dependency-free" wording with the one stated exception), CLAUDE.md's "standard library only" likewise, the pointer from D2, the log and TODO.md | Documentation |
+| 2 | This document and its log entry, agreed before any code (done, D38) | None |
+| 3 | (done, D38) The tool: `sfic-scan-charts` and `scan_charts.py`, in these commits: the `scan` extra and page loading (PDF and images) with the missing-dependency message and the pointer from D2 to the exception; cleaning, deskew, lines and tokens; the Tesseract wrapper and character-level reading; shape groups and voting; chart assembly, the checks and the writers; the command line | New command, optional dependencies |
+| 4 | (done, D42) The synthetic-image harness, and CI installing Tesseract and the extra | Tests only |
+| 5 | (done, D43) README ("scanning paper charts", and its "dependency-free" wording with the one stated exception), CLAUDE.md's "standard library only" likewise, the pointer from D2, the log and TODO.md | Documentation |
 
-The package would hold the tool as `sfic_solver/scan_charts.py` with the command
+The package holds the tool as `sfic_solver/scan_charts.py` with the command
 line, and the stages in a subpackage, `sfic_solver/scanning/`, so that the optional
 imports are in one place and the core stays importable without them. The test
 helpers that render fake charts to images live with the tests.

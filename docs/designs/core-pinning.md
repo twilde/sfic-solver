@@ -510,11 +510,11 @@ command writes to standard output unless it is given a file, and it is up to the
 owner where that file goes. What the repository can do is refuse to commit one,
 and the data-file guard grows with the features. It refuses `.json`, `.csv` and,
 since the conformance script, `.txt` (D30), and charts are plain text first and
-PDF later, so it learns to refuse `.pdf` in its own commit, ahead of the PDF
-output. Spreadsheets are not planned, and the guard is extended as formats appear
-and not by trying to list every format now. Fake fixtures under `tests/fixtures/`
-stay allowed, and must be marked as fake in whatever way the format allows (for
-text, a first line saying so).
+PDF later, so it learned to refuse `.pdf` in its own commit, ahead of the PDF
+output (D32, done for the scanner's sake). Spreadsheets are not planned, and the
+guard is extended as formats appear and not by trying to list every format now. Fake
+fixtures under `tests/fixtures/` stay allowed, and must be marked as fake in whatever
+way the format allows (for text, a first line saying so).
 
 ## What changes in the tools
 

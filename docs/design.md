@@ -61,8 +61,8 @@ of keys (masters, sub-masters, area keys, unit keys), and each core in a door is
 pinned so that certain keys operate it. The questions are which keys operate
 which cores, whether any key operates a core it must not, and how likely it is
 that unit keys nobody has measured yet will. The solver chooses missing bittings
-to make that risk small. Core pinning, partly built (see "Pinning"), adds the
-pins that make the cores behave that way.
+to make that risk small. Core pinning (see "Pinning") adds the pins that make the
+cores behave that way, and charts to print them.
 
 Four commitments shape everything else.
 
@@ -112,11 +112,13 @@ path (D1).
 
 The shared modules are `model.py` (the pure maths, built around `KeySpace`), `config.py`
 (loading and validating a system file), `pinning.py` (pinning system records and the
-pinner), `joint.py` (the exact construction of pinnable bittings, D60), `lock.py` (the
-simulated lock) and `charts.py` (reading pinning charts). The tools are `gen_bittings`,
-`check_bittings`, `check_system`, `solve_system`, `check_charts` and `scan_charts`,
-whose scanning stages live in the subpackage `sfic_solver/scanning/` so that the
-optional imports are in one place and the core stays importable without them.
+pinner), `population.py` (who the undecoded unit keys might be, D55), `joint.py` (the
+exact construction of pinnable bittings, D60), `lock.py` (the simulated lock), `charts.py`
+and `chartwriter.py` (reading and writing pinning charts) and `pdfwriter.py` (writing
+pages of text as a PDF). The tools are `gen_bittings`, `check_bittings`, `check_system`,
+`solve_system`, `pin_system`, `check_charts` and `scan_charts`, whose scanning stages live
+in the subpackage `sfic_solver/scanning/` so that the optional imports are in one place
+and the core stays importable without them.
 
 **Exit statuses** mean the same thing in every tool. A malformed command line is
 a usage error: `usage:` and a one-line message on stderr, status 2, which is
@@ -170,11 +172,11 @@ count, with the error saying what count was expected. The count is deliberately
 not inferred from the bittings, since `null` bittings carry no length and a typo
 in one bitting should be an error, not a new pin count. The command-line tools
 follow the same order: `check_bittings` takes `--pins`, else the length of
-`--pattern`, else 7, and `gen_bittings` the same since its pattern became optional
-(D57), taking it from the pattern when there is one. The default `min_diff` is `min(5, pins)` (`min(3, pins)` for
-`gen_bittings`) and an explicit value above the pin count is an error, because no
-two keys could satisfy it; without that, a 5-pin file that never mentions
-`min_diff` would be valid at 7 pins and impossible at 4 (D22).
+`--pattern`, else 7, and `gen_bittings` the same, since its pattern became optional
+(D57). The default `min_diff` is `min(5, pins)` (`min(3, pins)` for `gen_bittings`) and
+an explicit value above the pin count is an error, because no two keys could satisfy it;
+without that, a 5-pin file that never mentions `min_diff` would be valid at 7 pins and
+impossible at 4 (D22).
 
 **What is not configurable.** The depth count is a `KeySpace` parameter that
 defaults to 10, the only value a system file can use today. Cut depths are 0 to 9
@@ -236,8 +238,8 @@ parity pattern is a policy that guarantees those rules are met without anyone
 checking, at the price of about a hundredfold of the key space. Core pinning
 models the pins faithfully enough that the tools can say not only "these keys are
 safe" but "here are the pins, and the combination can be built". The argument is
-in [designs/core-pinning.md](designs/core-pinning.md) (accepted); this section
-says what has been decided and what has been built.
+in [designs/core-pinning.md](designs/core-pinning.md) (implemented); this section
+says how it stands now.
 
 **The model.** Every core has exactly one control key, which is part of its
 pinning and not an extra. Within a core, master and change keys are
@@ -246,13 +248,13 @@ on their cuts. A chamber's pinning is forced, one pin per gap between distinct
 cuts, so a shared cut means one pin fewer. The real constraint on bittings is
 that two operating cuts in one chamber of one core must not differ by exactly one
 (and a control cut of 0 cannot share a chamber with an operating cut of 9). That
-is weaker than parity, and real systems use odd-sized master pins, so it is meant
-to become the default, with `pattern` kept for owners who want the conservative
-style. The retired keys of a rekey are evidence about unit keys nobody has
-decoded, since the old cores had to be pinnable, and they are meant to replace
-parity as the assumption that completes the residual-risk estimate; the old
-pinning is described generically, as a list of retired cores shaped like the
-current ones. MACS stays a system parameter (D25).
+is weaker than parity, and real systems use odd-sized master pins, so a file that sets
+`pinning` is held to it, and its `pattern` may be left out or kept by an owner who wants
+the conservative style. The retired keys of a rekey are evidence about unit keys nobody
+has decoded, since the old cores had to be pinnable, and they replace parity as the
+assumption that completes the residual-risk estimate when a retired core covers the
+units; the old pinning is described generically, as a list of retired cores shaped like
+the current ones. MACS stays a system parameter (D25).
 
 **Pinning systems are data.** A `PinningSystem` is a frozen record of the name,
 the increment, the cut depth count, the stack total, the bottom and other pin
@@ -442,21 +444,22 @@ file-writing helper between `--out` and `--pdf`, which are alternatives. The tes
 PDF back with a small reader of their own that checks every offset, length and count, so the
 core suite needs no PDF package, and with pdfium where the scan extra is installed.
 
-**What is built and what is not.** The key-space object (step 1), the pinning
-library and simulated lock (step 2), the guard and the conformance script (step 3),
-the config and checker for opted-in files (step 4) and step 5, which finishes the
-design in [designs/pinnable-solving.md](designs/pinnable-solving.md) (D54): the
-population and the expected-unpinnable figure in the checker, the solver's use of
-them, and the generator running without a pattern (D55 to D57), and step 6, the chart
-command (D58), step 7a, the ASCII drawing of the stacks (D61), and step 7b, the PDF
-output (D62). That is all seven steps. None of it changes any weight or algorithm for files
-that do not opt in (D6).
+**What is built.** All seven steps of the plan in core-pinning.md: the key-space object
+(step 1), the pinning library and simulated lock (step 2), the guard and the conformance
+script (step 3), the config and checker for opted-in files (step 4), step 5, which
+finishes the design in [designs/pinnable-solving.md](designs/pinnable-solving.md) (D54)
+with the population and the expected-unpinnable figure in the checker, the solver's use of
+them and the generator running without a pattern (D55 to D57), the chart command (step 6,
+D58), the ASCII drawing of the stacks (step 7a, D61) and the PDF output (step 7b, D62).
+What is left, a drawing of a key lifting its stack on the simulated lock, needs a design of
+its own first (TODO.md). None of it changes any weight or algorithm for files that do not
+opt in (D6).
 
 ## Reading scanned charts
 
 An owner whose pinning charts exist only on paper needs them as text before
 `check_charts` can run on them. [designs/chart-scanning.md](designs/chart-scanning.md)
-(accepted) designs a local tool for that, and `sfic-scan-charts` is built, with its
+(implemented) designs a local tool for that, and `sfic-scan-charts` is built, with its
 test harness and its README section. Work on it is suspended (D44): it is not
 being developed, it does not yet read real printouts well, and the README says so;
 issues and fixes are welcome. What it commits to:
@@ -511,9 +514,9 @@ for needing no system install and over PyMuPDF for its license) and an optional
 Tesseract found at run time. `pyproject.toml` keeps `dependencies = []`, nothing
 in the core imports the extra, and a missing package or program gives a clear
 message and exit status 2 instead of a traceback. The exception covers this
-feature alone; a later feature that wants a dependency (PDF output is the likely
-one) needs its own decision. The terms are in "An exception to D2, and its
-limits" in the feature document (D2, D38).
+feature alone; a later feature that wants a dependency needs its own decision (PDF
+output was the likely one, and was written by hand instead, D62). The terms are in
+"An exception to D2, and its limits" in the feature document (D2, D38).
 
 ## Keeping key data out of the repository
 
