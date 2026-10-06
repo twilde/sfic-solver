@@ -21,9 +21,10 @@
   the solver build pinnable answers exactly, up to three unknown keys sharing cores),
   and step 7a, the `--draw` ASCII drawing of the stacks (D61). What remains of step 7 is
   the output idea below, with its own design document first.
-- Core pinning output idea (docs/designs/core-pinning.md, step 7b): optional PDF output
-  of all the charts as one document. The data-file guard learns `.pdf` first (it already
-  refuses it), and writing a PDF without a dependency needs its own design.
+- Core pinning output (docs/designs/core-pinning.md, step 7b): optional PDF output of all
+  the charts as one document, `pin_system.py --pdf FILE`. A draft design is in
+  docs/designs/pdf-output.md (D62), waiting for agreement. The data-file guard already
+  refuses `.pdf` (D32).
 - A script for the pull request privacy scan that reviewers now run by hand: seven
   digit strings that are not in `system.example.json`, a short list of key-history
   phrases, commit identity and trailers, and the data-file guard over the whole

@@ -664,3 +664,16 @@ without the flag is unchanged. The PDF output, the other half of step 7, is a se
 design. The design is in its own document, has been accepted and is built.
 
 Detail: [designs/ascii-stack-drawing.md](designs/ascii-stack-drawing.md).
+
+## D62. Step 7b is a PDF of all the charts, written by hand, designed before it is built
+
+The second half of step 7 of core pinning is `pin_system.py --pdf FILE`: every chart of a
+system file as one PDF, one chart to a page (with its drawing under it when `--draw` is
+given), in Courier at one size for the whole document, Letter by default and `--paper a4`.
+The writer is about a hundred lines of standard library, adds no dependency, and puts no
+date or name in the file, so equal runs give equal bytes. `--pdf` follows `--out`'s rules
+(never over an existing file, a one-line error, a key-data reminder) and the two are
+alternatives. The data-file guard already refuses `.pdf` (D32), so it needs no change. The
+design is a draft in its own document; no code is written until it is accepted.
+
+Detail: [designs/pdf-output.md](designs/pdf-output.md).

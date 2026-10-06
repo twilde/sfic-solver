@@ -557,7 +557,7 @@ the checker, so the rules are verified before anything depends on them.
 | 4 | (done, D51 to D53) Config and checker: the `pinning` field, `control` on each core, `retired_cores`, pinnability, control cross-operation and the retired-core consistency check in the report | Only for files that opt in |
 | 5 | (done, D54 to D57, in [pinnable-solving.md](pinnable-solving.md)) The generator and solver work with or without a pattern; the residual-risk population comes from the retired cores, with a pinnability figure beside cross-operation | For opted-in files, with agreement |
 | 6 | (done, D58) The chart command (with the key system name, the date and the unit names) and README updates | New command |
-| 7 | An ASCII drawing of each core's pin stacks in the chart output (7a, done, D61, in [ascii-stack-drawing.md](ascii-stack-drawing.md)), and optional PDF output of all charts as one document, each with its own design document; the guard learns `.pdf` first | New output only |
+| 7 | An ASCII drawing of each core's pin stacks in the chart output (7a, done, D61, in [ascii-stack-drawing.md](ascii-stack-drawing.md)), and optional PDF output of all charts as one document (7b, designed in [pdf-output.md](pdf-output.md), D62; the guard already refuses `.pdf`, D32) | New output only |
 
 A visualizer beyond the ASCII drawing is possible later, on the same simulated lock.
 The PDF output is a design question in its own right, since writing PDFs without a
