@@ -264,6 +264,25 @@ class ShapeRules:
         fields.setdefault("master_min_span", span if span >= 1 else None)
         return cls(**fields)
 
+    def describe(self, rule, pins):
+        """A phrase for a broken rule and its pins (from `violations`), saying where and
+        never what the cuts are."""
+        where = f" at pin(s) {list(pins)}" if pins else ""
+        if rule == "max_run":
+            if self.max_run == 1:
+                return f"equal adjacent cuts{where}"
+            return f"more than {self.max_run} equal cuts in a row{where}"
+        if rule == "max_same_depth":
+            return f"a depth used more than {self.max_same_depth} times{where}"
+        if rule == "forbid_monotone":
+            return "the cuts only go one way along the key (never down, or never up)"
+        if rule == "master_min_span":
+            return (f"a master whose deepest and shallowest cuts differ by less than "
+                    f"{self.master_min_span}")
+        if rule == "min_total_variation":
+            return f"total variation under {self.min_total_variation}"
+        raise ValueError(f"unknown shape rule {rule!r}")
+
     def unmeetable(self, space):
         """A message saying why no key of the space could meet these rules, or None. The
         bounds ignore the parity pattern, so a rule that some key could meet is never

@@ -150,8 +150,13 @@ what the tools count alone. The risk figures are unchanged.
   bound, and a set small enough to list is filtered whole. If the bound is reached with
   none, the group is reported as above.
 - **`gen_bittings`.** Applies the defaults, with `--max-run`, `--max-same-depth`,
-  `--min-variation` and `--master` to change them, and `--allow-monotone`.
-- **`check_bittings`, `check_system`.** The advisory `SHAPE` lines.
+  `--min-variation`, `--master-min-span` and `--allow-monotone` to change them and `--master`
+  to say the bittings are masters. A number, or `off`, turns a rule on or off; a flag that no
+  key of the key space could meet is a usage error. The flags are shared with
+  `check_bittings` (`shape_args.py`). When the search gives up, the message says which rules
+  turned draws down.
+- **`check_bittings`, `check_system`.** The advisory `SHAPE` lines. `check_bittings` takes
+  the same flags and names its masters with `--master NAME`, repeated.
 - **System file.** `shape` is optional; a file without it gets the defaults, so seeded
   solver output changes for existing files. That is deliberate and the log entry says so (D6
   asks for a stated reason). An unknown field inside `shape` is an error, not a warning,

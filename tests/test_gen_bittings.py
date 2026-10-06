@@ -173,3 +173,91 @@ def test_without_a_pattern_the_default_closeness_follows_the_pin_count():
     assert proc.returncode == 0 and len(keys) == 5
     for a, b in itertools.combinations(keys, 2):
         assert distance(a, b) >= 3
+
+
+# -- shape rules (docs/designs/key-shape-rules.md) ------------------------------------
+
+def shape_facts(key):
+    """(longest run, most times one depth appears, monotone, span) by plain loops."""
+    cuts = [int(c) for c in key]
+    run = best = 1
+    for a, b in zip(cuts, cuts[1:]):
+        run = run + 1 if a == b else 1
+        best = max(best, run)
+    steps = [b - a for a, b in zip(cuts, cuts[1:])]
+    monotone = all(s >= 0 for s in steps) or all(s <= 0 for s in steps)
+    return best, max(cuts.count(d) for d in set(cuts)), monotone, max(cuts) - min(cuts)
+
+
+def generate_many(monkeypatch, capsys, *args, seed=7):
+    monkeypatch.setattr(secrets, "choice", random.Random(seed).choice)
+    assert call_main(gen_bittings.main, [*args], monkeypatch) == 0
+    return capsys.readouterr().out.split()
+
+
+@pytest.mark.parametrize("args", [["--pins", "7"], ["OOEOEOE"], ["OEOEOEO"], ["--pins", "5"]])
+def test_default_output_follows_the_shape_rules(monkeypatch, capsys, args):
+    keys = generate_many(monkeypatch, capsys, *args, "-n", "300", "--min-diff", "0")
+    assert len(keys) == 300
+    for key in keys:
+        run, depth, monotone, _ = shape_facts(key)
+        assert run == 1 and depth <= 3 and not monotone, key
+
+
+def test_masters_also_span_at_least_six(monkeypatch, capsys):
+    keys = generate_many(monkeypatch, capsys, "--pins", "7", "-n", "300", "--min-diff", "0",
+                         "--master")
+    assert all(shape_facts(key)[3] >= 6 for key in keys)
+    plain = generate_many(monkeypatch, capsys, "--pins", "7", "-n", "300", "--min-diff", "0")
+    assert any(shape_facts(key)[3] < 6 for key in plain)          # the span rule is for masters
+
+
+def test_max_run_two_allows_pairs_but_not_triples(monkeypatch, capsys):
+    keys = generate_many(monkeypatch, capsys, "--pins", "7", "-n", "300", "--min-diff", "0",
+                         "--max-run", "2")
+    runs = {shape_facts(key)[0] for key in keys}
+    assert runs == {1, 2}
+
+
+def test_off_and_allow_monotone_let_the_old_shapes_back(monkeypatch, capsys):
+    keys = generate_many(monkeypatch, capsys, "--pins", "7", "-n", "1500", "--min-diff", "0",
+                         "--max-run", "off", "--max-same-depth", "off", "--allow-monotone",
+                         "--master-min-span", "off")
+    facts = [shape_facts(key) for key in keys]
+    assert any(run >= 3 for run, *_ in facts)
+    assert any(depth >= 4 for _, depth, *_ in facts)
+    assert any(monotone for _, _, monotone, _ in facts)
+
+
+def test_min_variation_is_applied(monkeypatch, capsys):
+    keys = generate_many(monkeypatch, capsys, "--pins", "7", "-n", "100", "--min-diff", "0",
+                         "--min-variation", "20")
+    for key in keys:
+        cuts = [int(c) for c in key]
+        assert sum(abs(a - b) for a, b in zip(cuts, cuts[1:])) >= 20, key
+
+
+def test_giving_up_says_which_shape_rules_turned_draws_down(monkeypatch):
+    monkeypatch.setattr(gen_bittings, "MAX_ATTEMPTS", 50)
+    with pytest.raises(SystemExit) as exc:
+        gen_bittings.main(["--pins", "4", "-n", "20", "--min-diff", "0", "--min-variation", "15"])
+    message = str(exc.value.code)
+    assert "loosen the constraints" in message
+    assert "draws that broke a shape rule, by rule:" in message and "min_total_variation" in message
+
+
+def test_giving_up_for_other_reasons_does_not_blame_the_shape_rules():
+    assert gen_bittings.give_up_message({}) == \
+        "could not find enough bittings; loosen the constraints"
+
+
+@pytest.mark.parametrize("args, message", [
+    (["--master-min-span", "12"], "--master-min-span is 12 but no key can span more than 9"),
+    (["--min-variation", "31"], "--min-variation is 31 but no key of 7 pins can vary"),
+    (["--max-run", "0"], "--max-run: expected a whole number of at least 1, or 'off'"),
+    (["--max-same-depth", "many"], "--max-same-depth: expected a whole number"),
+])
+def test_bad_shape_flags_are_usage_errors(args, message):
+    proc = run_script("gen_bittings", *args)
+    assert proc.returncode == 2 and proc.stderr.startswith("usage:")
+    assert message in proc.stderr and "Traceback" not in proc.stderr

@@ -9,16 +9,25 @@ system whose cores are pinned for real (see "Pinning" in the README): whether
 keys can be pinned together depends on the core, so check_system and
 solve_system are where that is tested, not this command.
 
+Keys also follow the shape rules (docs/designs/key-shape-rules.md): by default no equal
+adjacent cuts, no depth used more than 3 times, no key whose cuts only go one way, and, with
+--master, a span of at least 6 between the deepest and shallowest cut. The flags under "key
+shape rules" change them; a number, or "off", for each.
+
 Examples:
     ./gen_bittings.py OOEOEOE
     ./gen_bittings.py OOEOEOE -n 20
     ./gen_bittings.py OOEOEOE -n 5 --avoid 5961634 7305496 --min-diff 4
     ./gen_bittings.py --pins 7 -n 5             # any parity
+    ./gen_bittings.py --pins 7 -n 3 --master    # masters must also span the depths
+    ./gen_bittings.py OOEOEOE --max-run 2       # allow a pair of equal neighbours
 """
 import argparse
+import collections
 import secrets
 
 from . import model
+from .shape_args import add_shape_arguments, shape_rules
 
 MAX_ATTEMPTS = 100_000
 
@@ -50,6 +59,16 @@ def generate(space):
     raise RuntimeError("no valid bitting found; is --max-step too small?")
 
 
+def give_up_message(rejected):
+    """Why the search ended: the old advice, and which shape rules turned draws down."""
+    message = "could not find enough bittings; loosen the constraints"
+    if rejected:
+        counts = ", ".join(f"{name} {count:,}" for name, count in rejected.most_common())
+        message += (f" (draws that broke a shape rule, by rule: {counts}; "
+                    f"see the key shape rules flags in --help)")
+    return message
+
+
 def differs_enough(cuts, avoid, min_diff):
     return all(sum(a != b for a, b in zip(cuts, old)) >= min_diff for old in avoid)
 
@@ -71,6 +90,9 @@ def main(argv=None):
     ap.add_argument("--min-diff", type=int,
                     help="min positions that must differ from each --avoid bitting "
                          "and from each other (default 3, or the pin count if smaller)")
+    ap.add_argument("--master", action="store_true",
+                    help="the bittings are master keys: the master span rule applies to them")
+    add_shape_arguments(ap)
     args = ap.parse_args(argv)
 
     if args.max_step < 1:
@@ -86,18 +108,24 @@ def main(argv=None):
         avoid = [parse_bitting(b, space) for b in args.avoid]
     except ValueError as err:
         ap.error(str(err))
+    rules = shape_rules(ap, args, space)
     if args.min_diff is None:
         args.min_diff = min(3, pins)
     elif args.min_diff > pins:
         ap.error(f"--min-diff {args.min_diff} is more than the {pins} pins")
 
     accepted = []
+    rejected = collections.Counter()
     attempts = 0
     while len(accepted) < args.count:
         attempts += 1
         if attempts > MAX_ATTEMPTS:
-            raise SystemExit("could not find enough bittings; loosen the constraints")
+            raise SystemExit(give_up_message(rejected))
         cuts = generate(space)
+        broken = rules.violations(cuts, args.master)
+        if broken:
+            rejected.update(name for name, _ in broken)
+            continue
         # New bittings must also stay --min-diff away from each other, not just
         # from the --avoid list. Also rejects duplicates when min-diff >= 1.
         if cuts not in accepted and differs_enough(cuts, avoid + accepted, args.min_diff):

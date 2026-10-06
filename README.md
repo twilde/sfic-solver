@@ -19,8 +19,8 @@ Everything else runs without them. Python 3.11 or newer.
 
 | Command (from a checkout) | Installed as | What it does |
 | --- | --- | --- |
-| `./gen_bittings.py` | `sfic-gen-bittings` | Random bittings from a parity pattern, or with any parity if you give none, optionally staying away from existing bittings. |
-| `./check_bittings.py` | `sfic-check-bittings` | Quick check of a few `NAME=BITTING` values: format, parity, adjacent-cut limit, pairwise closeness. |
+| `./gen_bittings.py` | `sfic-gen-bittings` | Random bittings from a parity pattern, or with any parity if you give none, optionally staying away from existing bittings, and following the [key shape rules](#key-shape-rules). |
+| `./check_bittings.py` | `sfic-check-bittings` | Quick check of a few `NAME=BITTING` values: format, parity, adjacent-cut limit, pairwise closeness, with advice on the [key shape rules](#key-shape-rules). |
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
 | `./pin_system.py` | `sfic-pin-system` | Prints the pinning chart of every core of a system file that sets `pinning`, in the layout `check_charts` reads: the pins to put in each chamber, with `--draw` a drawing of the stacks and with `--pdf` one PDF to print. |
@@ -88,6 +88,42 @@ flagged; very similar bittings are easy to confuse or to cut by mistake.
 only estimate the chance that they cross-operate. The estimate assumes every
 undecoded unit key is a random valid bitting, uniformly chosen. If your real
 keys were chosen differently, the numbers do not apply.
+
+## Key shape rules
+
+Beside the rules a key must follow to cut and pin (cut depths, the adjacent-cut limit, parity),
+there are rules about what a key should look like. They keep the tools from handing you a key
+with equal neighbouring cuts, one depth over and over, or a master that is shallow from end
+to end. Without a parity pattern more than half of all valid bittings have a pair of equal
+adjacent cuts, so a generator that ignored this would give you one more often than not.
+
+| Rule | Flag | Default | A key breaks it when |
+| --- | --- | --- | --- |
+| `max_run` | `--max-run N` | 1 | more than `N` equal cuts in a row (1 means no equal neighbours) |
+| `max_same_depth` | `--max-same-depth N` | 3 | any depth appears more than `N` times |
+| `forbid_monotone` | `--allow-monotone` (turns it off) | on | the cuts never go down, or never go up, along a key of three or more cuts |
+| `master_min_span` | `--master-min-span N` | 6 | (masters only) the deepest cut minus the shallowest is under `N` |
+| `min_total_variation` | `--min-variation N` | off | the sum of the differences between adjacent cuts is under `N` |
+
+Give `off` instead of a number to turn a rule off. The span rule's default is lower if no key
+of the system could span 6 (few pins, or a small `max_step`). The rules are ours: the
+industry names rules of this kind, but the thresholds are not public.
+The reasons, the numbers behind the defaults and what each costs in key space are in
+[docs/designs/key-shape-rules.md](docs/designs/key-shape-rules.md).
+
+- `gen_bittings.py` only prints bittings that follow them. Add `--master` when you are
+  drawing master keys, so the span rule applies. If the search cannot find enough
+  bittings it says which shape rules turned draws down; it never relaxes one on its own.
+- `check_bittings.py` prints a `SHAPE` line for each rule a key breaks, with pin positions and
+  never the cuts. They are advice: they do not count as problems or change the exit status.
+  Name the masters with `--master NAME` (repeat the flag for more than one).
+- The solver and `check_system` do not use the rules yet.
+
+```bash
+./gen_bittings.py --pins 7 -n 3 --master          # three masters, no parity pattern
+./gen_bittings.py OOEOEOE -n 8 --max-run 2        # allow a pair of equal neighbours
+./check_bittings.py --master top top=0453037 area=6130254
+```
 
 ## System file format
 
@@ -327,7 +363,8 @@ printed, and the printed pins are the ones the checker's own pinner computed.
    ```
 
    Output is in generation order (not sorted), so taking the first one is as
-   random as any other. Spot-check candidates with
+   random as any other. Add `--master` for master keys (see
+   [Key shape rules](#key-shape-rules)). Spot-check candidates with
    `./check_bittings.py --pattern OOEOEOE name=1234567 other=7654321`.
 
 2. **Write the system file.** List keys, retired keys and the `cores` hierarchy.
