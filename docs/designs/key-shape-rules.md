@@ -84,7 +84,7 @@ A new object of rules, `ShapeRules`, in `model.py`, beside `KeySpace` and apart 
 (see "Why not part of KeySpace"). Each is a field of an optional `shape` object in the
 system file, and `null` turns a rule off.
 
-| Field | Default | A key breaks it when | Industry name |
+| Field | Default | A key breaks it when | Industry name (assumed) |
 |---|---|---|---|
 | `max_run` | 1 | more than `max_run` equal cuts in a row (1 means no equal neighbours) | same cuts |
 | `max_same_depth` | 3 | any depth appears more than this many times | (ours) |
@@ -92,7 +92,10 @@ system file, and `null` turns a rule off.
 | `master_min_span` | 6 | (master keys only) the deepest cut minus the shallowest is under this | highest and deepest cut |
 | `min_total_variation` | off | the sum of the differences between neighbours is under this | total variation |
 
-The first four are on by default; the fifth is available and off. A "master" is a key that
+The names in the last column are the industry's labels for the nearest rule on the
+MLAA list. Their definitions are not public, so what each row bans is our reading of the name,
+and the thresholds are ours. The first four rules are on by default; the fifth is available
+and off. A "master" is a key that
 is in the `masters` list of any core of the file, or, for `gen_bittings`, one named with
 `--master`. Control keys are not masters. `master_min_span` defaults to 6, or to the number
 of depths minus one if that is smaller, so a system with few depths still has a possible key.
@@ -176,8 +179,14 @@ only matter between neighbours of the same parity, and with pinning and no patte
 Separate commits, each with tests:
 
 1. `ShapeRules` in `model.py`: the rules and their violations by position, tested
-   against brute-force enumeration for the kept shares in the table above.
-2. The `shape` field in the system file, with validation and its errors.
+   against brute-force enumeration for the kept shares in the table above. The two
+   parity rows are pinned by the tests. The no-pattern row (3,027,314 valid bittings, 45.8% and
+   33.1% kept) was enumerated once by hand, about 47 seconds through `ok`, which is too slow
+   for the suite; it is not pinned, so redo it if a rule or a default changes.
+2. The `shape` field in the system file, with validation and its errors. Validation knows the
+   depth count, so it rejects an explicit `master_min_span` above depths minus one with a
+   clear message: no master could ever meet it, and every solve that needs a master would
+   end in NOT SOLVED.
 3. `gen_bittings` and `check_bittings`: the rules and their flags.
 4. The solver, single key and joint, with a seeded test that no result breaks a rule and
    a range test (not exact figures) on the share of keys with equal neighbours, run with and

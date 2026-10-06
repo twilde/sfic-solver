@@ -698,7 +698,7 @@ The tools generate keys that often have equal adjacent cuts, one depth many time
 master that is shallow throughout; without a parity pattern more than half of all valid
 bittings have an equal pair. The proposal is a `ShapeRules` object, separate from `KeySpace`,
 with an optional `shape` object in the system file: no equal adjacent cuts, no depth used
-more than three times, no monotone key, and masters spanning at least six depths, with a
+more than three times, no monotone key, and masters whose deepest and shallowest cuts differ by at least six, with a
 total-variation floor available and off. They filter what the solver and `gen_bittings`
 choose and never silently relax; the exact counts and the risk figures are unchanged, and
 `check_system` reports existing keys as advice only. Seeded solver output changes for files
