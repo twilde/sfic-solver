@@ -2,14 +2,14 @@
 
 Status: Implemented
 
-This document proposes a local tool that turns scans of paper pinning charts into
+This document describes a local tool that turns scans of paper pinning charts into
 the text chart format that `check_charts` reads, so that an owner who has charts
-only on paper can run the conformance check without retyping them. It is written
-before any code, to be discussed and changed. It builds on the chart layouts and
-the privacy rules in [core-pinning.md](core-pinning.md) ("The chart layout",
-"Verification" and "Charts are key data"), and is summarised in the decision log
-([D38 in decisions.md](../decisions.md)). It was accepted and the tool is built, as the
-plan below says; work on it is suspended ([D44](../decisions.md)).
+only on paper can run the conformance check without retyping them. It was written
+before any code, accepted by the maintainer and built (steps 3 to 5 of its plan
+below), and work on it is suspended ([D44](../decisions.md)). It builds on the chart
+layouts and the privacy rules in [core-pinning.md](core-pinning.md) ("The chart
+layout", "Verification" and "Charts are key data"), and is summarised in the decision
+log ([D38 in decisions.md](../decisions.md)).
 
 ## Why do this
 

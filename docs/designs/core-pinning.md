@@ -2,15 +2,15 @@
 
 Status: Implemented
 
-This document proposes teaching the tools to pin cores: to take the keys and the
+This document describes teaching the tools to pin cores: to take the keys and the
 hierarchy a system file already describes and work out the pins that make the
 cores behave that way, for a given SFIC pinning system, starting with A2. It
-also proposes a simulated lock to test the result against, and, as a
+also describes a simulated lock to test the result against, and, as a
 consequence, letting the physical pinning rules rather than the parity pattern
-decide which bittings can be built. It is written before any code, to be
-discussed and changed, and has been revised three times with the maintainer's
-answers to its questions. Decisions that survive discussion will be summarised in
-the log ([D25 in decisions.md](../decisions.md)).
+decide which bittings can be built. It was written before any code, revised three
+times with the maintainer's answers to its questions, accepted and built in the
+seven steps of its plan below. The decisions are summarised in the log
+([D25 in decisions.md](../decisions.md)).
 
 ## Why do this
 
