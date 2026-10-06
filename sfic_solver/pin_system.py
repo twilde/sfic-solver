@@ -103,6 +103,9 @@ def main(argv=None):
     ap.add_argument("--force", action="store_true",
                     help="let --out or --pdf replace an existing file")
     args = ap.parse_args(argv)
+    for flag in ("pdf", "out"):
+        if getattr(args, flag) == "":              # an unset shell variable, for one
+            ap.error(f"--{flag} needs a file name")
     if args.pdf and args.out:
         ap.error("--pdf and --out are alternatives: give one")
     if args.paper and not args.pdf:

@@ -41,7 +41,8 @@ def read_pdf(data):
     assert header, "startxref does not point at the cross-reference table"
     count = int(header.group(1))
     entries = data[table + header.end():]
-    trailer = re.match(rb"trailer\n<< /Size (\d+) /Root (\d+) 0 R /Info (\d+) 0 R >>\n", entries[20 * count:])
+    trailer = re.match(rb"trailer\n<< /Size (\d+) /Root (\d+) 0 R /Info (\d+) 0 R >>\n",
+                       entries[20 * count:])
     assert trailer and int(trailer.group(1)) == count, "the trailer does not match the table"
     assert entries[:20] == b"0000000000 65535 f \n"
     bodies = {}

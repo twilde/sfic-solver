@@ -152,7 +152,8 @@ commands, each of which says what it wrote, are clearer.
 
 ## Decision and plan
 
-Add the PDF output as described, one pull request (step 7b), in three commits:
+Add the PDF output as described, one pull request (step 7b), in three steps (the draft
+of this document and its acceptance are commits of their own, outside them):
 
 1. `pdfwriter.py`, with its tests (the structural reader, the round trip, the geometry,
    the determinism, the errors), changing nothing else.

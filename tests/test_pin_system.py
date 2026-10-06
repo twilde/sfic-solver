@@ -236,6 +236,13 @@ def test_pdf_and_out_are_alternatives_and_paper_needs_pdf(tmp_path):
     assert not list(tmp_path.iterdir())
 
 
+@pytest.mark.parametrize("flag", ["--pdf", "--out"])
+def test_an_empty_file_name_is_refused_not_ignored(flag):
+    proc = run_script("pin_system", PINNING, flag, "")
+    assert proc.returncode == 2 and f"{flag} needs a file name" in proc.stderr
+    assert proc.stdout == ""
+
+
 def test_nothing_is_written_when_a_core_cannot_be_pinned(pinned, tmp_path):
     pinned["keys"]["master_sub"] = "6" + pinned["keys"]["master_sub"][1:]    # 1 from area_a's 5
     target = tmp_path / "charts.pdf"
