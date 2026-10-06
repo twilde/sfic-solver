@@ -1,4 +1,5 @@
 """pin_system: the charts it prints are the design's, and the reader and checker accept them."""
+import importlib.util
 import json
 import re
 import subprocess
@@ -7,8 +8,14 @@ import sys
 import pytest
 
 from conftest import FIXTURES, ROOT, call_main, run_script
+from pdfread import read_pdf
 from sfic_solver import charts, pin_system
 from sfic_solver.check_charts import check_chart
+
+_spec = importlib.util.spec_from_file_location(
+    "check_no_stray_data", ROOT / "scripts" / "check_no_stray_data.py")
+guard = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(guard)
 
 PINNING = FIXTURES / "pinning.json"
 DATE = "2026-10-01"
@@ -163,6 +170,95 @@ def test_a_bad_out_path_is_a_one_line_error_and_writes_nothing(tmp_path):
     proc = run_script("pin_system", PINNING, "--out", directory, "--force")
     assert proc.returncode == 1 and f"error: cannot write {directory}" in proc.stderr
     assert "Traceback" not in proc.stderr
+
+
+def pdf_lines(path):
+    """Each page's lines, as the reader of our own gives them."""
+    return [page.lines for page in read_pdf(path.read_bytes()).pages]
+
+
+def charts_as_lines(text):
+    return [chart.rstrip("\n").split("\n") for chart in text.split("\n" + "-" * 40 + "\n\n")]
+
+
+@pytest.mark.parametrize("flags", [(), ("--draw",)])
+def test_pdf_writes_a_page_to_each_chart_with_the_charts_own_lines(tmp_path, flags):
+    target = tmp_path / "charts.pdf"
+    proc = run_script("pin_system", PINNING, "--date", DATE, "--pdf", target, *flags)
+    assert proc.returncode == 0 and proc.stdout == ""
+    assert f"wrote 8 chart(s) to {target}" in proc.stderr and "key data" in proc.stderr
+    assert pdf_lines(target) == charts_as_lines(chart_text(*flags))
+    assert len(pdf_lines(target)) == 8
+    assert guard.is_stray(target.name)       # the file the command writes is one the guard refuses
+
+
+def test_pdf_defaults_to_letter_and_takes_a4(tmp_path):
+    letter, a4 = tmp_path / "letter.pdf", tmp_path / "a4.pdf"
+    assert run_script("pin_system", PINNING, "--date", DATE, "--pdf", letter).returncode == 0
+    assert run_script("pin_system", PINNING, "--date", DATE, "--pdf", a4,
+                      "--paper", "a4").returncode == 0
+    assert {p.media for p in read_pdf(letter.read_bytes()).pages} == {(612, 792)}
+    assert {p.media for p in read_pdf(a4.read_bytes()).pages} == {(595, 842)}
+    assert pdf_lines(letter) == pdf_lines(a4)
+
+
+def test_the_same_file_and_date_give_the_same_pdf(tmp_path):
+    first, second = tmp_path / "one.pdf", tmp_path / "two.pdf"
+    for target in (first, second):
+        assert run_script("pin_system", PINNING, "--date", DATE, "--draw",
+                          "--pdf", target).returncode == 0
+    assert first.read_bytes() == second.read_bytes()
+
+
+def test_pdf_does_not_replace_an_existing_file_unless_forced(tmp_path):
+    target = tmp_path / "charts.pdf"
+    target.write_bytes(b"keep me")
+    proc = run_script("pin_system", PINNING, "--date", DATE, "--pdf", target)
+    assert proc.returncode == 1 and "exists; give --force" in proc.stderr
+    assert target.read_bytes() == b"keep me"
+    forced = run_script("pin_system", PINNING, "--date", DATE, "--pdf", target, "--force")
+    assert forced.returncode == 0 and len(pdf_lines(target)) == 8
+
+
+def test_a_bad_pdf_path_is_a_one_line_error_and_writes_nothing(tmp_path):
+    missing = tmp_path / "NOT_A_REAL_DIR" / "charts.pdf"
+    proc = run_script("pin_system", PINNING, "--pdf", missing)
+    assert proc.returncode == 1 and f"error: cannot write {missing}" in proc.stderr
+    assert "Traceback" not in proc.stderr and not missing.parent.exists()
+
+
+def test_pdf_and_out_are_alternatives_and_paper_needs_pdf(tmp_path):
+    both = run_script("pin_system", PINNING, "--pdf", tmp_path / "a.pdf",
+                      "--out", tmp_path / "b.txt")
+    assert both.returncode == 2 and "alternatives" in both.stderr
+    paper = run_script("pin_system", PINNING, "--paper", "a4")
+    assert paper.returncode == 2 and "--paper is for --pdf" in paper.stderr
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("flag", ["--pdf", "--out"])
+def test_an_empty_file_name_is_refused_not_ignored(flag):
+    proc = run_script("pin_system", PINNING, flag, "")
+    assert proc.returncode == 2 and f"{flag} needs a file name" in proc.stderr
+    assert proc.stdout == ""
+
+
+def test_nothing_is_written_when_a_core_cannot_be_pinned(pinned, tmp_path):
+    pinned["keys"]["master_sub"] = "6" + pinned["keys"]["master_sub"][1:]    # 1 from area_a's 5
+    target = tmp_path / "charts.pdf"
+    proc = run_script("pin_system", write(tmp_path, pinned), "--pdf", target)
+    assert proc.returncode == 1 and "UNPINNABLE" in proc.stderr and not target.exists()
+
+
+def test_a_chart_the_pdf_cannot_hold_is_a_one_line_error_that_does_not_quote_it(
+        pinned, tmp_path):
+    pinned["name"] = "Caf\u00e9 \u03a9"           # Omega is not in the font
+    target = tmp_path / "charts.pdf"
+    proc = run_script("pin_system", write(tmp_path, pinned), "--pdf", target)
+    assert proc.returncode == 1 and not target.exists()
+    assert "error: cannot make the PDF: page 1 has a character the PDF's font cannot print" \
+        in proc.stderr
+    assert "\u03a9" not in proc.stderr and "Traceback" not in proc.stderr
 
 
 def test_the_console_script_and_module_forms_work(monkeypatch, capsys):

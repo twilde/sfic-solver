@@ -11,12 +11,14 @@ Usage:
     ./pin_system.py system.json --date 2026-10-01     # a fixed date (default: today)
     ./pin_system.py system.json --draw                # and a drawing of the stacks under each
     ./pin_system.py system.json --out charts.txt      # to a file (never over an existing one)
+    ./pin_system.py system.json --pdf charts.pdf      # one PDF, a page to a chart (--paper a4)
 
 If a core cannot be pinned, no chart is printed: the cores and chambers are listed, as
 check_system.py lists them, and the status is 1.
 
-The charts are key data: their pin sizes give the bittings away. Keep them, like the
-system file, outside this repository (see Privacy in the README).
+The charts are key data: their pin sizes give the bittings away, on screen, in a file or
+on a printed page. Keep them, like the system file, outside this repository (see Privacy
+in the README).
 """
 import argparse
 import datetime
@@ -26,6 +28,7 @@ from pathlib import Path
 
 from .chartwriter import core_label, draw_stacks, format_chart, join_charts
 from .config import load_or_exit
+from .pdfwriter import PAPER, PdfError, pages_to_pdf
 from .pinning import pin_chambers
 
 MAX_LISTED = 30        # lines of unpinnable chambers before "... and N more"
@@ -67,6 +70,25 @@ def build(cfg, date, draw=False):
     return texts, problems
 
 
+def write_new_file(path, data, force):
+    """Write `data` (text, or bytes for a PDF) to `path`, which must not exist unless `force`.
+
+    The file is opened exclusively, so a file made since the last look is not replaced
+    either. A failure is a one-line error, never a traceback."""
+    mode = "w" if force else "x"
+    try:
+        if isinstance(data, bytes):
+            with path.open(mode + "b") as f:
+                f.write(data)
+        else:
+            with path.open(mode, encoding="utf-8", newline="\n") as f:
+                f.write(data)
+    except FileExistsError:
+        sys.exit(f"error: {path} exists; give --force to replace it")
+    except OSError as e:
+        sys.exit(f"error: cannot write {path}: {e.strerror}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -75,15 +97,24 @@ def main(argv=None):
     ap.add_argument("--draw", action="store_true",
                     help="draw each core's pin stacks, to scale, under its chart")
     ap.add_argument("--out", help="write the charts to this file instead of standard output")
+    ap.add_argument("--pdf", help="write the charts as one PDF, a page to a chart, instead of "
+                                  "text (an alternative to --out)")
+    ap.add_argument("--paper", choices=sorted(PAPER), help="the PDF's paper (default: letter)")
     ap.add_argument("--force", action="store_true",
-                    help="let --out replace an existing file")
+                    help="let --out or --pdf replace an existing file")
     args = ap.parse_args(argv)
+    for flag in ("pdf", "out"):
+        if getattr(args, flag) == "":              # an unset shell variable, for one
+            ap.error(f"--{flag} needs a file name")
+    if args.pdf and args.out:
+        ap.error("--pdf and --out are alternatives: give one")
+    if args.paper and not args.pdf:
+        ap.error("--paper is for --pdf")
 
     cfg = load_or_exit(args.config)
     if not cfg.pinning:
         sys.exit(f"error: {args.config}: the system file does not set pinning, which the pin "
                  f"sizes need (for example \"pinning\": \"A2\")")
-    out = Path(args.out) if args.out else None
 
     texts, problems = build(cfg, args.date or today(), args.draw)
     if problems:
@@ -94,19 +125,21 @@ def main(argv=None):
         print("no charts printed: some cores cannot be pinned (check_system.py says why)",
               file=sys.stderr)
         return 1
-    text = join_charts(texts)
-    if out:
+    if args.pdf:
         try:
-            with out.open("w" if args.force else "x", encoding="utf-8", newline="\n") as f:
-                f.write(text)
-        except FileExistsError:
-            sys.exit(f"error: {out} exists; give --force to replace it")
-        except OSError as e:
-            sys.exit(f"error: cannot write {out}: {e.strerror}")
-        print(f"wrote {len(texts)} chart(s) to {out}; they are key data, so keep the file "
+            data = pages_to_pdf([text.rstrip("\n").split("\n") for text in texts],
+                                args.paper or "letter")
+        except PdfError as e:
+            sys.exit(f"error: cannot make the PDF: {e}")
+        write_new_file(Path(args.pdf), data, args.force)
+        print(f"wrote {len(texts)} chart(s) to {args.pdf}; they are key data, so keep the "
+              f"file and any printed pages outside the repository", file=sys.stderr)
+    elif args.out:
+        write_new_file(Path(args.out), join_charts(texts), args.force)
+        print(f"wrote {len(texts)} chart(s) to {args.out}; they are key data, so keep the file "
               f"outside the repository", file=sys.stderr)
     else:
-        sys.stdout.write(text)
+        sys.stdout.write(join_charts(texts))
     return 0
 
 

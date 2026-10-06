@@ -22,7 +22,7 @@ Everything else runs without them. Python 3.11 or newer.
 | `./check_bittings.py` | `sfic-check-bittings` | Quick check of a few `NAME=BITTING` values: format, parity, adjacent-cut limit, pairwise closeness. |
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
-| `./pin_system.py` | `sfic-pin-system` | Prints the pinning chart of every core of a system file that sets `pinning`, in the layout `check_charts` reads: the pins to put in each chamber, with `--draw` a drawing of the stacks. |
+| `./pin_system.py` | `sfic-pin-system` | Prints the pinning chart of every core of a system file that sets `pinning`, in the layout `check_charts` reads: the pins to put in each chamber, with `--draw` a drawing of the stacks and with `--pdf` one PDF to print. |
 | `./check_charts.py` | `sfic-check-charts` | Checks that the tools' pinning rules reproduce pinning charts from your keying software (`.txt` files kept outside this repository). Reports positions only, never key data. |
 | `./scan_charts.py` | `sfic-scan-charts` | Reads scans (PDF or image) of paper pinning charts and writes them as the text charts `check_charts` reads. Needs the optional `scan` extra and Tesseract. **Work suspended; does not yet read real printouts well.** See [Scanning paper charts](#scanning-paper-charts). |
 
@@ -301,8 +301,16 @@ line (a joint on the line marked `op 4` is the one a key cut 4 lines up). Withou
 the output is exactly as above, and `check_charts` reads a drawn chart the same as a plain
 one. A sample is in [designs/ascii-stack-drawing.md](docs/designs/ascii-stack-drawing.md).
 
-**The charts are key data**: the pin sizes give the bittings away. Keep them outside
-this repository, like the system file (see [Privacy](#privacy)). `check_charts` reads
+To print them, `--pdf charts.pdf` writes every chart as one PDF instead, a page to a chart
+(with its drawing under it if you also give `--draw`), in a fixed monospaced font and size
+so the columns line up on paper. It is Letter-sized unless you give `--paper a4`, it
+records no date or name beyond what the charts hold, and, like `--out`, it will not replace
+a file without `--force`. `--pdf` and `--out` are alternatives. The PDF is made by a small
+writer in this repository, with no extra package.
+
+**The charts are key data**, as a file or as a printed page: the pin sizes give the
+bittings away. Keep them outside this repository, like the system file (see
+[Privacy](#privacy)). `check_charts` reads
 this layout, so it can check a chart you printed, and the printed pins are the ones
 the checker's own pinner computed.
 
