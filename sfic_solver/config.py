@@ -73,9 +73,11 @@ def _shape_rules(raw, space):
     """The ShapeRules for a file: the defaults for its depth count, with the settings of
     its optional `shape` object on top. A rule set to null is off. Every mistake raises
     ConfigError, including a rule that no key could meet, since a solve that needs one
-    would otherwise end in NOT SOLVED with nothing wrong in the file to point at."""
+    would otherwise end in NOT SOLVED with nothing wrong in the file to point at. The two
+    bounds ignore the parity pattern, so they never reject a rule that some key could meet
+    but may accept one that none can."""
     if "shape" not in raw:
-        return model.ShapeRules.for_depths(space.depths)
+        return model.ShapeRules.for_space(space)
     settings = raw["shape"]
     if not isinstance(settings, dict):
         raise ConfigError(f"shape must be an object of rule settings, got {settings!r}")
@@ -89,18 +91,18 @@ def _shape_rules(raw, space):
     if fields.get("forbid_monotone", True) is None:
         fields["forbid_monotone"] = False
     try:
-        rules = model.ShapeRules.for_depths(space.depths, **fields)
+        rules = model.ShapeRules.for_space(space, **fields)
     except ValueError as err:
         raise ConfigError(f"shape: {err}") from None
-    widest = space.depths - 1
-    if rules.master_min_span is not None and rules.master_min_span > widest:
-        raise ConfigError(f"shape: master_min_span is {rules.master_min_span} but the cuts run "
-                          f"only from 0 to {widest}, so no master could differ by that much")
-    most = (space.pins - 1) * min(space.max_step, widest)
-    if rules.min_total_variation is not None and rules.min_total_variation > most:
+    if rules.master_min_span is not None and rules.master_min_span > space.widest_span:
+        raise ConfigError(f"shape: master_min_span is {rules.master_min_span} but no key can "
+                          f"span more than {space.widest_span} ({space.pins} pins, cuts 0 to "
+                          f"{space.depths - 1}, max_step is {space.max_step})")
+    if (rules.min_total_variation is not None
+            and rules.min_total_variation > space.most_variation):
         raise ConfigError(f"shape: min_total_variation is {rules.min_total_variation} but no "
-                          f"key of {space.pins} pins can vary by more than {most} "
-                          f"(max_step is {space.max_step})")
+                          f"key of {space.pins} pins can vary by more than "
+                          f"{space.most_variation} (max_step is {space.max_step})")
     return rules
 
 

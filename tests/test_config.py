@@ -131,8 +131,27 @@ def test_the_master_span_follows_the_depth_count():
     few = model.KeySpace(pins=7, depths=5)
     assert _shape_rules({}, few).master_min_span == 4
     assert _shape_rules({"shape": {"master_min_span": 4}}, few).master_min_span == 4
-    with pytest.raises(ConfigError, match="only from 0 to 4"):
+    with pytest.raises(ConfigError, match="span more than 4 .* cuts 0 to 4"):
         _shape_rules({"shape": {"master_min_span": 5}}, few)
+
+
+def test_a_narrow_file_does_not_start_with_a_span_no_key_can_meet(clean_cfg):
+    """Few pins and a small max_step limit how far apart two cuts of a key can be."""
+    narrow = {**clean_cfg, "pattern": None, "pins": 5, "max_step": 1,
+              "keys": {}, "retired_keys": {}, "control_keys": {}, "cores": []}
+    assert parse_config(narrow).shape.master_min_span == 4         # 4 steps of 1, not 6
+
+
+def test_an_explicit_span_wider_than_a_narrow_file_allows_is_rejected(clean_cfg, write_cfg):
+    clean_cfg.update(pattern=None, pins=5, max_step=1)
+    clean_cfg.update(keys={}, retired_keys={}, control_keys={}, cores=[],
+                     shape={"master_min_span": 6})
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    assert proc.returncode == 1 and "Traceback" not in proc.stderr
+    assert ("shape: master_min_span is 6 but no key can span more than 4 "
+            "(5 pins, cuts 0 to 9, max_step is 1)") in proc.stderr, proc.stderr
+    clean_cfg["shape"] = {"master_min_span": 4}
+    assert parse_config(clean_cfg).shape.master_min_span == 4
 
 
 def test_shape_is_not_an_unknown_field_and_underscore_notes_are_free_text(clean_cfg):
@@ -176,8 +195,8 @@ def test_bad_forbid_monotone(clean_cfg, write_cfg, bad):
 
 def test_a_master_span_wider_than_the_cuts_is_rejected(clean_cfg, write_cfg):
     fails(clean_cfg, lambda c: c.update(shape={"master_min_span": 10}),
-          "shape: master_min_span is 10 but the cuts run only from 0 to 9",
-          write_cfg=write_cfg)
+          "shape: master_min_span is 10 but no key can span more than 9",
+          "cuts 0 to 9", write_cfg=write_cfg)
     assert parse_config({**clean_cfg, "shape": {"master_min_span": 9}}).shape.master_min_span == 9
 
 

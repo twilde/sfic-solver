@@ -97,8 +97,10 @@ MLAA list. Their definitions are not public, so what each row bans is our readin
 and the thresholds are ours. The first four rules are on by default; the fifth is available
 and off. A "master" is a key that
 is in the `masters` list of any core of the file, or, for `gen_bittings`, one named with
-`--master`. Control keys are not masters. `master_min_span` defaults to 6, or to the number
-of depths minus one if that is smaller, so a system with few depths still has a possible key.
+`--master`. Control keys are not masters. `master_min_span` defaults to 6, or to the widest
+span any key of the system can have if that is smaller (the number of depths minus one, and
+no more than `max_step` for each step between pins), so a system with few depths or pins
+still has a possible key.
 
 What each costs, as the share of valid 7-pin bittings that pass (the first column is every
 key but a master, the second a master):
@@ -184,9 +186,13 @@ Separate commits, each with tests:
    33.1% kept) was enumerated once by hand, about 47 seconds through `ok`, which is too slow
    for the suite; it is not pinned, so redo it if a rule or a default changes.
 2. The `shape` field in the system file, with validation and its errors. Validation knows the
-   depth count, so it rejects an explicit `master_min_span` above depths minus one with a
-   clear message: no master could ever meet it, and every solve that needs a master would
-   end in NOT SOLVED.
+   key space, so it rejects a rule no key could meet, with a message naming it: a
+   `master_min_span` above the widest span a key can have, and a `min_total_variation` above
+   the most variation one can have (both bounds come from the depths, the pins and `max_step`).
+   Without that, every solve that needs a master, or any key, would end in NOT SOLVED with
+   nothing in the file to point at. The bounds ignore the parity pattern, so they never reject
+   a rule some key could meet but may accept one none can. The default span is capped by the
+   same bound, so a narrow file does not start with a default it never wrote.
 3. `gen_bittings` and `check_bittings`: the rules and their flags.
 4. The solver, single key and joint, with a seeded test that no result breaks a rule and
    a range test (not exact figures) on the share of keys with equal neighbours, run with and
