@@ -237,8 +237,8 @@ class ShapeRules:
             value = getattr(self, name)
             if value is not None and (isinstance(value, bool) or not isinstance(value, int)
                                       or value < 1):
-                raise ValueError(f"{name} must be a whole number of at least 1, or None to "
-                                 f"turn the rule off, got {value!r}")
+                raise ValueError(f"{name} must be a whole number of at least 1, or None "
+                                 f"(null in a system file) to turn the rule off, got {value!r}")
         if not isinstance(self.forbid_monotone, bool):
             raise ValueError(f"forbid_monotone must be true or false, got {self.forbid_monotone!r}")
 

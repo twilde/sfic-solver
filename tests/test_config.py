@@ -4,7 +4,8 @@ import json
 import pytest
 
 from conftest import FIXTURES, ROOT, run_script
-from sfic_solver.config import ConfigError, load_config, parse_config
+from sfic_solver import model
+from sfic_solver.config import ConfigError, _shape_rules, load_config, parse_config
 
 
 def fails(clean_cfg, mutate, *fragments, write_cfg, tool="check_system"):
@@ -90,6 +91,102 @@ def test_bad_scalar_settings(clean_cfg, write_cfg, field, bad):
 def test_unit_count_below_known_unit_keys(clean_cfg, write_cfg):
     fails(clean_cfg, lambda c: c.update(unit_count=2),
           "unit_count is 2 but 3 unit keys", write_cfg=write_cfg)
+
+
+
+# -- shape rules (docs/designs/key-shape-rules.md) ------------------------------------
+
+def test_without_a_shape_object_the_rules_are_the_defaults(clean_cfg):
+    assert "shape" not in clean_cfg
+    assert parse_config(clean_cfg).shape == model.ShapeRules()
+
+
+def test_an_empty_shape_object_is_the_defaults(clean_cfg):
+    cfg = parse_config({**clean_cfg, "shape": {}})
+    assert cfg.shape == model.ShapeRules() and cfg.warnings == []
+
+
+def test_shape_settings_replace_the_defaults(clean_cfg):
+    shape = {"max_run": 2, "max_same_depth": 4, "forbid_monotone": False,
+             "master_min_span": 5, "min_total_variation": 12}
+    assert parse_config({**clean_cfg, "shape": shape}).shape == model.ShapeRules(
+        max_run=2, max_same_depth=4, forbid_monotone=False, master_min_span=5,
+        min_total_variation=12)
+
+
+def test_null_turns_each_rule_off(clean_cfg):
+    shape = {name: None for name in model.SHAPE_RULES}
+    assert parse_config({**clean_cfg, "shape": shape}).shape == model.ShapeRules(
+        max_run=None, max_same_depth=None, forbid_monotone=False, master_min_span=None,
+        min_total_variation=None)
+
+
+def test_a_rule_left_out_keeps_its_default(clean_cfg):
+    rules = parse_config({**clean_cfg, "shape": {"max_run": None}}).shape
+    assert rules == model.ShapeRules(max_run=None)
+
+
+def test_the_master_span_follows_the_depth_count():
+    """A file cannot set the depth count yet (it is 10), so ask the helper with a small space."""
+    few = model.KeySpace(pins=7, depths=5)
+    assert _shape_rules({}, few).master_min_span == 4
+    assert _shape_rules({"shape": {"master_min_span": 4}}, few).master_min_span == 4
+    with pytest.raises(ConfigError, match="only from 0 to 4"):
+        _shape_rules({"shape": {"master_min_span": 5}}, few)
+
+
+def test_shape_is_not_an_unknown_field_and_underscore_notes_are_free_text(clean_cfg):
+    cfg = parse_config({**clean_cfg, "shape": {"_comment": "free text", "max_run": 2}})
+    assert cfg.warnings == [] and cfg.shape.max_run == 2
+
+
+def test_shape_survives_a_solve(clean_cfg, write_cfg, tmp_path):
+    clean_cfg["shape"] = {"max_run": 2}
+    clean_cfg["keys"]["key_c"] = None
+    out = tmp_path / "solved.json"
+    proc = run_script("solve_system", write_cfg(clean_cfg), "--out", out, "--seed", 1)
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(out.read_text())["shape"] == {"max_run": 2}
+
+
+@pytest.mark.parametrize("bad", [[], "strict", 3, None, True])
+def test_shape_must_be_an_object(clean_cfg, write_cfg, bad):
+    fails(clean_cfg, lambda c: c.update(shape=bad), "shape must be an object", write_cfg=write_cfg)
+
+
+def test_an_unknown_rule_is_an_error_with_a_hint(clean_cfg, write_cfg):
+    fails(clean_cfg, lambda c: c.update(shape={"max_runs": 2}),
+          "shape: unknown rule 'max_runs'", "did you mean 'max_run'?", "the rules are max_run",
+          write_cfg=write_cfg)
+
+
+@pytest.mark.parametrize("field", ["max_run", "max_same_depth", "master_min_span",
+                                   "min_total_variation"])
+@pytest.mark.parametrize("bad", [0, -1, 1.5, "2", True])
+def test_bad_shape_counts(clean_cfg, write_cfg, field, bad):
+    fails(clean_cfg, lambda c: c.update(shape={field: bad}), f"shape: {field} must be",
+          "null in a system file", write_cfg=write_cfg)
+
+
+@pytest.mark.parametrize("bad", ["yes", 1, 0])
+def test_bad_forbid_monotone(clean_cfg, write_cfg, bad):
+    fails(clean_cfg, lambda c: c.update(shape={"forbid_monotone": bad}),
+          "shape: forbid_monotone must be true or false", write_cfg=write_cfg)
+
+
+def test_a_master_span_wider_than_the_cuts_is_rejected(clean_cfg, write_cfg):
+    fails(clean_cfg, lambda c: c.update(shape={"master_min_span": 10}),
+          "shape: master_min_span is 10 but the cuts run only from 0 to 9",
+          write_cfg=write_cfg)
+    assert parse_config({**clean_cfg, "shape": {"master_min_span": 9}}).shape.master_min_span == 9
+
+
+def test_a_total_variation_no_key_can_reach_is_rejected(clean_cfg, write_cfg):
+    fails(clean_cfg, lambda c: c.update(shape={"min_total_variation": 31}),
+          "shape: min_total_variation is 31", "more than 30", "max_step is 5",
+          write_cfg=write_cfg)
+    assert parse_config({**clean_cfg, "shape": {"min_total_variation": 30}}) \
+        .shape.min_total_variation == 30
 
 
 # -- cores --------------------------------------------------------------------
