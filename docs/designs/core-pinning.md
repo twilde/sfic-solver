@@ -381,13 +381,14 @@ that are too strict, is checked from two sides: real systems use odd-sized maste
 pins, and the retired-key check described above tests the rules against decoded
 keys from a real system.
 
-The fourth layer is humility in the output: the README's limitations section says
-that the manufacturer's software remains the authority. The design first said that
-anything the tools print about pinning would be labelled unverified until a pinning
-had passed the conformance script against real charts. That has now happened, once, on
-charts a keying software produced for a real system, and they all agreed (D63), so the limitations section says so and no label is printed. It is one system,
-and the limit of the third layer above still holds, so the software stays the
-authority and the section says why.
+The fourth layer is humility in the output: the README's limitations section says that
+the manufacturer's software remains the authority. The design first said that anything
+the tools print about pinning would be labelled unverified until a pinning had passed
+the conformance script against real charts. That has now happened, once, on charts a
+keying software produced for a real system, and they all agreed (D63), so the
+limitations section says so and no label is printed. It is one system, and the limit of
+the third layer above still holds, so the software stays the authority and the section
+says why.
 
 ### The chart layout
 

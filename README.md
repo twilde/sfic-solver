@@ -493,12 +493,12 @@ digit; never paste or describe the page itself.
 - The pins, and so the charts, come from the tools' own rules (see
   [docs/designs/core-pinning.md](docs/designs/core-pinning.md)). The tests check them
   against fake charts only, and the rules have been compared with charts a keying
-  software produced for a real system, where they agreed (D63). That is one system,
-  and it is consistent with the rules producing what the software does, not a proof
-  that they accept nothing the software would refuse. The keying software's charts remain the authority, and
-  `check_charts` will show whether the tools agree with them on your own charts. Other
-  SFIC pinning systems (A3, A4) are not built in, because the numbers for them have no
-  complete source (D27 in docs/decisions.md).
+  software produced for a real system, where they agreed (D63). That is one system, and
+  it is consistent with the rules producing what the software does, not a proof that
+  they accept nothing the software would refuse. The keying software's charts remain the
+  authority, and `check_charts` will show whether the tools agree with them on your own
+  charts. Other SFIC pinning systems (A3, A4) are not built in, because the numbers for
+  them have no complete source (D27 in docs/decisions.md).
 - Pin counts other than 7 are not tied to any real keyway: the tools do not
   know which pin counts or cut depths a manufacturer actually offers, and the
   chance of unintended cross-operation grows quickly as pins are removed.
