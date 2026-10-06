@@ -4,8 +4,14 @@ A bitting is a tuple of cuts (0-9), one per pin. The rules that decide which
 bittings can be cut (how many pins, how many depths, the adjacent-cut limit and
 the optional parity pattern) live together in a `KeySpace`; functions that need
 them are its methods, and the rest read what they need off their arguments.
+
+`ShapeRules` is separate: it says what a key the tools choose should look like (no equal
+neighbours, no depth used too often, ...). It filters candidates and plays no part in the
+counting, so the exact counts and the residual-risk figures do not depend on it
+(docs/designs/key-shape-rules.md).
 """
 import itertools
+from collections import Counter
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Optional, Tuple
@@ -14,6 +20,9 @@ DEFAULT_PINS = 7
 DEFAULT_DEPTHS = 10
 DEFAULT_MAX_STEP = 5
 DEFAULT_MIN_DIFF = 5
+DEFAULT_MAX_RUN = 1
+DEFAULT_MAX_SAME_DEPTH = 3
+DEFAULT_MASTER_MIN_SPAN = 6
 
 
 def default_min_diff(pins):
@@ -200,6 +209,81 @@ class KeySpace:
                             new[(a, b)] = new.get((a, b), 0) + w
             states = new
         return sum(states.values())
+
+
+SHAPE_RULES = ("max_run", "max_same_depth", "forbid_monotone", "master_min_span",
+               "min_total_variation")
+
+
+@dataclass(frozen=True)
+class ShapeRules:
+    """What the cuts of a key the tools choose should look like. None turns a rule off.
+
+    max_run              most equal cuts in a row (1: no equal neighbours)
+    max_same_depth       most times one depth may appear in a key
+    forbid_monotone      refuse a key of three or more cuts that never goes down, or never
+                         goes up, along its length (a flat key is both)
+    master_min_span      a master key's deepest cut minus its shallowest, at least this
+    min_total_variation  the sum of the differences between neighbouring cuts, at least this
+    """
+    max_run: Optional[int] = DEFAULT_MAX_RUN
+    max_same_depth: Optional[int] = DEFAULT_MAX_SAME_DEPTH
+    forbid_monotone: bool = True
+    master_min_span: Optional[int] = DEFAULT_MASTER_MIN_SPAN
+    min_total_variation: Optional[int] = None
+
+    def __post_init__(self):
+        for name in ("max_run", "max_same_depth", "master_min_span", "min_total_variation"):
+            value = getattr(self, name)
+            if value is not None and (isinstance(value, bool) or not isinstance(value, int)
+                                      or value < 1):
+                raise ValueError(f"{name} must be a whole number of at least 1, or None to "
+                                 f"turn the rule off, got {value!r}")
+        if not isinstance(self.forbid_monotone, bool):
+            raise ValueError(f"forbid_monotone must be true or false, got {self.forbid_monotone!r}")
+
+    @classmethod
+    def for_depths(cls, depths, **fields):
+        """The defaults for a key space with this many depths, with `fields` replacing any of
+        them. The default master span is capped at depths - 1 (no key can be wider), and
+        the rule is off if there is no span to ask for."""
+        span = min(DEFAULT_MASTER_MIN_SPAN, depths - 1)
+        fields.setdefault("master_min_span", span if span >= 1 else None)
+        return cls(**fields)
+
+    def violations(self, cuts, master=False):
+        """The rules this bitting breaks, as (rule name, 1-based pins) in the order of
+        SHAPE_RULES. The pins are those in an over-long run or of an over-used depth; the
+        rules about the key as a whole have none. `master` applies the span rule."""
+        found = []
+        if self.max_run is not None:
+            pins, start = [], 0
+            for i in range(1, len(cuts) + 1):
+                if i == len(cuts) or cuts[i] != cuts[start]:
+                    if i - start > self.max_run:
+                        pins.extend(range(start + 1, i + 1))
+                    start = i
+            if pins:
+                found.append(("max_run", tuple(pins)))
+        if self.max_same_depth is not None:
+            counts = Counter(cuts)
+            pins = tuple(i + 1 for i, c in enumerate(cuts) if counts[c] > self.max_same_depth)
+            if pins:
+                found.append(("max_same_depth", pins))
+        steps = [b - a for a, b in zip(cuts, cuts[1:])]
+        if (self.forbid_monotone and len(cuts) >= 3
+                and (all(s >= 0 for s in steps) or all(s <= 0 for s in steps))):
+            found.append(("forbid_monotone", ()))
+        if (master and self.master_min_span is not None
+                and max(cuts) - min(cuts) < self.master_min_span):
+            found.append(("master_min_span", ()))
+        if (self.min_total_variation is not None
+                and sum(abs(s) for s in steps) < self.min_total_variation):
+            found.append(("min_total_variation", ()))
+        return found
+
+    def ok(self, cuts, master=False):
+        return not self.violations(cuts, master)
 
 
 def distance(a, b):

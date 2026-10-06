@@ -255,3 +255,170 @@ def test_pair_conflicts_are_counted_within_the_population(small):
                     if all(b[p] == a[p] or b[p] in (m[p] for m in masters) for p in range(3)))
         assert small.pair_conflict_probability(masters, population) == \
             pytest.approx(pairs / len(valid) ** 2, abs=0, rel=1e-12)
+
+
+# -- ShapeRules (docs/designs/key-shape-rules.md) ------------------------------------
+
+def shape_oracle(cuts, rules, master):
+    """Independent statement of each rule, by plain loops, for comparing with ShapeRules."""
+    n = len(cuts)
+    if rules.max_run is not None:
+        run = 1
+        for i in range(1, n):
+            run = run + 1 if cuts[i] == cuts[i - 1] else 1
+            if run > rules.max_run:
+                return False
+    if rules.max_same_depth is not None:
+        if any(cuts.count(d) > rules.max_same_depth for d in set(cuts)):
+            return False
+    if rules.forbid_monotone and n >= 3:
+        never_down = all(cuts[i] <= cuts[i + 1] for i in range(n - 1))
+        never_up = all(cuts[i] >= cuts[i + 1] for i in range(n - 1))
+        if never_down or never_up:
+            return False
+    if master and rules.master_min_span is not None:
+        if max(cuts) - min(cuts) < rules.master_min_span:
+            return False
+    if rules.min_total_variation is not None:
+        if sum(abs(cuts[i] - cuts[i + 1]) for i in range(n - 1)) < rules.min_total_variation:
+            return False
+    return True
+
+
+def test_shape_defaults():
+    rules = model.ShapeRules()
+    assert (rules.max_run, rules.max_same_depth, rules.forbid_monotone) == (1, 3, True)
+    assert (rules.master_min_span, rules.min_total_variation) == (6, None)
+    assert model.SHAPE_RULES == tuple(
+        f for f in model.ShapeRules.__dataclass_fields__)      # one name per field, in order
+
+
+def test_a_clean_key_breaks_nothing():
+    assert model.ShapeRules().violations((1, 6, 2, 8, 0, 7, 3), master=True) == []
+
+
+def test_max_run_names_every_pin_of_an_over_long_run():
+    rules = model.ShapeRules()
+    assert rules.violations((4, 4, 1, 7, 7, 7, 2)) == [("max_run", (1, 2, 4, 5, 6))]
+    assert model.ShapeRules(max_run=2).violations((4, 4, 1, 7, 7, 7, 2)) == [("max_run", (4, 5, 6))]
+    assert model.ShapeRules(max_run=3).violations((4, 4, 1, 7, 7, 7, 2)) == []
+
+
+def test_max_same_depth_names_the_pins_of_the_over_used_depth():
+    rules = model.ShapeRules(max_run=None)
+    assert rules.violations((1, 5, 1, 8, 1, 3, 1)) == [("max_same_depth", (1, 3, 5, 7))]
+    assert rules.violations((1, 5, 1, 8, 1, 3, 2)) == []          # three times is allowed
+    assert model.ShapeRules(max_run=None, max_same_depth=2).violations((1, 5, 1, 8, 1, 3, 2)) \
+        == [("max_same_depth", (1, 3, 5))]
+
+
+def test_monotone_means_never_down_or_never_up():
+    rules = model.ShapeRules(max_run=None, max_same_depth=None)
+    assert rules.violations((1, 3, 3, 6)) == [("forbid_monotone", ())]
+    assert rules.violations((9, 7, 4, 4, 0)) == [("forbid_monotone", ())]
+    assert rules.violations((5, 5, 5, 5)) == [("forbid_monotone", ())]      # flat is both
+    assert rules.violations((1, 3, 2, 6)) == []
+
+
+def test_monotone_needs_three_cuts():
+    rules = model.ShapeRules(max_run=None, max_same_depth=None)
+    assert rules.violations((2, 7)) == [] and rules.violations((4,)) == []
+
+
+def test_the_span_rule_applies_to_masters_only():
+    rules = model.ShapeRules(max_run=None, max_same_depth=None, forbid_monotone=False)
+    narrow = (3, 5, 2, 6, 4, 3, 5)                                           # span 4
+    assert rules.violations(narrow) == []
+    assert rules.violations(narrow, master=True) == [("master_min_span", ())]
+    assert rules.violations((0, 6, 1, 3), master=True) == []                 # span 6 is enough
+
+
+def test_min_total_variation_is_off_by_default_and_counts_every_step():
+    cuts = (4, 5, 4, 5, 4, 5, 4)                                             # variation 6
+    rules = model.ShapeRules(max_run=None, max_same_depth=None, master_min_span=None)
+    assert rules.violations(cuts) == []
+    assert model.ShapeRules(max_run=None, max_same_depth=None, min_total_variation=7) \
+        .violations(cuts) == [("min_total_variation", ())]
+    assert model.ShapeRules(max_run=None, max_same_depth=None, min_total_variation=6) \
+        .violations(cuts) == []
+
+
+def test_violations_come_in_the_order_of_shape_rules():
+    rules = model.ShapeRules(min_total_variation=99)
+    names = [name for name, _ in rules.violations((2, 2, 2, 5, 5, 5, 5), master=True)]
+    assert names == list(model.SHAPE_RULES)
+
+
+def test_none_turns_each_rule_off():
+    off = model.ShapeRules(max_run=None, max_same_depth=None, forbid_monotone=False,
+                           master_min_span=None)
+    assert off.violations((5, 5, 5, 5, 5, 5, 5), master=True) == []
+
+
+def test_ok_agrees_with_violations():
+    rules = model.ShapeRules()
+    assert rules.ok((1, 6, 2, 8, 0, 7, 3), master=True)
+    assert not rules.ok((1, 1, 2, 8, 0, 7, 3))
+
+
+@pytest.mark.parametrize("field", ["max_run", "max_same_depth", "master_min_span",
+                                   "min_total_variation"])
+@pytest.mark.parametrize("bad", [0, -1, 1.5, "2", True])
+def test_shape_counts_must_be_whole_numbers_of_at_least_one(field, bad):
+    with pytest.raises(ValueError, match=field):
+        model.ShapeRules(**{field: bad})
+
+
+@pytest.mark.parametrize("bad", [None, 1, "yes"])
+def test_forbid_monotone_must_be_a_boolean(bad):
+    with pytest.raises(ValueError, match="forbid_monotone"):
+        model.ShapeRules(forbid_monotone=bad)
+
+
+def test_for_depths_caps_the_default_span_and_drops_it_when_there_is_none():
+    assert model.ShapeRules.for_depths(10).master_min_span == 6
+    assert model.ShapeRules.for_depths(7).master_min_span == 6
+    assert model.ShapeRules.for_depths(5).master_min_span == 4
+    assert model.ShapeRules.for_depths(1).master_min_span is None
+    assert model.ShapeRules.for_depths(10, master_min_span=3).master_min_span == 3
+    assert model.ShapeRules.for_depths(10, max_run=None).max_run is None
+
+
+@pytest.mark.parametrize("rules", [
+    model.ShapeRules(),
+    model.ShapeRules(max_run=2, max_same_depth=2, min_total_variation=6),
+    model.ShapeRules(max_run=None, max_same_depth=None, forbid_monotone=False,
+                     master_min_span=4, min_total_variation=3),
+])
+def test_shape_rules_match_an_independent_check_on_every_five_cut_key(rules):
+    for cuts in itertools.product(range(10), repeat=5):
+        assert rules.ok(cuts) == shape_oracle(cuts, rules, False), cuts
+    for cuts in itertools.islice(itertools.product(range(10), repeat=5), 0, None, 7):
+        assert rules.ok(cuts, master=True) == shape_oracle(cuts, rules, True), cuts
+
+
+def kept(pattern, rules, master):
+    """How many MACS-valid 7-pin bittings of the pattern pass the shape rules."""
+    return sum(rules.ok(k, master) for k in all_valid(pattern, 5))
+
+
+@pytest.mark.parametrize("pattern, other_keys, masters, run_two", [
+    ("OOEOEOE", 21_083, 15_089, 27_935),
+    ("OEOEOEO", 31_027, 22_501, 31_027),
+])
+def test_shape_rules_keep_the_shares_the_design_document_gives(pattern, other_keys, masters,
+                                                               run_two):
+    total = len(all_valid(pattern, 5))
+    assert kept(pattern, model.ShapeRules(), False) == other_keys
+    assert kept(pattern, model.ShapeRules(), True) == masters
+    assert kept(pattern, model.ShapeRules(max_run=2), False) == run_two
+    assert round(100 * other_keys / total, 1) == {"OOEOEOE": 74.3, "OEOEOEO": 98.7}[pattern]
+
+
+def test_shape_rules_without_a_pattern_match_the_oracle_on_a_sample():
+    rng = random.Random(5)
+    rules = model.ShapeRules(min_total_variation=10)
+    for _ in range(20_000):
+        cuts = tuple(rng.randrange(10) for _ in range(7))
+        master = rng.random() < 0.5
+        assert rules.ok(cuts, master) == shape_oracle(cuts, rules, master), cuts
