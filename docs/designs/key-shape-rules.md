@@ -150,8 +150,13 @@ what the tools count alone. The risk figures are unchanged.
   bound, and a set small enough to list is filtered whole. If the bound is reached with
   none, the group is reported as above.
 - **`gen_bittings`.** Applies the defaults, with `--max-run`, `--max-same-depth`,
-  `--min-variation` and `--master` to change them, and `--allow-monotone`.
-- **`check_bittings`, `check_system`.** The advisory `SHAPE` lines.
+  `--min-variation`, `--master-min-span` and `--allow-monotone` to change them and `--master`
+  to say the bittings are masters. A number, or `off`, turns a rule on or off; a flag that no
+  key of the key space could meet is a usage error. The flags are shared with
+  `check_bittings` (`shape_args.py`). When the search gives up, the message says which rules
+  turned draws down.
+- **`check_bittings`, `check_system`.** The advisory `SHAPE` lines. `check_bittings` takes
+  the same flags and names its masters with `--master NAME`, repeated.
 - **System file.** `shape` is optional; a file without it gets the defaults, so seeded
   solver output changes for existing files. That is deliberate and the log entry says so (D6
   asks for a stated reason). An unknown field inside `shape` is an error, not a warning,
@@ -205,6 +210,12 @@ shows seeded output unchanged for files that turn every rule off.
 
 ## What cannot be known yet
 
+- Whether the rules can be met together. The reachability bounds look at each rule alone and
+  ignore the parity pattern, so a combination can pass them and still have no key: 3 pins
+  with `--master` and the default `max_step` of 5 need a span of 6, which no key of three
+  cuts has unless it is monotone, which the default rules forbid. The tool then runs to its
+  attempt limit and says so, naming the rule that turned down most of the draws, and does
+  not relax anything. Three pins is not a real key, so the bounds were left simple.
 - How many pinnable candidates survive the rules in a system with many known keys: a unit
   master that must also take a decoded unit's neighbours has a thin pinnable set already,
   and the first run on such a file will say whether `master_min_span` = 6 is too strict.

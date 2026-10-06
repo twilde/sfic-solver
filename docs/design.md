@@ -113,7 +113,8 @@ path (D1).
 The shared modules are `model.py` (the pure maths, built around `KeySpace`), `config.py`
 (loading and validating a system file), `pinning.py` (pinning system records and the
 pinner), `population.py` (who the undecoded unit keys might be, D55), `joint.py` (the
-exact construction of pinnable bittings, D60), `lock.py` (the simulated lock), `charts.py`
+exact construction of pinnable bittings, D60), `shape_args.py` (the command-line flags for
+the shape rules, D64), `lock.py` (the simulated lock), `charts.py`
 and `chartwriter.py` (reading and writing pinning charts) and `pdfwriter.py` (writing
 pages of text as a PDF). The tools are `gen_bittings`, `check_bittings`, `check_system`,
 `solve_system`, `pin_system`, `check_charts` and `scan_charts`, whose scanning stages live

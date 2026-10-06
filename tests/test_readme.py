@@ -115,3 +115,41 @@ def test_the_readme_install_line_is_the_one_the_tool_prints():
     assert INSTALL_HINT in readme
     assert "brew install tesseract" in readme and "apt install tesseract-ocr" in readme
     assert TESSERACT_ENV in readme
+
+
+# -- the key shape rules table (D64) -------------------------------------------------
+
+def shape_rule_rows():
+    """{rule: (flag cell, default cell)} from the README's key shape rules table."""
+    text = (ROOT / "README.md").read_text()
+    section = text.split("## Key shape rules")[1].split("\n## ")[0]
+    rows = re.findall(r"^\| `(\w+)` \| (.+?) \| (.+?) \| .+ \|$", section, re.M)
+    return {rule: (flag, default) for rule, flag, default in rows}
+
+
+def test_readme_shape_table_has_every_rule_with_its_default():
+    from sfic_solver import model
+    defaults = model.ShapeRules()
+    rows = shape_rule_rows()
+    assert list(rows) == list(model.SHAPE_RULES)
+    for rule, (_, shown) in rows.items():
+        value = getattr(defaults, rule)
+        assert shown == ("off" if value is None else "on" if value is True else str(value)), rule
+
+
+def test_readme_shape_table_names_every_flag_the_tools_take():
+    import argparse
+    from sfic_solver.shape_args import add_shape_arguments
+    ap = argparse.ArgumentParser()
+    add_shape_arguments(ap)
+    flags = {s for action in ap._actions for s in action.option_strings if s.startswith("--")}
+    flags.discard("--help")
+    cells = " ".join(flag for flag, _ in shape_rule_rows().values())
+    assert all(flag in cells for flag in flags), flags
+
+
+def test_readme_shape_example_commands_run():
+    proc = run_script("check_bittings", "--master", "top", "top=0453037", "area=6130254")
+    assert proc.returncode == 0 and "SHAPE" not in proc.stdout, proc.stdout
+    assert run_script("gen_bittings", "--pins", 7, "-n", 3, "--master").returncode == 0
+    assert run_script("gen_bittings", "OOEOEOE", "-n", 8, "--max-run", 2).returncode == 0

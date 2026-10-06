@@ -264,6 +264,40 @@ class ShapeRules:
         fields.setdefault("master_min_span", span if span >= 1 else None)
         return cls(**fields)
 
+    def describe(self, rule, pins):
+        """A phrase for a broken rule and its pins (from `violations`), saying where and
+        never what the cuts are."""
+        where = f" at pin(s) {list(pins)}" if pins else ""
+        if rule == "max_run":
+            if self.max_run == 1:
+                return f"equal adjacent cuts{where}"
+            return f"more than {self.max_run} equal cuts in a row{where}"
+        if rule == "max_same_depth":
+            return f"a depth used more than {self.max_same_depth} times{where}"
+        if rule == "forbid_monotone":
+            return "the cuts only go one way along the key (never down, or never up)"
+        if rule == "master_min_span":
+            return (f"a master whose deepest and shallowest cuts differ by less than "
+                    f"{self.master_min_span}")
+        if rule == "min_total_variation":
+            return f"total variation under {self.min_total_variation}"
+        raise ValueError(f"unknown shape rule {rule!r}")
+
+    def unmeetable(self, space):
+        """A message saying why no key of the space could meet these rules, or None. The
+        bounds ignore the parity pattern, so a rule that some key could meet is never
+        reported, but one that none can may pass."""
+        if self.master_min_span is not None and self.master_min_span > space.widest_span:
+            return (f"master_min_span is {self.master_min_span} but no key can span more than "
+                    f"{space.widest_span} ({space.pins} pins, cuts 0 to {space.depths - 1}, "
+                    f"max_step is {space.max_step})")
+        if (self.min_total_variation is not None
+                and self.min_total_variation > space.most_variation):
+            return (f"min_total_variation is {self.min_total_variation} but no key of "
+                    f"{space.pins} pins can vary by more than {space.most_variation} "
+                    f"(max_step is {space.max_step})")
+        return None
+
     def violations(self, cuts, master=False):
         """The rules this bitting breaks, as (rule name, 1-based pins) in the order of
         SHAPE_RULES. The pins are those in an over-long run or of an over-used depth; the

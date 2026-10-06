@@ -440,3 +440,17 @@ def test_shape_rules_without_a_pattern_match_the_oracle_on_a_sample():
         cuts = tuple(rng.randrange(10) for _ in range(7))
         master = rng.random() < 0.5
         assert rules.ok(cuts, master) == shape_oracle(cuts, rules, master), cuts
+
+
+def test_unmeetable_names_a_rule_no_key_could_meet():
+    space = model.KeySpace(pins=5, max_step=1)          # widest span 4, most variation 4
+    assert model.ShapeRules.for_space(space).unmeetable(space) is None
+    assert model.ShapeRules(master_min_span=4, min_total_variation=4).unmeetable(space) is None
+    span = model.ShapeRules(master_min_span=5).unmeetable(space)
+    assert span == ("master_min_span is 5 but no key can span more than 4 "
+                    "(5 pins, cuts 0 to 9, max_step is 1)")
+    variation = model.ShapeRules(master_min_span=None, min_total_variation=5).unmeetable(space)
+    assert variation == ("min_total_variation is 5 but no key of 5 pins can vary by more "
+                         "than 4 (max_step is 1)")
+    off = model.ShapeRules(master_min_span=None, min_total_variation=None)
+    assert off.unmeetable(space) is None

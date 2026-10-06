@@ -94,15 +94,9 @@ def _shape_rules(raw, space):
         rules = model.ShapeRules.for_space(space, **fields)
     except ValueError as err:
         raise ConfigError(f"shape: {err}") from None
-    if rules.master_min_span is not None and rules.master_min_span > space.widest_span:
-        raise ConfigError(f"shape: master_min_span is {rules.master_min_span} but no key can "
-                          f"span more than {space.widest_span} ({space.pins} pins, cuts 0 to "
-                          f"{space.depths - 1}, max_step is {space.max_step})")
-    if (rules.min_total_variation is not None
-            and rules.min_total_variation > space.most_variation):
-        raise ConfigError(f"shape: min_total_variation is {rules.min_total_variation} but no "
-                          f"key of {space.pins} pins can vary by more than "
-                          f"{space.most_variation} (max_step is {space.max_step})")
+    problem = rules.unmeetable(space)
+    if problem:
+        raise ConfigError(f"shape: {problem}")
     return rules
 
 
