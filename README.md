@@ -22,7 +22,7 @@ Everything else runs without them. Python 3.11 or newer.
 | `./check_bittings.py` | `sfic-check-bittings` | Quick check of a few `NAME=BITTING` values: format, parity, adjacent-cut limit, pairwise closeness. |
 | `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
-| `./pin_system.py` | `sfic-pin-system` | Prints the pinning chart of every core of a system file that sets `pinning`, in the layout `check_charts` reads: the pins to put in each chamber. |
+| `./pin_system.py` | `sfic-pin-system` | Prints the pinning chart of every core of a system file that sets `pinning`, in the layout `check_charts` reads: the pins to put in each chamber, with `--draw` a drawing of the stacks. |
 | `./check_charts.py` | `sfic-check-charts` | Checks that the tools' pinning rules reproduce pinning charts from your keying software (`.txt` files kept outside this repository). Reports positions only, never key data. |
 | `./scan_charts.py` | `sfic-scan-charts` | Reads scans (PDF or image) of paper pinning charts and writes them as the text charts `check_charts` reads. Needs the optional `scan` extra and Tesseract. **Work suspended; does not yet read real printouts well.** See [Scanning paper charts](#scanning-paper-charts). |
 
@@ -293,6 +293,13 @@ says which door it is for. Charts are separated by a line of dashes. If any core
 be pinned, nothing is printed and the cores and chambers are listed, as `check_system`
 lists them. `--out FILE` writes a file instead (and will not replace one without
 `--force`).
+
+Add `--draw` to print, under each chart, a drawing of the pin stacks, to scale and in
+plain ASCII: one column per chamber with the driver at the top, one line for each
+increment, and a ruler of the cuts that put a joint on the operating or the control shear
+line (a joint on the line marked `op 4` is the one a key cut 4 lines up). Without the flag
+the output is exactly as above, and `check_charts` reads a drawn chart the same as a plain
+one. A sample is in [designs/ascii-stack-drawing.md](docs/designs/ascii-stack-drawing.md).
 
 **The charts are key data**: the pin sizes give the bittings away. Keep them outside
 this repository, like the system file (see [Privacy](#privacy)). `check_charts` reads
