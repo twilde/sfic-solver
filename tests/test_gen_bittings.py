@@ -243,12 +243,49 @@ def test_giving_up_says_which_shape_rules_turned_draws_down(monkeypatch):
         gen_bittings.main(["--pins", "4", "-n", "20", "--min-diff", "0", "--min-variation", "15"])
     message = str(exc.value.code)
     assert "loosen the constraints" in message
-    assert "draws that broke a shape rule, by rule:" in message and "min_total_variation" in message
+    assert "draws that broke a shape rule, by the flag that governs it:" in message
+    assert "--min-variation" in message and "min_total_variation" not in message
 
 
 def test_giving_up_for_other_reasons_does_not_blame_the_shape_rules():
-    assert gen_bittings.give_up_message({}) == \
+    assert gen_bittings.give_up_message({}, 100) == \
         "could not find enough bittings; loosen the constraints"
+
+
+def test_the_give_up_message_names_flags_not_field_names():
+    from collections import Counter
+    rejected = Counter(max_run=5, max_same_depth=4, forbid_monotone=3, master_min_span=2,
+                       min_total_variation=1)
+    message = gen_bittings.give_up_message(rejected, 100)
+    for flag in ("--max-run 5", "--max-same-depth 4", "--allow-monotone 3",
+                 "--master-min-span 2", "--min-variation 1"):
+        assert flag in message, message
+    for field in model.SHAPE_RULES:
+        assert field not in message, message
+
+
+def test_a_rule_that_turned_down_most_draws_is_named():
+    from collections import Counter
+    message = gen_bittings.give_up_message(Counter(master_min_span=88, max_run=22), 100)
+    assert message.endswith("--master-min-span turned down 88% of the draws, so it may not "
+                            "be possible with the other rules")
+    quiet = gen_bittings.give_up_message(Counter(master_min_span=79, max_run=22), 100)
+    assert "turned down" not in quiet                                    # under 80%
+
+
+def test_every_rule_has_a_flag():
+    from sfic_solver.shape_args import FLAGS
+    assert list(FLAGS) == list(model.SHAPE_RULES)
+
+
+def test_three_pin_masters_that_no_key_can_be_say_so(monkeypatch):
+    """The reachability bound ignores how the rules combine: three cuts spanning 6 with steps
+    of at most 5 must be monotone, which the defaults forbid."""
+    monkeypatch.setattr(gen_bittings, "MAX_ATTEMPTS", 300)
+    with pytest.raises(SystemExit) as exc:
+        gen_bittings.main(["--pins", "3", "-n", "2", "--master"])
+    message = str(exc.value.code)
+    assert "--master-min-span turned down" in message and "of the draws" in message
 
 
 @pytest.mark.parametrize("args, message", [

@@ -10,8 +10,11 @@ import argparse
 from . import model
 
 
-# The flag that sets each rule whose field name differs from it, for messages to the user.
-FLAGS = {"master_min_span": "--master-min-span", "min_total_variation": "--min-variation"}
+# The flag that governs each rule, for messages to the user. (`--allow-monotone` turns its
+# rule off, so a message about that rule says "see" the flag, not "set" it.)
+FLAGS = {"max_run": "--max-run", "max_same_depth": "--max-same-depth",
+         "forbid_monotone": "--allow-monotone", "master_min_span": "--master-min-span",
+         "min_total_variation": "--min-variation"}
 
 
 def count_or_off(text):

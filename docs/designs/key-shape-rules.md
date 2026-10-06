@@ -210,6 +210,12 @@ shows seeded output unchanged for files that turn every rule off.
 
 ## What cannot be known yet
 
+- Whether the rules can be met together. The reachability bounds look at each rule alone and
+  ignore the parity pattern, so a combination can pass them and still have no key: 3 pins
+  with `--master` and the default `max_step` of 5 need a span of 6, which no key of three
+  cuts has unless it is monotone, which the default rules forbid. The tool then runs to its
+  attempt limit and says so, naming the rule that turned down most of the draws, and does
+  not relax anything. Three pins is not a real key, so the bounds were left simple.
 - How many pinnable candidates survive the rules in a system with many known keys: a unit
   master that must also take a decoded unit's neighbours has a thin pinnable set already,
   and the first run on such a file will say whether `master_min_span` = 6 is too strict.

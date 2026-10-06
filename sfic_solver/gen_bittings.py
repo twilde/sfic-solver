@@ -27,7 +27,7 @@ import collections
 import secrets
 
 from . import model
-from .shape_args import add_shape_arguments, shape_rules
+from .shape_args import FLAGS, add_shape_arguments, shape_rules
 
 MAX_ATTEMPTS = 100_000
 
@@ -59,13 +59,22 @@ def generate(space):
     raise RuntimeError("no valid bitting found; is --max-step too small?")
 
 
-def give_up_message(rejected):
-    """Why the search ended: the old advice, and which shape rules turned draws down."""
+MOST_DRAWS = 0.8
+
+
+def give_up_message(rejected, draws):
+    """Why the search ended: the old advice, and which shape rules turned draws down, by the
+    flag that governs each. A rule that turned down most of the draws is named, since that
+    usually means it cannot be met together with the others."""
     message = "could not find enough bittings; loosen the constraints"
     if rejected:
-        counts = ", ".join(f"{name} {count:,}" for name, count in rejected.most_common())
-        message += (f" (draws that broke a shape rule, by rule: {counts}; "
+        counts = ", ".join(f"{FLAGS[name]} {count:,}" for name, count in rejected.most_common())
+        message += (f" (draws that broke a shape rule, by the flag that governs it: {counts}; "
                     f"see the key shape rules flags in --help)")
+        name, count = rejected.most_common(1)[0]
+        if draws and count >= MOST_DRAWS * draws:
+            message += (f". {FLAGS[name]} turned down {count / draws:.0%} of the draws, so it "
+                        f"may not be possible with the other rules")
     return message
 
 
@@ -120,7 +129,7 @@ def main(argv=None):
     while len(accepted) < args.count:
         attempts += 1
         if attempts > MAX_ATTEMPTS:
-            raise SystemExit(give_up_message(rejected))
+            raise SystemExit(give_up_message(rejected, attempts - 1))
         cuts = generate(space)
         broken = rules.violations(cuts, args.master)
         if broken:
