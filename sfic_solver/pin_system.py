@@ -9,7 +9,7 @@ carries the key's name so a chart says which door it is for.
 Usage:
     ./pin_system.py system.json                       # charts on standard output
     ./pin_system.py system.json --date 2026-10-01     # a fixed date (default: today)
-    ./pin_system.py system.json --draw                # a drawing of the pin stacks under each chart
+    ./pin_system.py system.json --draw                # and a drawing of the stacks under each
     ./pin_system.py system.json --out charts.txt      # to a file (never over an existing one)
 
 If a core cannot be pinned, no chart is printed: the cores and chambers are listed, as
