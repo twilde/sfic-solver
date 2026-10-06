@@ -1,11 +1,11 @@
 # One PDF of all the pinning charts (core pinning, step 7b)
 
-Status: Accepted
+Status: Implemented
 
 This document describes the second half of step 7 of [core pinning](core-pinning.md): an
 option on the chart command that writes every chart of a system file, with its drawing if
-asked for, as one PDF to print and file. It was written before any code and has been
-accepted by the maintainer ([D62 in decisions.md](../decisions.md)). The first half, the
+asked for, as one PDF to print and file. It was written before any code, accepted by
+the maintainer and built ([D62 in decisions.md](../decisions.md)). The first half, the
 ASCII drawing, is built ([ascii-stack-drawing.md](ascii-stack-drawing.md), D61), and this
 document builds on it.
 

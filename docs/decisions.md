@@ -674,6 +674,6 @@ The writer is about a hundred lines of standard library, adds no dependency, and
 date or name in the file, so equal runs give equal bytes. `--pdf` follows `--out`'s rules
 (never over an existing file, a one-line error, a key-data reminder) and the two are
 alternatives. The data-file guard already refuses `.pdf` (D32), so it needs no change. The
-design is in its own document and has been accepted.
+design is in its own document, has been accepted and is built.
 
 Detail: [designs/pdf-output.md](designs/pdf-output.md).

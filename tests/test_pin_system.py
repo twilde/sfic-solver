@@ -1,4 +1,5 @@
 """pin_system: the charts it prints are the design's, and the reader and checker accept them."""
+import importlib.util
 import json
 import re
 import subprocess
@@ -7,10 +8,14 @@ import sys
 import pytest
 
 from conftest import FIXTURES, ROOT, call_main, run_script
-from sfic_solver import charts, pin_system
 from pdfread import read_pdf
+from sfic_solver import charts, pin_system
 from sfic_solver.check_charts import check_chart
-from test_guard import guard
+
+_spec = importlib.util.spec_from_file_location(
+    "check_no_stray_data", ROOT / "scripts" / "check_no_stray_data.py")
+guard = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(guard)
 
 PINNING = FIXTURES / "pinning.json"
 DATE = "2026-10-01"
@@ -184,6 +189,7 @@ def test_pdf_writes_a_page_to_each_chart_with_the_charts_own_lines(tmp_path, fla
     assert f"wrote 8 chart(s) to {target}" in proc.stderr and "key data" in proc.stderr
     assert pdf_lines(target) == charts_as_lines(chart_text(*flags))
     assert len(pdf_lines(target)) == 8
+    assert guard.is_stray(target.name)       # the file the command writes is one the guard refuses
 
 
 def test_pdf_defaults_to_letter_and_takes_a4(tmp_path):
@@ -246,10 +252,6 @@ def test_a_chart_the_pdf_cannot_hold_is_a_one_line_error_that_does_not_quote_it(
     assert "error: cannot make the PDF: page 1 has a character the PDF's font cannot print" \
         in proc.stderr
     assert "\u03a9" not in proc.stderr and "Traceback" not in proc.stderr
-
-
-def test_the_guard_refuses_the_file_the_command_writes():
-    assert guard.is_stray("charts.pdf") and guard.is_stray("tests/fixtures/charts.pdf")
 
 
 def test_the_console_script_and_module_forms_work(monkeypatch, capsys):

@@ -432,14 +432,25 @@ pinning system's own numbers, and the reader skips everything after a `Stacks` l
 follows the rows. The tests read each drawing back and compare it with the chambers and with
 the simulated lock's geometry, so the drawing is checked, not only looked at.
 
+With `--pdf` the same text goes to one PDF instead, a page to a chart (D62,
+[designs/pdf-output.md](designs/pdf-output.md)). `pdfwriter.pages_to_pdf` writes a PDF 1.4
+file by hand with the standard library: Courier, a standard font, so nothing is embedded; one
+size for the whole document, the largest up to 10 points in half points at which the widest
+line and the longest page fit the margins (below 6 points it refuses); a `Page n of N` footer;
+and no date, author or file name, so equal runs give equal bytes. `pin_system` shares one
+file-writing helper between `--out` and `--pdf`, which are alternatives. The tests read the
+PDF back with a small reader of their own that checks every offset, length and count, so the
+core suite needs no PDF package, and with pdfium where the scan extra is installed.
+
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), the guard and the conformance script (step 3),
 the config and checker for opted-in files (step 4) and step 5, which finishes the
 design in [designs/pinnable-solving.md](designs/pinnable-solving.md) (D54): the
 population and the expected-unpinnable figure in the checker, the solver's use of
 them, and the generator running without a pattern (D55 to D57), and step 6, the chart
-command (D58), and step 7a, the ASCII drawing of the stacks (D61). The rest is not: the PDF
-output. None of it changes any weight or algorithm for files that do not opt in (D6).
+command (D58), step 7a, the ASCII drawing of the stacks (D61), and step 7b, the PDF
+output (D62). That is all seven steps. None of it changes any weight or algorithm for files
+that do not opt in (D6).
 
 ## Reading scanned charts
 
