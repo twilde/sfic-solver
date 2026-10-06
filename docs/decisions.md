@@ -653,3 +653,15 @@ old search, which is byte-identical for the latter.
 
 Detail: [designs/pinnable-solving.md, "Building pinnable keys exactly"](designs/pinnable-solving.md#building-pinnable-keys-exactly).
 
+## D61. Step 7 starts with an ASCII drawing of each core's pin stacks, designed before it is built
+
+The first half of step 7 of core pinning is an optional drawing, in plain ASCII and to
+scale, under each chart `pin_system` prints: one column per chamber, a ruler of the cuts
+that put a joint on the operating and control shear lines, asked for with `--draw`. The
+reader learns to skip a drawing block, so a drawn chart still passes `check_charts`, and
+tests read each drawing back and compare it with the chambers it came from. Output
+without the flag is unchanged. The PDF output, the other half of step 7, is a separate
+design. The design is a draft in its own document; no code is written until it is
+accepted.
+
+Detail: [designs/ascii-stack-drawing.md](designs/ascii-stack-drawing.md).

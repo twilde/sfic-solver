@@ -21,8 +21,9 @@
   the solver build pinnable answers exactly, up to three unknown keys sharing cores).
   Step 7 is the output ideas below, each with its own design document first.
 - Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
-  drawing of each core's pin stacks inside the chart output, and optional PDF
-  output of all the charts as one document.
+  drawing of each core's pin stacks inside the chart output (7a, a draft design in
+  docs/designs/ascii-stack-drawing.md, D61, waiting for agreement), and optional PDF
+  output of all the charts as one document (7b, its own design after that).
 - A script for the pull request privacy scan that reviewers now run by hand: seven
   digit strings that are not in `system.example.json`, a short list of key-history
   phrases, commit identity and trailers, and the data-file guard over the whole
