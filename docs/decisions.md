@@ -691,3 +691,17 @@ charts is in the repository, and the report of such a run holds counts and posit
 (D31).
 
 Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D64. The shape of generated keys gets rules, designed before they are built
+
+The tools generate keys that often have equal adjacent cuts, one depth many times, or a
+master that is shallow throughout; without a parity pattern more than half of all valid
+bittings have an equal pair. The proposal is a `ShapeRules` object, separate from `KeySpace`,
+with an optional `shape` object in the system file: no equal adjacent cuts, no depth used
+more than three times, no monotone key, and masters whose deepest and shallowest cuts differ by at least six, with a
+total-variation floor available and off. They filter what the solver and `gen_bittings`
+choose and never silently relax; the exact counts and the risk figures are unchanged, and
+`check_system` reports existing keys as advice only. Seeded solver output changes for files
+without `shape`, which is deliberate (D6). The design is in its own document and has been accepted.
+
+Detail: [designs/key-shape-rules.md](designs/key-shape-rules.md).
