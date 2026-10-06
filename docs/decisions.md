@@ -661,7 +661,6 @@ that put a joint on the operating and control shear lines, asked for with `--dra
 reader learns to skip a drawing block, so a drawn chart still passes `check_charts`, and
 tests read each drawing back and compare it with the chambers it came from. Output
 without the flag is unchanged. The PDF output, the other half of step 7, is a separate
-design. The design is a draft in its own document; no code is written until it is
-accepted.
+design. The design is in its own document and has been accepted.
 
 Detail: [designs/ascii-stack-drawing.md](designs/ascii-stack-drawing.md).

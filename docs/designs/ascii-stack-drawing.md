@@ -1,11 +1,11 @@
 # An ASCII drawing of each core's pin stacks (core pinning, step 7a)
 
-Status: Draft
+Status: Accepted
 
 This document describes the first half of step 7 of [core pinning](core-pinning.md): an
 optional drawing, in plain text, of the pin stacks of each core under the chart the
-chart command already prints. It is written before any code, to be agreed with the
-maintainer ([D61 in decisions.md](../decisions.md)). The other half of step 7, one PDF of all the charts, is a separate design (7b), because it
+chart command already prints. It was written before any code and has been accepted by the maintainer
+([D61 in decisions.md](../decisions.md)). The other half of step 7, one PDF of all the charts, is a separate design (7b), because it
 needs a PDF writer and the data-file guard to learn `.pdf` first; nothing here depends
 on it, and the drawing is built so that it survives into a PDF unchanged.
 
