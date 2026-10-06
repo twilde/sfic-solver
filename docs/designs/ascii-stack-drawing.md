@@ -47,9 +47,8 @@ cuts 0 to 9 on the lines 10 to 19. The ruler is computed from the pinning system
 numbers, so another system draws correctly when it is added.
 
 Here is the first chart the command prints for the fake fixture
-(`tests/fixtures/pinning.json`), with the drawing under it, as it would be printed. It
-is generated from the same chambers, not drawn by hand, and the tests will print it
-verbatim.
+(`tests/fixtures/pinning.json`), with the drawing under it, as it is printed. It is
+generated from the same chambers, not drawn by hand, and a test prints it verbatim.
 
 ```
 Key System = Example building
@@ -136,8 +135,8 @@ the guard stay as they are: nothing here writes a file the user did not name.
 
 `check_charts` and the loader in `charts.py` refuse any line after the rows that is not a
 row, so a drawn chart would fail them, and the point of printing charts in the reader's
-layout is that the reader can check them. The reader therefore learns one thing: after
-the rows, a line that starts with `Stacks` begins a drawing, and the reader ignores every
+layout is that the reader can check them. The reader therefore skips a drawing: after
+the rows, a line that starts with `Stacks` begins one, and the reader ignores every
 line from there to the next separator or the end of the file. `Stacks` cannot be a key
 name in the header (the header ends at the blank line before the rows), so nothing is
 lost. The reader does not check the drawing against the table: it is a view, and a
@@ -197,7 +196,7 @@ is the smallest picture that is to scale.
 
 ## Decision and plan
 
-Add the drawing as described, opt-in, as one pull request (step 7a):
+The drawing is added as described, opt-in, in one pull request (step 7a):
 
 1. The reader skips a `Stacks` block after the rows, with tests (no behavior change for
    anything that does not print one).
@@ -207,10 +206,10 @@ Add the drawing as described, opt-in, as one pull request (step 7a):
    entry.
 
 The 7b design, a single PDF of all the charts, follows separately. It will print the
-same drawn text in a monospaced font, so the drawing is designed to be ASCII and under
-80 columns for seven chambers.
+same drawn text in a monospaced font, so the drawing is plain ASCII and its stacks are
+52 columns wide for seven chambers (the longest legend line is 85).
 
-Accepting this document means accepting an optional drawing under each chart, the
+Accepting this document meant accepting an optional drawing under each chart, the
 `--draw` flag, the ruler convention above, and the reader skipping a `Stacks` block.
 Nothing changes for output printed without the flag, and no scoring, solver or checker
 behavior changes.

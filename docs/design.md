@@ -439,8 +439,7 @@ design in [designs/pinnable-solving.md](designs/pinnable-solving.md) (D54): the
 population and the expected-unpinnable figure in the checker, the solver's use of
 them, and the generator running without a pattern (D55 to D57), and step 6, the chart
 command (D58), and step 7a, the ASCII drawing of the stacks (D61). The rest is not: the PDF
-output. None of it changes any weight
-or algorithm for files that do not opt in (D6).
+output. None of it changes any weight or algorithm for files that do not opt in (D6).
 
 ## Reading scanned charts
 

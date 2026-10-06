@@ -11,9 +11,8 @@ chamber. Two header layouts are read:
 A label and its value may be separated by `=` or `:`. Several charts may share a file,
 separated by a line of dashes. After the rows, a line starting with `Stacks` begins a
 drawing of the pin stacks (chartwriter.draw_stacks); the rest of the chart is ignored.
-A chart is key
-data, so nothing here puts a chart's content in an error message: errors say
-where (chart and line number) and what kind of problem, never what was written.
+A chart is key data, so nothing here puts a chart's content in an error message: errors
+say where (chart and line number) and what kind of problem, never what was written.
 """
 import re
 from dataclasses import dataclass
