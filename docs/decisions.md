@@ -702,6 +702,6 @@ more than three times, no monotone key, and masters spanning at least six depths
 total-variation floor available and off. They filter what the solver and `gen_bittings`
 choose and never silently relax; the exact counts and the risk figures are unchanged, and
 `check_system` reports existing keys as advice only. Seeded solver output changes for files
-without `shape`, which is deliberate (D6). The design is a draft in its own document.
+without `shape`, which is deliberate (D6). The design is in its own document and has been accepted.
 
 Detail: [designs/key-shape-rules.md](designs/key-shape-rules.md).

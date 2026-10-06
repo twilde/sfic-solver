@@ -1,11 +1,11 @@
 # Rules for the shape of a generated key
 
-Status: Draft
+Status: Accepted
 
 This document proposes a small set of rules about what a key's cuts look like (not
 which keys can be pinned together) and a way to apply them to the keys the tools
 generate: the solver's unknown keys and `gen_bittings`' output. It is written before
-any code, for the maintainer to accept or change. The numbers are measured on fake
+any code, and accepted by the maintainer ([D64 in decisions.md](../decisions.md)). The numbers are measured on fake
 systems by throwaway scripts that are not in the repository, and are illustrations
 of scale, not claims about any real system.
 
@@ -88,7 +88,7 @@ system file, and `null` turns a rule off.
 |---|---|---|---|
 | `max_run` | 1 | more than `max_run` equal cuts in a row (1 means no equal neighbours) | same cuts |
 | `max_same_depth` | 3 | any depth appears more than this many times | (ours) |
-| `forbid_monotone` | true | the cuts never go down, or never go up, along the key | descending cuts |
+| `forbid_monotone` | true | the cuts never go down, or never go up, along a key of three or more cuts | descending cuts |
 | `master_min_span` | 6 | (master keys only) the deepest cut minus the shallowest is under this | highest and deepest cut |
 | `min_total_variation` | off | the sum of the differences between neighbours is under this | total variation |
 
