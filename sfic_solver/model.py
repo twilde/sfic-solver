@@ -264,6 +264,21 @@ class ShapeRules:
         fields.setdefault("master_min_span", span if span >= 1 else None)
         return cls(**fields)
 
+    def unmeetable(self, space):
+        """A message saying why no key of the space could meet these rules, or None. The
+        bounds ignore the parity pattern, so a rule that some key could meet is never
+        reported, but one that none can may pass."""
+        if self.master_min_span is not None and self.master_min_span > space.widest_span:
+            return (f"master_min_span is {self.master_min_span} but no key can span more than "
+                    f"{space.widest_span} ({space.pins} pins, cuts 0 to {space.depths - 1}, "
+                    f"max_step is {space.max_step})")
+        if (self.min_total_variation is not None
+                and self.min_total_variation > space.most_variation):
+            return (f"min_total_variation is {self.min_total_variation} but no key of "
+                    f"{space.pins} pins can vary by more than {space.most_variation} "
+                    f"(max_step is {space.max_step})")
+        return None
+
     def violations(self, cuts, master=False):
         """The rules this bitting breaks, as (rule name, 1-based pins) in the order of
         SHAPE_RULES. The pins are those in an over-long run or of an over-used depth; the
