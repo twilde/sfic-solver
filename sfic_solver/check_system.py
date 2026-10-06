@@ -42,6 +42,7 @@ Config (see system.example.json):
 A core accepts any key whose cut at every position equals the change key's
 cut or one of its masters' cuts. Exits with status 1 if anything is flagged.
 """
+import argparse
 import itertools
 import sys
 
@@ -112,10 +113,11 @@ def check_pinning(cfg, everything):
 
 
 def main(argv=None):
-    argv = sys.argv[1:] if argv is None else argv
-    if len(argv) != 1:
-        sys.exit(__doc__)
-    cfg = load_or_exit(argv[0])
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("system", metavar="system.json", help="the system file to check")
+    args = ap.parse_args(argv)
+    cfg = load_or_exit(args.system)
     space, min_diff = cfg.space, cfg.min_diff
     unit_prefix = cfg.unit_prefix
     keys, retired, control = cfg.keys, cfg.retired_keys, cfg.control_keys

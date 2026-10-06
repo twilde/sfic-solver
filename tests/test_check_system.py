@@ -151,10 +151,20 @@ def test_null_bitting_is_rejected(clean_cfg, write_cfg):
     assert "key_c" in proc.stderr and "unknown" in proc.stderr
 
 
-def test_usage_without_arguments():
-    proc = run_script("check_system")
-    assert proc.returncode == 1
-    assert "Usage:" in proc.stderr
+def test_help_prints_the_docstring_and_exits_zero():
+    for flag in ("--help", "-h"):
+        proc = run_script("check_system", flag)
+        assert proc.returncode == 0, proc.stderr
+        assert "usage:" in proc.stdout and "Whole-scheme check" in proc.stdout
+        assert proc.stderr == ""
+
+
+def test_missing_or_surplus_argument_is_a_usage_error():
+    for args in ([], ["a.json", "b.json"]):
+        proc = run_script("check_system", *args)
+        assert proc.returncode == 2
+        assert "usage:" in proc.stderr
+        assert proc.stdout == ""
 
 
 def test_example_file_is_a_clean_demo():
