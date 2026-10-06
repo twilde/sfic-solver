@@ -302,6 +302,12 @@ since the algebra alone would hide a sign slip in the lift. `joint_on_line` says
 which joint is on a shear line, which explanations and a later visualizer need
 (D29).
 
+**Verification so far.** The pinner's rules have been compared with charts a keying
+software produced for a real system, and they agreed (D63). Agreement on one system is
+consistent with the arithmetic and the layout being right and says nothing about rules
+that are too permissive, so the limitations in the README stay: it is one system, and the
+keying software remains the authority.
+
 **The conformance check** is the one layer that touches real data. `charts.py`
 reads pinning charts in either layout from the design, the tools' own with `name
 = bitting` lines and the legacy one of older keying software with a master line,
