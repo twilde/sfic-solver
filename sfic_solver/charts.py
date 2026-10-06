@@ -9,9 +9,10 @@ chamber. Two header layouts are read:
                       of comma-separated bittings, or both (older keying software)
 
 A label and its value may be separated by `=` or `:`. Several charts may share a file,
-separated by a line of dashes. A chart is key
-data, so nothing here puts a chart's content in an error message: errors say
-where (chart and line number) and what kind of problem, never what was written.
+separated by a line of dashes. After the rows, a line starting with `Stacks` begins a
+drawing of the pin stacks (chartwriter.draw_stacks); the rest of the chart is ignored.
+A chart is key data, so nothing here puts a chart's content in an error message: errors
+say where (chart and line number) and what kind of problem, never what was written.
 """
 import re
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ ROW_LABELS = ("t/d", "control", "master", "bottom")
 SEPARATOR = re.compile(r"^-{3,}\s*$")
 DIGITS = re.compile(r"[0-9]+")        # ASCII only: \d and str.isdigit() also take ² and ٣
 FAKE_MARKER = "FAKE"
+DRAWING = "stacks"        # a line starting with this, after the rows, begins the drawing
 
 
 def split_header_line(text):
@@ -123,6 +125,10 @@ def parse_chart(start, lines, index):
     if blank is None:
         raise ChartError("no blank line between the header and the rows", index)
     header, body = numbered[:blank], [item for item in numbered[blank:] if item[1].strip()]
+    drawing = next((i for i, (_, text) in enumerate(body)
+                    if text.strip().lower().startswith(DRAWING)), None)
+    if drawing is not None:
+        body = body[:drawing]       # the drawing is a view of the rows, not part of them
 
     fields, keys = {}, []
     for number, text in header:

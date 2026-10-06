@@ -18,11 +18,12 @@
   object, the pinning library, the `.txt` guard and the conformance script, the config
   and checker for files that set `pinning`, the solver and generator for them, designed
   in docs/designs/pinnable-solving.md, and the chart command `pin_system.py`; D60 made
-  the solver build pinnable answers exactly, up to three unknown keys sharing cores).
-  Step 7 is the output ideas below, each with its own design document first.
-- Core pinning output ideas (docs/designs/core-pinning.md, step 7): an ASCII
-  drawing of each core's pin stacks inside the chart output, and optional PDF
-  output of all the charts as one document.
+  the solver build pinnable answers exactly, up to three unknown keys sharing cores),
+  and step 7a, the `--draw` ASCII drawing of the stacks (D61). What remains of step 7 is
+  the output idea below, with its own design document first.
+- Core pinning output idea (docs/designs/core-pinning.md, step 7b): optional PDF output
+  of all the charts as one document. The data-file guard learns `.pdf` first (it already
+  refuses it), and writing a PDF without a dependency needs its own design.
 - A script for the pull request privacy scan that reviewers now run by hand: seven
   digit strings that are not in `system.example.json`, a short list of key-history
   phrases, commit identity and trailers, and the data-file guard over the whole

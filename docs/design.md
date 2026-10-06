@@ -425,14 +425,21 @@ tests and diffs use. A core that cannot be pinned stops the run with the checker
 complete. Output goes to standard output, or to `--out` for a new file only, with a reminder
 that it is key data; the command never writes inside the repository on its own (D58).
 
+With `--draw` each chart is followed by a drawing of its pin stacks (D61,
+[designs/ascii-stack-drawing.md](designs/ascii-stack-drawing.md)): `chartwriter.draw_stacks`
+draws one column per chamber to scale, one line per increment, with a ruler built from the
+pinning system's own numbers, and the reader skips everything after a `Stacks` line that
+follows the rows. The tests read each drawing back and compare it with the chambers and with
+the simulated lock's geometry, so the drawing is checked, not only looked at.
+
 **What is built and what is not.** The key-space object (step 1), the pinning
 library and simulated lock (step 2), the guard and the conformance script (step 3),
 the config and checker for opted-in files (step 4) and step 5, which finishes the
 design in [designs/pinnable-solving.md](designs/pinnable-solving.md) (D54): the
 population and the expected-unpinnable figure in the checker, the solver's use of
 them, and the generator running without a pattern (D55 to D57), and step 6, the chart
-command (D58). The rest is not: ASCII and PDF output. None of it changes any weight
-or algorithm for files that do not opt in (D6).
+command (D58), and step 7a, the ASCII drawing of the stacks (D61). The rest is not: the PDF
+output. None of it changes any weight or algorithm for files that do not opt in (D6).
 
 ## Reading scanned charts
 
