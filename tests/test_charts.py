@@ -160,6 +160,45 @@ def test_unreadable_charts_are_refused_with_a_reason(text, reason):
         parse_charts(text)
 
 
+DRAWING = """Stacks (to scale, one line per increment)
+
+      cut    1     2
+23         +---+ +---+
+ 1  op  1  |   | |   |
+ 0  op  0  +---+ +---+
+
+At a line marked op N, a joint is on the operating shear line for a key cut N."""
+
+
+def test_a_drawing_after_the_rows_is_skipped():
+    plain = parse_charts(chart(TOOLS_HEADER, ROWS))
+    drawn = parse_charts(chart(TOOLS_HEADER, ROWS + "\n\n" + DRAWING))
+    assert drawn == plain
+    legacy = parse_charts(chart(LEGACY_HEADER, ROWS))
+    assert parse_charts(chart(LEGACY_HEADER, ROWS + "\n\n" + DRAWING)) == legacy
+
+
+def test_a_drawing_ends_at_the_next_separator_and_the_next_chart_is_read():
+    text = (chart(TOOLS_HEADER, ROWS + "\n\n" + DRAWING) + "\n----------------------------------------\n\n"
+            + chart(TOOLS_HEADER.replace("Area A", "Area B"), ROWS))
+    first, second = parse_charts(text)
+    assert dict(first.metadata)["core"] == "Area A cores"
+    assert dict(second.metadata)["core"] == "Area B cores"
+
+
+def test_rows_before_a_drawing_are_still_checked():
+    with pytest.raises(ChartError, match="must be T/D, Control"):
+        parse_charts(chart(TOOLS_HEADER, ROWS.replace("Bottom   5  3  0  1  2  3  4", "")
+                           + "\n\n" + DRAWING))
+
+
+def test_a_key_named_stacks_is_still_a_key():
+    """The drawing starts only after the rows: in the header `Stacks` is a name like any."""
+    header = TOOLS_HEADER + "\nStacks = 5961634"
+    keys = parse_charts(chart(header, ROWS + "\n\n" + DRAWING))[0].keys
+    assert ("Stacks", "5961634") in keys
+
+
 @pytest.mark.parametrize("digit", ["\u00b2", "\u0663", "\uff13"])    # ², ٣, full-width 3
 def test_only_ascii_digits_are_digits(digit):
     """str.isdigit and \\d accept these; int() then raises with the character in its message."""
