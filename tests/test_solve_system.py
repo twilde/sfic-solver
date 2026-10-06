@@ -1,4 +1,5 @@
 """solve_system: fills null bittings without touching known keys."""
+import itertools
 import json
 import random
 import re
@@ -9,6 +10,8 @@ from sfic_solver import solve_system
 from conftest import call_main, run_script
 
 SECTIONS = ("keys", "retired_keys", "control_keys")
+RULES_OFF = {name: None for name in ("max_run", "max_same_depth", "forbid_monotone",
+                                     "master_min_span", "min_total_variation")}
 
 
 @pytest.fixture
@@ -386,6 +389,7 @@ def decoded_units(prob, count, seed=1):
 def test_with_few_pinnable_masters_the_solver_scores_every_one_of_them(
         pinned, write_cfg, tmp_path):
     pinned["keys"].update(decoded_units(problem(pinned), 7))
+    pinned["shape"] = RULES_OFF          # this test is about listing them all; see the rules below
     prob = problem(pinned)
     pinnable, _ = prob.pinnable_set(["unit_master"])
     # Count them without the construction: every bitting whose cuts can all be pinned.
@@ -450,3 +454,197 @@ def test_without_pinning_no_group_is_built_and_the_search_is_the_old_one(unsolve
     proc, _ = solve(write_cfg, unsolved, tmp_path, seed=1)
     assert "pinnable" not in proc.stdout
     assert "of random candidates were free of hard conflicts" in proc.stdout
+
+
+# -- shape rules (docs/designs/key-shape-rules.md) ------------------------------------
+
+def shape_breaks(key, master=False):
+    """What a key breaks of the default shape rules, by plain loops, so the tests do not
+    lean on ShapeRules."""
+    cuts = [int(c) for c in key]
+    broken = []
+    if any(a == b for a, b in zip(cuts, cuts[1:])):
+        broken.append("equal neighbours")
+    if max(cuts.count(d) for d in set(cuts)) > 3:
+        broken.append("a depth over three times")
+    steps = [b - a for a, b in zip(cuts, cuts[1:])]
+    if all(s >= 0 for s in steps) or all(s <= 0 for s in steps):
+        broken.append("one way")
+    if master and max(cuts) - min(cuts) < 6:
+        broken.append("narrow master")
+    return broken
+
+
+def solved_keys(raw, names):
+    return {n: (raw["keys"].get(n) or raw["control_keys"].get(n)) for n in names}
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_solved_keys_follow_the_shape_rules(unsolved, write_cfg, tmp_path, seed):
+    proc, out = solve(write_cfg, unsolved, tmp_path, seed=seed)
+    assert proc.returncode == 0, proc.stderr
+    got = solved_keys(json.loads(out.read_text()), ["unit_master", "control_common"])
+    assert shape_breaks(got["unit_master"], master=True) == []      # a master of the unit cores
+    assert shape_breaks(got["control_common"]) == []
+    assert "NOT SOLVED" not in proc.stdout
+
+
+def test_a_whole_system_from_scratch_follows_the_shape_rules(clean_cfg, write_cfg, tmp_path):
+    for section in SECTIONS:
+        for name in clean_cfg.get(section, {}):
+            if section != "retired_keys" and not name.startswith("unit:"):
+                clean_cfg[section][name] = None
+    proc, out = solve(write_cfg, clean_cfg, tmp_path)
+    solved = json.loads(out.read_text())
+    masters = {"general_master", "unit_master"}
+    for name in ("general_master", "key_a", "key_b", "key_c", "unit_master", "control_common"):
+        assert shape_breaks(solved_keys(solved, [name])[name], name in masters) == [], name
+
+
+def test_pinning_solutions_with_keys_built_together_follow_the_shape_rules(
+        pinned, write_cfg, tmp_path):
+    for name in ("area_a", "area_b", "master_sub"):
+        pinned["keys"][name] = None                                # one group of three keys
+    pinned["keys"]["area_c"] = None
+    proc, out = solve(write_cfg, pinned, tmp_path, seed=2)
+    assert proc.returncode == 0, proc.stderr
+    assert "that follow the shape rules" in proc.stdout
+    solved = json.loads(out.read_text())
+    for name in ("area_a", "area_b", "area_c", "master_sub", "unit_master"):
+        masters = {"master_sub", "unit_master", "master_top"}
+        assert shape_breaks(solved["keys"][name], name in masters) == [], name
+
+
+# Recorded from the solver before the shape rules (D64, step 4), with every rule off: the
+# seeded results of the "unsolved" system must not change when the rules are turned off.
+BEFORE_THE_RULES = {1: ("8961038", "0165210"), 2: ("8961038", "0101630"),
+                    3: ("8989410", "0105030")}
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_with_every_rule_off_seeded_results_are_what_they_were(
+        unsolved, write_cfg, tmp_path, seed):
+    unsolved["shape"] = RULES_OFF
+    proc, out = solve(write_cfg, unsolved, tmp_path, seed=seed)
+    assert proc.returncode == 0, proc.stderr
+    solved = json.loads(out.read_text())
+    assert (solved["keys"]["unit_master"], solved["control_keys"]["control_common"]) \
+        == BEFORE_THE_RULES[seed]
+    assert "shape rules" not in proc.stdout
+
+
+def test_the_file_s_shape_settings_are_used(unsolved):
+    free = {**unsolved, "pattern": None}          # alternating parity cannot have equal neighbours
+    default = problem(free)
+    pairs = problem({**free, "shape": {"max_run": 2}})
+    rng = random.Random(4)
+    runs = lambda cands: {max(len(list(g)) for _, g in itertools.groupby(c)) for c in cands}
+    assert runs(default.shaped_candidates(rng, "key_c", 400)[0]) == {1}
+    assert runs(pairs.shaped_candidates(rng, "key_c", 400)[0]) == {1, 2}
+
+
+def test_the_span_rule_is_for_the_keys_that_are_masters(unsolved):
+    prob = problem(unsolved)
+    assert "unit_master" in prob.masters and "general_master" in prob.masters
+    assert "key_a" not in prob.masters and "control_common" not in prob.masters
+    rng = random.Random(1)
+    assert all(max(c) - min(c) >= 6 for c in prob.shaped_candidates(rng, "unit_master", 200)[0])
+    assert any(max(c) - min(c) < 6 for c in prob.shaped_candidates(rng, "key_a", 200)[0])
+
+
+def test_neighbors_and_random_candidates_for_a_key_follow_the_shape_rules(unsolved):
+    prob = problem({**unsolved, "pattern": None})
+    start = prob.random_candidate(random.Random(2), "unit_master")
+    assert shape_breaks("".join(map(str, start)), master=True) == []
+    near = list(prob.neighbors(start, "unit_master"))
+    assert near and all(not shape_breaks("".join(map(str, c)), master=True) for c in near)
+    assert len(list(prob.neighbors(start))) > len(near)          # without a key: not filtered
+
+
+def test_a_key_no_bitting_can_be_for_raises_with_the_rules_that_turned_draws_down(unsolved):
+    unsolved["shape"] = {"min_total_variation": 30}              # only 0,5,0,5... reach it
+    prob = problem(unsolved)
+    with pytest.raises(solve_system.NoShapedBitting, match="max_same_depth"):
+        prob.random_candidate(random.Random(1), "key_a")
+    assert prob.shaped_candidates(random.Random(1), "key_a", 5)[0] == []
+
+
+# Three pins and a master: no key of three cuts spans six unless it only goes one way.
+@pytest.fixture
+def three_pin_master():
+    return {"pins": 3, "keys": {"a": "135", "m": None},
+            "cores": [{"name": "x", "change": "a", "masters": ["m"]}]}
+
+
+def test_a_key_with_no_bitting_that_follows_the_rules_is_left_null_and_said_so(
+        three_pin_master, write_cfg, tmp_path):
+    proc, out = solve(write_cfg, three_pin_master, tmp_path)
+    assert proc.returncode == 0 and "Traceback" not in proc.stderr
+    assert json.loads(out.read_text())["keys"]["m"] is None
+    assert "m: NO bitting found that follows the shape rules (draws broke" in proc.stdout
+    assert "master_min_span" in proc.stdout
+    assert "The full check is skipped: m still has no bitting" in proc.stdout
+    lines = proc.stdout.strip().splitlines()
+    assert lines[-1].startswith("NOT SOLVED: no bitting for m follows the shape rules")
+    assert "left null and running it again will not help" in lines[-1]
+    assert sum(line.startswith("NOT SOLVED") for line in lines) == 2     # before Wrote, and last
+
+
+def test_relaxing_the_rule_in_the_file_lets_the_same_system_solve(
+        three_pin_master, write_cfg, tmp_path):
+    three_pin_master["shape"] = {"master_min_span": 4}
+    proc, out = solve(write_cfg, three_pin_master, tmp_path)
+    got = json.loads(out.read_text())["keys"]["m"]
+    assert got and len(got) == 3 and max(map(int, got)) - min(map(int, got)) >= 4
+    assert "NOT SOLVED" not in proc.stdout and "skipped" not in proc.stdout
+
+
+def test_pinned_keys_with_no_shaped_bitting_are_reported_as_that(pinned, write_cfg, tmp_path):
+    """The bound allows 30, but only keys that alternate two depths reach it, and they use one
+    of them four times."""
+    pinned["keys"].update({"master_sub": "7305496", "area_a": "5721276", "area_b": "9565698",
+                           "area_c": "3323872", "unit_master": "7587672"})
+    pinned["keys"]["area_d"] = None
+    pinned["shape"] = {"min_total_variation": 30}
+    proc, out = solve(write_cfg, pinned, tmp_path)
+    assert proc.returncode == 0 and "Traceback" not in proc.stderr
+    assert "area_d: NO pinnable bitting follows the shape rules (draws broke" in proc.stdout
+    assert json.loads(out.read_text())["keys"]["area_d"] is None
+    assert proc.stdout.strip().splitlines()[-1].startswith(
+        "NOT SOLVED: no bitting for area_d follows the shape rules")
+
+
+def seven_decoded_units(pinned):
+    """The system of test_with_few_pinnable_masters...: 24 pinnable unit masters, all of which
+    end in two equal cuts and half of which span too few depths."""
+    pinned["keys"].update(decoded_units(problem(pinned), 7))
+    return pinned
+
+
+def test_a_thin_pinnable_set_that_the_shape_rules_empty_is_reported_not_relaxed(
+        pinned, write_cfg, tmp_path):
+    seven_decoded_units(pinned)
+    proc, out = solve(write_cfg, pinned, tmp_path, seed=3)
+    assert proc.returncode == 0 and "Traceback" not in proc.stderr
+    assert ("unit_master: 24 pinnable bittings with the known keys; scored all of them"
+            not in proc.stdout)
+    assert "unit_master: NO pinnable bitting follows the shape rules (draws broke max_run 24" \
+        in proc.stdout
+    assert json.loads(out.read_text())["keys"]["unit_master"] is None
+    assert proc.stdout.strip().splitlines()[-1].startswith(
+        "NOT SOLVED: no bitting for unit_master follows the shape rules")
+
+
+def test_a_thin_pinnable_set_is_listed_and_filtered_whole(pinned, write_cfg, tmp_path):
+    seven_decoded_units(pinned)
+    pinned["shape"] = {"max_run": None}                  # leaves the depth and span rules
+    prob = problem(pinned)
+    pinnable, _ = prob.pinnable_set(["unit_master"])
+    follow = sum(not prob.joint_broken(["unit_master"], c) for c in pinnable.enumerate())
+    assert 0 < follow < pinnable.count == 24
+    proc, out = solve(write_cfg, pinned, tmp_path, seed=3)
+    assert (f"unit_master: 24 pinnable bittings with the known keys; {follow} follow the shape "
+            f"rules; scored all of those") in proc.stdout
+    got = json.loads(out.read_text())["keys"]["unit_master"]
+    assert got and set(shape_breaks(got, master=True)) <= {"equal neighbours"}   # the rule left off
+    assert "NOT SOLVED" not in proc.stdout

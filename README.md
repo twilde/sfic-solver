@@ -117,7 +117,11 @@ The reasons, the numbers behind the defaults and what each costs in key space ar
 - `check_bittings.py` prints a `SHAPE` line for each rule a key breaks, with pin positions and
   never the cuts. They are advice: they do not count as problems or change the exit status.
   Name the masters with `--master NAME` (repeat the flag for more than one).
-- The solver and `check_system` do not use the rules yet.
+- `solve_system.py` follows them too, for every key it chooses (a master is a key that is in
+  the `masters` of any core). The system file sets them in an optional `shape` object, with
+  the rule names of the table above and `null` to turn one off (see
+  [System file format](#system-file-format)).
+- `check_system` does not use the rules yet.
 
 ```bash
 ./gen_bittings.py --pins 7 -n 3 --master          # three masters, no parity pattern
@@ -142,6 +146,7 @@ A JSON file. Fields (only `keys` and `cores` are needed for the basics):
 | `keys` | `{name: bitting}` of operating keys, including decoded unit keys. |
 | `retired_keys` | `{name: bitting}` of old keys that must **not** operate any new core. |
 | `control_keys` | `{name: bitting}` of control keys. |
+| `shape` | Optional object of [key shape rules](#key-shape-rules) for the keys the solver chooses: any of `max_run`, `max_same_depth`, `forbid_monotone`, `master_min_span` and `min_total_variation`, each a whole number of at least 1 (`forbid_monotone`: `true` or `false`), or `null` to turn the rule off. Rules left out keep their defaults, so a file without `shape` gets them all. An unknown rule name is an error, as is a rule no key of the key space could meet. |
 | `pinning` | Optional name of a pinning system (`"A2"`): opts in to the pinning checks. Without it the file is read exactly as before. |
 | `cores` | List of `{"name", "change", "masters"}`. `change` is a key name, a wildcard such as `"unit:*"`, or a list of those. `masters` is a list of key names pinned above the change key (may be empty). With `pinning`, each core also needs `"control"`: the name of its control key in `control_keys`. |
 | `retired_cores` | Optional, with `pinning`: how the old cores were pinned, as a list of `{"name", "change", "masters", "control"}` shaped like `cores`. `change` names keys in `keys` or `retired_keys` (a wildcard may match nothing yet), and `masters` and `control` name entries in `retired_keys`. |
@@ -395,6 +400,15 @@ printed, and the printed pins are the ones the checker's own pinner computed.
    again as the last line after the check. It still exits 0 and writes the file,
    so look for that line (or `problem(s) flagged`) and do not use the result;
    run it again, since each run draws different candidates.
+
+   Every key it chooses also follows the [shape rules](#key-shape-rules) of the
+   file, and it never relaxes one: if no bitting for a key follows them (a thin
+   pinnable set can leave none, since pinning decides the cuts first), that key is
+   left `null` in the written file, a `NOT SOLVED` line says which rules turned
+   the draws down, and the full check is skipped because the file is not complete.
+   Change or turn off a rule in the `shape` object, or change a known key, and run it
+   again. With every rule off the solver chooses exactly what it did before the
+   rules existed.
 
    If the file sets `pinning` (see [Pinning](#pinning-optional)), the solver
    also treats a core that cannot be pinned as a hard conflict, and adds the
