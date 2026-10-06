@@ -14,19 +14,13 @@
   pin) so the tools work for other systems. The pin count is already
   configurable (D22 in docs/decisions.md); the rest is covered by the pinning
   system records in docs/designs/core-pinning.md.
-- Core pinning (docs/designs/core-pinning.md): all seven steps are done (the key-space
-  object, the pinning library, the `.txt` guard and the conformance script, the config
-  and checker for files that set `pinning`, the solver and generator for them, designed
-  in docs/designs/pinnable-solving.md, the chart command `pin_system.py`, its `--draw`
-  ASCII drawing of the stacks (D61) and its `--pdf` output (D62); D60 made the solver
-  build pinnable answers exactly, up to three unknown keys sharing cores). Possible
-  later, each with its own design document first: a drawing of a key lifting its stack,
-  built on the simulated lock.
+- A drawing of a key lifting its stack, built on the simulated lock (core pinning is
+  otherwise complete, docs/design.md, "Pinning"). It needs its own design document first.
 - A script for the pull request privacy scan that reviewers now run by hand: seven
   digit strings that are not in `system.example.json`, a short list of key-history
   phrases, commit identity and trailers, and the data-file guard over the whole
   history. It is code, so it needs a short design first (D24).
-- Scanning paper charts (docs/designs/chart-scanning.md, accepted; D38; work
+- Scanning paper charts (docs/designs/chart-scanning.md; D38; work
   suspended, D44): the tool, its harness and its documentation are built (steps 3 to
   5), and nothing here is being worked on now. If it is picked up again, in this
   order: the three failures on real scans (issue #16), then the dissent check that

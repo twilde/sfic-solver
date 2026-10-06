@@ -6,9 +6,9 @@ This document describes the first half of step 7 of [core pinning](core-pinning.
 optional drawing, in plain text, of the pin stacks of each core under the chart the
 chart command already prints. It was written before any code, accepted by the
 maintainer and built ([D61 in decisions.md](../decisions.md)). The other half of step 7,
-one PDF of all the charts, is a separate design (7b), because it needs a PDF writer and
-the data-file guard to learn `.pdf` first; nothing here depends on it, and the drawing is
-built so that it survives into a PDF unchanged.
+one PDF of all the charts, is a separate design (7b, [pdf-output.md](pdf-output.md), D62),
+because it needs a PDF writer; nothing here depends on it, and the drawing is built so that
+it survives into a PDF unchanged.
 
 ## Why do this
 
@@ -205,8 +205,8 @@ The drawing is added as described, opt-in, in one pull request (step 7a):
 3. The README section on printing charts, the design text and TODO, with a decision
    entry.
 
-The 7b design, a single PDF of all the charts, follows separately. It will print the
-same drawn text in a monospaced font, so the drawing is plain ASCII and its stacks are
+The 7b design, a single PDF of all the charts, followed separately and is built. It prints
+the same drawn text in a monospaced font, so the drawing is plain ASCII and its stacks are
 52 columns wide for seven chambers (the longest legend line is 85).
 
 Accepting this document meant accepting an optional drawing under each chart, the

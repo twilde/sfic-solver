@@ -17,6 +17,7 @@ Usage:
     ./check_system.py system.json
 
 Config (see system.example.json):
+    name           optional name of the key system (printed on the charts by pin_system)
     pins           number of pins (default: the length of pattern, else 7)
     pattern        one E/O per pin (optional; enables parity checks)
     max_step       max adjacent-cut difference (default 5)

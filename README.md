@@ -2,8 +2,9 @@
 
 Small Python tools for planning and checking a **master-keyed
 SFIC** (small format interchangeable core) key system: generate candidate key
-bittings, check a whole key hierarchy for unintended cross-operation, and fill
-in missing bittings (such as a unit master) so as to minimise the risk of it.
+bittings, check a whole key hierarchy for unintended cross-operation, fill in
+missing bittings (such as a unit master) so as to minimise the risk of it, and,
+if you ask, work out the pins for every core and print them as charts.
 
 > **This is a planning aid, not a substitute for your keying software or
 > manufacturer.** It models only the rules described below. See
@@ -94,7 +95,7 @@ A JSON file. Fields (only `keys` and `cores` are needed for the basics):
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Optional name of the key system, for the chart command to come. |
+| `name` | Optional name of the key system. `pin_system` prints it as the `Key System` line of each chart. |
 | `pins` | Number of pins, so the length of every bitting. Default: the length of `pattern` if there is one, otherwise `7`. If both are given they must agree. |
 | `pattern` | One `E`/`O` per pin (7 by default). Enables parity checks and restricts the key space. If omitted, any cut 0-9 is allowed at every position. |
 | `max_step` | Max difference between adjacent cuts. Default `5`. |
@@ -245,9 +246,10 @@ been pinned with, and says so. Only a wildcard that starts with the unit prefix 
 so a core whose `change` is `"*"` does not describe the units. Up to three covering
 cores give the union of what each allows. When the retired cores cannot be used (more
 than three cover the units, or no bitting could have been pinned in them), the report
-says so and assumes every valid bitting instead of stopping. With `pinning` set, each unit core also gets a second figure, how many of the
-undecoded unit keys cannot be pinned under its master and control key at all, which
-means that unit's core could not take the master and would have to be rekeyed:
+says so and assumes every valid bitting instead of stopping. With `pinning` set, each
+unit core also gets a second figure, how many of the undecoded unit keys cannot be
+pinned under its master and control key at all, which means that unit's core could not
+take the master and would have to be rekeyed:
 
 ```console
 == Residual risk from undecoded unit keys (3 of 100 decoded) ==
@@ -267,7 +269,8 @@ before dropping the pattern.
 
 With `pinning` set and every key known, `pin_system.py` prints the pins for every core,
 one chart for each core and, for a core with several change keys such as `unit:*`,
-each key:
+each key. The example is one chart of the output for the fake system file
+`tests/fixtures/pinning.json` (`system.example.json` does not set `pinning`):
 
 ```console
 $ ./pin_system.py system.json --date 2026-10-01
@@ -299,7 +302,7 @@ plain ASCII: one column per chamber with the driver at the top, one line for eac
 increment, and a ruler of the cuts that put a joint on the operating or the control shear
 line (a joint on the line marked `op 4` is the one a key cut 4 lines up). Without the flag
 the output is exactly as above, and `check_charts` reads a drawn chart the same as a plain
-one. A sample is in [designs/ascii-stack-drawing.md](docs/designs/ascii-stack-drawing.md).
+one. A sample is in [docs/designs/ascii-stack-drawing.md](docs/designs/ascii-stack-drawing.md).
 
 To print them, `--pdf charts.pdf` writes every chart as one PDF instead, a page to a chart
 (with its drawing under it if you also give `--draw`), in a fixed monospaced font and size
@@ -310,9 +313,8 @@ writer in this repository, with no extra package.
 
 **The charts are key data**, as a file or as a printed page: the pin sizes give the
 bittings away. Keep them outside this repository, like the system file (see
-[Privacy](#privacy)). `check_charts` reads
-this layout, so it can check a chart you printed, and the printed pins are the ones
-the checker's own pinner computed.
+[Privacy](#privacy)). `check_charts` reads this layout, so it can check a chart you
+printed, and the printed pins are the ones the checker's own pinner computed.
 
 ## Typical workflow
 
@@ -387,6 +389,19 @@ the checker's own pinner computed.
    Newly decoded unit keys can cross-operate. Any `CROSS` line needs action
    before keys are cut. The residual-risk section shrinks as more units are
    decoded.
+
+6. **Print the pinning charts** (only if the file sets `pinning`), once every key is
+   known:
+
+   ```bash
+   ./pin_system.py system.solved.json --draw --pdf charts.pdf
+   ```
+
+   Keep the output outside this repository, since the charts are key data (see
+   [Printing the pinning charts](#printing-the-pinning-charts)). The pins are the
+   tools' own computation: compare them with your keying software's before anything is
+   assembled, and run `check_charts` on that software's charts to learn whether the
+   tools' rules agree with it.
 
 ## Scanning paper charts
 
@@ -472,7 +487,15 @@ digit; never paste or describe the page itself.
 
 - It models **only** the rules above: one pin count for the whole system, cut
   depths 0-9, one parity pattern, a single adjacent-cut limit, and "a core
-  accepts the change key's or a master's cut at each position". Nothing else.
+  accepts the change key's or a master's cut at each position". With `pinning`
+  set it adds the pin sizes of one pinning system, A2, and one control key per
+  core. Nothing else.
+- The pins, and so the charts, come from the tools' own rules (see
+  [docs/designs/core-pinning.md](docs/designs/core-pinning.md)), which the tests check
+  against fake charts only. Whether they match your keying software is for
+  `check_charts` to show on your own charts, and until it has, the software's charts
+  are the authority. Other SFIC pinning systems (A3, A4) are not built in, because the
+  numbers for them have no complete source (D27 in docs/decisions.md).
 - Pin counts other than 7 are not tied to any real keyway: the tools do not
   know which pin counts or cut depths a manufacturer actually offers, and the
   chance of unintended cross-operation grows quickly as pins are removed.
