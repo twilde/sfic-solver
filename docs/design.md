@@ -152,7 +152,12 @@ file, a `NOT SOLVED` line gives the rule tally, and the full check, which would 
 null, is skipped. Nothing is relaxed. A thin pinnable set (a unit master among many decoded
 units) can leave no key that follows the rules; that is reported, not repaired. With every
 rule off the same seeded draws are made as before the rules existed, so output is
-byte-identical.
+byte-identical. The summary of chance cross-operation compares the chosen unit master with
+typical ones; with rules on those are drawn once for each master from the keys that follow
+them (reused in turn when a tight rule set leaves few, left out when it leaves none), never
+by a separate bounded search for each sample. For keys built together, the `NOT SOLVED`
+reason names a key only if it broke a rule in at least 80% of the draws (any random key
+breaks one now and then); the others say they were built together with it.
 
 ## The key space
 
