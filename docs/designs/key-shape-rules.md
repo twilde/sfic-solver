@@ -130,10 +130,11 @@ only the 7% of bittings with three in a row and leaves the pairs, which is the c
   NOT SOLVED line names the key and the rules, before `Wrote ...` and again last.
 - **Keys that already exist** are not changed. `check_system` and `check_bittings` print
   the ones that break a rule as an advisory `SHAPE` line, with positions only and never
-  values. It does not change the exit status or the count of warnings. Decoded unit
-  keys and retired keys are left out (the vendor cut the first, and the second are history,
-  as for parity and MACS in D11), and without a pattern about half of any real set breaks
-  `max_run` = 1, so anything louder would be noise.
+  values. It does not change the exit status or the count of warnings. Retired keys are
+  left out because they are history, which is also why D11 exempts them from parity and MACS.
+  Decoded unit keys are left out of the `SHAPE` lines only (parity and MACS still apply to
+  them): the vendor cut them, so there is nothing to change, and without a pattern about half
+  of any real set breaks `max_run` = 1, so anything louder would be noise.
 
 ## Why not part of KeySpace
 

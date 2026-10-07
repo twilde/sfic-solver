@@ -509,3 +509,12 @@ def test_a_long_list_of_advice_is_capped_like_the_other_lists(clean_cfg, write_c
     shown = lines[start + 1:start + 31]
     assert len(shown) == 30 and all(line.startswith("SHAPE") for line in shown)
     assert re.fullmatch(r"\.\.\. and \d+ more", lines[start + 31])
+
+
+def test_decoded_unit_keys_are_exempt_from_shape_advice_but_not_from_parity(
+        clean_cfg, write_cfg):
+    """The exemption is for the SHAPE lines only: parity and MACS still apply to unit keys."""
+    clean_cfg["keys"]["unit:104"] = "1000000"          # wrong parity for EOEOEOE, and flat
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    assert "PARITY    unit:104" in proc.stdout
+    assert not any("unit:104" in line for line in shape_lines(proc))
