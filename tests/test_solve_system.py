@@ -1,4 +1,5 @@
 """solve_system: fills null bittings without touching known keys."""
+import collections
 import itertools
 import json
 import random
@@ -648,3 +649,114 @@ def test_a_thin_pinnable_set_is_listed_and_filtered_whole(pinned, write_cfg, tmp
     got = json.loads(out.read_text())["keys"]["unit_master"]
     assert got and set(shape_breaks(got, master=True)) <= {"equal neighbours"}   # the rule left off
     assert "NOT SOLVED" not in proc.stdout
+
+
+# -- review of #38: the middle band between easy rules and impossible ones -------------------
+
+@pytest.fixture
+def tight_rules(unsolved):
+    """About 0.03% of MACS-valid bittings pass these, so a key exists but 300 draws of a
+    summary would each need thousands of tries."""
+    unsolved["shape"] = {"master_min_span": 9, "min_total_variation": 26}
+    return unsolved
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_tight_but_satisfiable_rules_solve_and_do_not_crash_the_summary(
+        tight_rules, write_cfg, tmp_path, seed):
+    proc, out = solve(write_cfg, tight_rules, tmp_path, seed=seed)
+    assert proc.returncode == 0 and "Traceback" not in proc.stderr, proc.stderr
+    got = json.loads(out.read_text())["keys"]["unit_master"]
+    cuts = [int(c) for c in got]
+    assert max(cuts) - min(cuts) >= 9 and sum(abs(a - b) for a, b in zip(cuts, cuts[1:])) >= 26
+    assert "NOT SOLVED" not in proc.stdout and proc.stdout.strip().endswith("OK")
+
+
+def test_the_summary_is_left_out_when_no_typical_master_follows_the_rules(
+        unsolved, capsys, monkeypatch):
+    prob = problem(unsolved)
+    prob.assign["unit_master"] = tuple(map(int, "8765432"))
+    monkeypatch.setattr(solve_system.Problem, "shaped_candidates",
+                        lambda self, rng, k, n: ([], {}))
+    solve_system.unit_pair_summary(prob, random.Random(1), samples=5)
+    assert capsys.readouterr().out == ""
+
+
+def test_the_summary_reuses_the_typical_masters_it_found(unsolved, capsys, monkeypatch):
+    prob = problem(unsolved)
+    prob.assign["unit_master"] = tuple(map(int, "8765432"))
+    few = [tuple(map(int, key)) for key in ("0549494", "9450505")]
+    monkeypatch.setattr(solve_system.Problem, "shaped_candidates",
+                        lambda self, rng, k, n: (few, {}))
+    solve_system.unit_pair_summary(prob, random.Random(1), samples=7)
+    assert "Unit-to-unit cross-operation by chance" in capsys.readouterr().out
+
+
+def test_with_every_rule_off_the_summary_draws_what_it_always_drew(unsolved, monkeypatch):
+    """The unfiltered draws, in the old order, so seeded output is unchanged (D64)."""
+    unsolved["shape"] = RULES_OFF
+    prob = problem(unsolved)
+    prob.assign["unit_master"] = tuple(map(int, "8765432"))
+    calls = []
+    real = solve_system.Problem.random_candidate
+    monkeypatch.setattr(solve_system.Problem, "random_candidate",
+                        lambda self, rng, k=None: calls.append(k) or real(self, rng, k))
+    monkeypatch.setattr(solve_system.Problem, "shaped_candidates",
+                        lambda *a: pytest.fail("no filtering with every rule off"))
+    solve_system.unit_pair_summary(prob, random.Random(1), samples=4)
+    assert calls == [None] * 4
+
+
+def test_a_group_blames_the_key_that_broke_the_rules_in_most_draws_not_one_that_did_by_chance(
+        pinned, write_cfg, tmp_path):
+    """unit_master has no pinnable bitting that follows the rules; control_b breaks one in
+    about half the draws, as any random key does, and has plenty of shaped bittings."""
+    seven_decoded_units(pinned)
+    pinned["control_keys"]["control_b"] = None
+    proc, out = solve(write_cfg, pinned, tmp_path, seed=3)
+    assert proc.returncode == 0 and "Traceback" not in proc.stderr
+    assert ("unit_master, control_b: NO pinnable combination follows the shape rules "
+            "(draws broke unit_master: max_run 20,001") in proc.stdout
+    lines = [line for line in proc.stdout.splitlines() if line.startswith("NOT SOLVED")]
+    master = next(line for line in lines if "for unit_master" in line)
+    waiting = next(line for line in lines if "for control_b" in line)
+    assert "(draws broke max_run 20,001" in master and "built together" not in master
+    assert ("(built together with unit_master, which has none: draws broke unit_master: "
+            in waiting)
+    assert "control_b:" not in waiting.split("which has none")[1]      # it is not blamed
+
+
+def tallied(*draws):
+    """The tally of draws, each a list of (key, rule) pairs, as the solver keeps it."""
+    rejected = collections.Counter()
+    for broken in draws:
+        solve_system.tally_broken(rejected, broken)
+    return rejected
+
+
+def test_group_reasons_for_one_key_are_the_plain_tally():
+    rejected = tallied([("k", "max_run"), ("k", "master_min_span")], [("k", "max_run")])
+    summary, reasons = solve_system.group_reasons(["k"], rejected, 2)
+    assert summary == reasons["k"] == "draws broke max_run 2, master_min_span 1"
+
+
+def test_group_reasons_blame_only_keys_that_broke_a_rule_in_most_draws():
+    draws = [[("a", "max_run"), ("b", "max_run")]] * 4 + [[("a", "forbid_monotone")]] * 5 \
+        + [[("b", "max_same_depth")]]
+    summary, reasons = solve_system.group_reasons(["a", "b"], tallied(*draws), 10)
+    assert summary == "draws broke a: forbid_monotone 5, max_run 4"          # b: 5 of 10 draws
+    assert reasons["a"] == "draws broke forbid_monotone 5, max_run 4"
+    assert reasons["b"] == f"built together with a, which has none: {summary}"
+
+
+def test_group_reasons_with_no_key_to_blame_give_the_group_the_whole_picture():
+    draws = [[("a", "max_run")]] * 5 + [[("b", "max_run")]] * 5
+    summary, reasons = solve_system.group_reasons(["a", "b"], tallied(*draws), 10)
+    assert summary == "draws broke a: max_run 5; b: max_run 5"
+    assert reasons == {"a": summary, "b": summary}
+
+
+def test_group_reasons_when_the_draws_broke_nothing_say_none_could_be_drawn():
+    summary, reasons = solve_system.group_reasons(["a", "b"], collections.Counter(), 0)
+    assert summary == reasons["a"] == reasons["b"] == \
+        "none of the bittings that could be drawn follows them"

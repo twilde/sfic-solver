@@ -75,6 +75,44 @@ class NoShapedBitting(Exception):
         self.rejected = rejected
 
 
+MOST_DRAWS = 0.8       # a key that broke a rule in this share of the draws is the one to blame
+
+
+def tally_broken(rejected, broken):
+    """Count a draw's broken (key, rule) pairs: each pair once, and the key itself once
+    (as (key, None)) however many rules it broke."""
+    rejected.update(broken)
+    rejected.update({(k, None) for k, _ in broken})
+
+
+def group_reasons(group, rejected, draws):
+    """Why no combination for a group of keys built together follows the shape rules, from
+    the counts of the `draws` turned down (see tally_broken): one summary for the group and
+    one reason for each key. Only a key that broke a rule in most of the draws is blamed; a
+    key that did not says whose rules it waited for, since any random key breaks one now
+    and then."""
+    tallies = {k: collections.Counter({rule: n for (key, rule), n in rejected.items()
+                                       if key == k and rule}) for k in group}
+    blamed = [k for k in group if draws and rejected.get((k, None), 0) >= MOST_DRAWS * draws]
+    shown = blamed or [k for k in group if tallies[k]]
+    if len(group) == 1:
+        summary = shape_reason(tallies[group[0]])
+    elif shown:
+        summary = "draws broke " + "; ".join(
+            f"{k}: " + shape_reason(tallies[k]).removeprefix("draws broke ") for k in shown)
+    else:
+        summary = shape_reason(collections.Counter())
+    reasons = {}
+    for k in group:
+        if blamed and k not in blamed:
+            reasons[k] = f"built together with {', '.join(blamed)}, which has none: {summary}"
+        elif len(group) == 1 or k in blamed:
+            reasons[k] = shape_reason(tallies[k])
+        else:
+            reasons[k] = summary
+    return summary, reasons
+
+
 def shape_reason(rejected):
     """Which rules turned draws down, for a message."""
     if not rejected:
@@ -222,27 +260,29 @@ class Problem:
                         yield cand
 
     def joint_broken(self, group, cand):
-        """The shape rules broken by the keys of a group, as one name for each, for a drawn
+        """The shape rules broken by the keys of a group, as (key, rule) pairs, for a drawn
         digit-tuple list `cand` (see joint.bittings)."""
-        return [name for k, cuts in zip(group, bittings(cand))
+        return [(k, name) for k, cuts in zip(group, bittings(cand))
                 for name, _ in self.shape.violations(cuts, k in self.masters)]
 
     def shaped_draws(self, pinnable, group, rng, trials):
-        """Up to `trials` draws from the pinnable set whose keys all follow the shape rules, and
-        the count of the rules the turned-down draws broke."""
-        chosen, rejected, rejects = [], collections.Counter(), 0
+        """Up to `trials` draws from the pinnable set whose keys all follow the shape rules, the
+        count of what the turned-down draws broke (see tally_broken), and how many draws were
+        made."""
+        chosen, rejected, rejects, made = [], collections.Counter(), 0, 0
         limit = max(50 * trials, MAX_SHAPE_REJECTS)
         while len(chosen) < trials:
             cand = pinnable.draw(rng)
+            made += 1
             broken = self.joint_broken(group, cand)
             if broken:
-                rejected.update(broken)
+                tally_broken(rejected, broken)
                 rejects += 1
                 if rejects > limit:
                     break
                 continue
             chosen.append(cand)
-        return chosen, rejected
+        return chosen, rejected, made
 
     # -- scoring (only terms that depend on key k) -----------------------------
     def expected_unknown_conflicts(self, core):
@@ -346,17 +386,18 @@ def solve_jointly(prob, group, trials, rng, report):
     rejected = collections.Counter()
     if pinnable.count <= trials:
         every = list(pinnable.enumerate())
+        draws = len(every)
         chosen = []
         for cand in every:
             broken = prob.joint_broken(group, cand)
             if broken:
-                rejected.update(broken)
+                tally_broken(rejected, broken)
             else:
                 chosen.append(cand)
         how = ("scored all of them" if len(chosen) == len(every)
                else f"{len(chosen):,} follow the shape rules; scored all of those")
     else:
-        chosen, rejected = prob.shaped_draws(pinnable, group, rng, trials)
+        chosen, rejected, draws = prob.shaped_draws(pinnable, group, rng, trials)
         chosen = list(dict((tuple(c), c) for c in chosen).values())
         how = f"scored {len(chosen)} drawn from them"
         if prob.shape_on:
@@ -365,10 +406,9 @@ def solve_jointly(prob, group, trials, rng, report):
     print(f"  {names}: {pinnable.count:,} pinnable {noun}{'' if pinnable.count == 1 else 's'} "
           f"with the known keys; {how}")
     if not chosen:
-        reason = shape_reason(rejected)
-        for k in group:
-            prob.no_shape[k] = reason
-        print(f"  {names}: NO pinnable {noun} follows the shape rules ({reason})")
+        summary, reasons = group_reasons(group, rejected, draws)
+        prob.no_shape.update(reasons)
+        print(f"  {names}: NO pinnable {noun} follows the shape rules ({summary})")
         return True
     scored = []
     for i, cand in enumerate(chosen):
@@ -485,9 +525,20 @@ def unit_pair_summary(prob, rng, samples=300):
             continue
         chosen = prob.space.pair_conflict_probability([prob.assign[m] for m in core["masters"]],
                                                       prob.population)
+        # With shape rules on, the typical master is drawn from the keys that follow them, found
+        # once for each master (a tight rule set can leave few: they are reused in turn) and
+        # not by 300 separate bounded searches; if there are none the summary is left out.
+        # With every rule off the draws are the unfiltered ones, as they always were.
+        pools = {}
+        if prob.shape_on:
+            for m in unknown_masters:
+                pools[m] = prob.shaped_candidates(rng, m, samples)[0]
+        if not all(pools.values()):
+            continue
         total = cannot_total = 0.0
-        for _ in range(samples):
-            masters = [prob.random_candidate(rng, m) if m in unknown_masters else prob.assign[m]
+        for i in range(samples):
+            masters = [(pools[m][i % len(pools[m])] if m in pools else prob.random_candidate(rng))
+                       if m in unknown_masters else prob.assign[m]
                        for m in core["masters"]]
             total += prob.space.pair_conflict_probability(masters, prob.population)
             if prob.pinning:
