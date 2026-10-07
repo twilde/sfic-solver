@@ -59,8 +59,6 @@ MAX_JOINT_KEYS = 3             # most unknown keys sharing cores that are built 
                                # position lists up to 10 ** this digit combinations
 MAX_SHAPE_REJECTS = 20_000     # draws turned down by the shape rules before a key is given up
                                # on (at least 50 for each candidate asked for)
-SHAPE_OFF = model.ShapeRules(max_run=None, max_same_depth=None, forbid_monotone=False,
-                             master_min_span=None, min_total_variation=None)
 UNPINNABLE_WEIGHT = 1.0        # one undecoded unit key that cannot take the master counts as
                                # one expected cross-operation; with the scale of the two terms
                                # it makes avoiding rekeyed unit cores the primary goal
@@ -147,8 +145,8 @@ class Problem:
         # Shape rules: they apply to every key the solver chooses; a master is a key that is in
         # the masters of any core. `no_shape` holds the keys for which no bitting was found.
         self.shape = cfg.shape
-        self.shape_on = cfg.shape != SHAPE_OFF
-        self.masters = {m for core in cfg.cores for m in core["masters"]}
+        self.shape_on = not cfg.shape.is_off()
+        self.masters = cfg.master_keys
         self.no_shape = {}                    # key -> why no bitting follows the shape rules
 
         # Pinning: only for files that set it. The population of undecoded unit keys comes

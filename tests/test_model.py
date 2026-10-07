@@ -454,3 +454,13 @@ def test_unmeetable_names_a_rule_no_key_could_meet():
                          "than 4 (max_step is 1)")
     off = model.ShapeRules(master_min_span=None, min_total_variation=None)
     assert off.unmeetable(space) is None
+
+
+def test_is_off_only_when_every_rule_is_off():
+    off = dict(max_run=None, max_same_depth=None, forbid_monotone=False, master_min_span=None,
+               min_total_variation=None)
+    assert model.ShapeRules(**off).is_off()
+    assert not model.ShapeRules().is_off()
+    for field, on in (("max_run", 1), ("max_same_depth", 3), ("forbid_monotone", True),
+                      ("master_min_span", 6), ("min_total_variation", 5)):
+        assert not model.ShapeRules(**{**off, field: on}).is_off(), field
