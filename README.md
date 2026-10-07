@@ -21,7 +21,7 @@ Everything else runs without them. Python 3.11 or newer.
 | --- | --- | --- |
 | `./gen_bittings.py` | `sfic-gen-bittings` | Random bittings from a parity pattern, or with any parity if you give none, optionally staying away from existing bittings, and following the [key shape rules](#key-shape-rules). |
 | `./check_bittings.py` | `sfic-check-bittings` | Quick check of a few `NAME=BITTING` values: format, parity, adjacent-cut limit, pairwise closeness, with advice on the [key shape rules](#key-shape-rules). |
-| `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk. |
+| `./check_system.py` | `sfic-check-system` | Whole-scheme check of a system file: per-key rules, duplicates, closeness, operating-set sizes, cross-operation, residual risk, and advice on the [key shape rules](#key-shape-rules). |
 | `./solve_system.py` | `sfic-solve-system` | Fills in the `null` bittings of a system file by random search plus hill climbing, then runs the full check. |
 | `./pin_system.py` | `sfic-pin-system` | Prints the pinning chart of every core of a system file that sets `pinning`, in the layout `check_charts` reads: the pins to put in each chamber, with `--draw` a drawing of the stacks and with `--pdf` one PDF to print. |
 | `./check_charts.py` | `sfic-check-charts` | Checks that the tools' pinning rules reproduce pinning charts from your keying software (`.txt` files kept outside this repository). Reports positions only, never key data. |
@@ -121,7 +121,11 @@ The reasons, the numbers behind the defaults and what each costs in key space ar
   the `masters` of any core). The system file sets them in an optional `shape` object, with
   the rule names of the table above and `null` to turn one off (see
   [System file format](#system-file-format)).
-- `check_system` does not use the rules yet.
+- `check_system.py` prints the same advice for the keys and control keys of a system file, in
+  a "Key shape" section, using the file's `shape` settings. Decoded unit keys and retired keys
+  are left out (real keys already cut cannot be changed, and about half of any real set breaks
+  `max_run` = 1 without a pattern), and, as in `check_bittings`, it does not count as a problem
+  or change the exit status.
 
 ```bash
 ./gen_bittings.py --pins 7 -n 3 --master          # three masters, no parity pattern

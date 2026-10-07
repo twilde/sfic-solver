@@ -159,6 +159,15 @@ by a separate bounded search for each sample. For keys built together, the `NOT 
 reason names a key only if it broke a rule in at least 80% of the draws (any random key
 breaks one now and then); the others say they were built together with it.
 
+**Shape advice in the checker** (D64). `check_system` and `check_bittings` print the keys that
+break a rule as `SHAPE` lines, with pin positions and never cuts, in a "Key shape" section that
+is left out when every rule is off. They are advice: they change neither the exit status nor
+the count of problems or warnings, and decoded unit keys and retired keys are not checked
+(the first were cut by the vendor and the second are history, as for parity and the
+adjacent-cut limit in D11). Without a parity pattern about half of any real set breaks
+`max_run` = 1, so anything louder would be noise. The rules never enter the exact counts or the
+residual-risk figures: they filter what the tools choose and leave what the tools count alone.
+
 ## The key space
 
 The rules that decide which bittings can be cut live in one frozen object,

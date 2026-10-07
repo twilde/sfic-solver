@@ -431,3 +431,81 @@ def test_more_covering_retired_cores_than_the_limit_fall_back_to_the_uniform_pop
         "can be combined exactly." in section
     three = dict(pinned, retired_cores=pinned["retired_cores"][:3])
     assert "sat in the retired core(s) Old 0, Old 1, Old 2" in residual(check(write_cfg, three).stdout)
+
+
+# -- shape advice (docs/designs/key-shape-rules.md) ----------------------------------------
+
+def shape_lines(proc):
+    return [line for line in proc.stdout.splitlines() if line.startswith("SHAPE")]
+
+
+def test_shape_advice_is_listed_for_keys_that_break_the_rules(clean_cfg, write_cfg):
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    assert "== Key shape: advice only" in proc.stdout
+    lines = shape_lines(proc)
+    assert "SHAPE     general_master: the cuts only go one way along the key " \
+        "(never down, or never up)" in lines
+    assert "SHAPE     control_common: a depth used more than 3 times at pin(s) [1, 3, 5, 7]" \
+        in lines
+
+
+def test_shape_advice_does_not_change_the_exit_status_or_the_counts(clean_cfg, write_cfg):
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    assert shape_lines(proc) and proc.returncode == 0
+    assert proc.stdout.strip().splitlines()[-1] == "OK"          # no problems, no warnings
+
+
+def test_shape_advice_leaves_out_decoded_unit_keys_and_retired_keys(clean_cfg, write_cfg):
+    clean_cfg["keys"]["unit:104"] = "0123456"                    # monotone, and a unit key
+    clean_cfg["retired_keys"]["old_master"] = "2233445"          # equal neighbours, and retired
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    advice = "\n".join(shape_lines(proc))
+    assert "unit:" not in advice and "old_master" not in advice
+
+
+def test_the_span_rule_applies_to_keys_that_are_masters_only(clean_cfg, write_cfg):
+    narrow = "2345432"                       # fits the pattern, spans only 3, one run of nothing
+    clean_cfg["keys"]["general_master"] = narrow
+    clean_cfg["keys"]["key_c"] = "4325214"   # not a master; also narrow, and fine otherwise
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    advice = shape_lines(proc)
+    assert ("SHAPE     general_master: a master whose deepest and shallowest cuts differ by "
+            "less than 6") in advice
+    assert not any("key_c" in line for line in advice)
+
+
+def test_shape_advice_names_positions_and_never_cuts(clean_cfg, write_cfg):
+    clean_cfg["keys"]["key_c"] = "4325214"
+    clean_cfg["keys"]["key_b"] = "6743856"
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    for line in shape_lines(proc):
+        assert not any(c in line for c in ("4325214", "6743856", "2345678", "0123456"))
+
+
+def test_the_files_shape_settings_change_the_advice(clean_cfg, write_cfg):
+    clean_cfg["shape"] = {"max_same_depth": None}
+    lines = shape_lines(run_script("check_system", write_cfg(clean_cfg)))
+    assert lines and not any("a depth used" in line for line in lines)
+
+
+def test_with_every_rule_off_there_is_no_shape_section(clean_cfg, write_cfg):
+    clean_cfg["shape"] = {name: None for name in ("max_run", "max_same_depth", "forbid_monotone",
+                                                  "master_min_span", "min_total_variation")}
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    assert "Key shape" not in proc.stdout and "SHAPE" not in proc.stdout
+    assert proc.returncode == 0
+
+
+def test_a_long_list_of_advice_is_capped_like_the_other_lists(clean_cfg, write_cfg):
+    import itertools
+    cuts = [c for c in itertools.combinations_with_replacement(range(10), 7)
+            if all(b - a <= 5 for a, b in zip(c, c[1:]))][:40]       # 40 keys that only go up
+    clean_cfg.update(pattern=None, keys={f"k{i}": "".join(map(str, c)) for i, c in enumerate(cuts)},
+                     retired_keys={}, control_keys={}, cores=[], unit_count=None)
+    proc = run_script("check_system", write_cfg(clean_cfg))
+    lines = proc.stdout.splitlines()
+    start = lines.index("== Key shape: advice only (decoded unit keys and retired keys are not "
+                        "checked) ==")
+    shown = lines[start + 1:start + 31]
+    assert len(shown) == 30 and all(line.startswith("SHAPE") for line in shown)
+    assert re.fullmatch(r"\.\.\. and \d+ more", lines[start + 31])

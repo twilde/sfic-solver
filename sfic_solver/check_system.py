@@ -4,6 +4,9 @@
 Reads a JSON description of the system and reports:
   * per-key problems (parity and adjacent-cut limit for keys and control keys;
     duplicates across all keys)
+  * advice on the shape of each key (the file's shape rules: equal adjacent cuts, a depth used
+    too often, a key that only goes one way, a master that is too narrow); positions only, not
+    counted as problems, and decoded unit keys and retired keys are left out
   * pairs of keys that are too close
   * for each core type, how many keys operate it (intended + false keys)
   * known keys that would operate a core they are NOT meant to operate
@@ -25,6 +28,9 @@ Config (see system.example.json):
                    the pin count if smaller);
                    pairs involving unit keys are skipped unless
                    close_check_units is true (cross-operation is the real test)
+    shape          optional object of key shape rules (max_run, max_same_depth,
+                   forbid_monotone, master_min_span, min_total_variation; null turns one
+                   off); see the README
     unit_prefix    key-name prefix for unit keys (default "unit:")
     unit_count     total number of units, to estimate undecoded-key risk
     keys           {name: bitting} operating keys, including decoded unit keys
@@ -143,6 +149,16 @@ def main(argv=None):
             print(f"DUPLICATE {', '.join(names)} share bitting {''.join(map(str, cuts))}")
             problems += 1
     print("done")
+
+    if not cfg.shape.is_off():
+        print("\n== Key shape: advice only (decoded unit keys and retired keys are not "
+              "checked) ==")
+        masters = cfg.master_keys
+        advice = [f"SHAPE     {name}: {cfg.shape.describe(rule, pins)}"
+                  for name, cuts in {**{n: c for n, c in keys.items()
+                                        if not n.startswith(unit_prefix)}, **control}.items()
+                  for rule, pins in cfg.shape.violations(cuts, name in masters)]
+        print("\n".join(capped(advice) or ["none"]))
 
     print(f"\n== Closeness (non-unit keys differing in fewer than {min_diff} positions) ==")
     scope = {n: c for n, c in everything.items()

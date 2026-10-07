@@ -705,3 +705,17 @@ choose and never silently relax; the exact counts and the risk figures are uncha
 without `shape`, which is deliberate (D6). The design is in its own document and has been accepted.
 
 Detail: [designs/key-shape-rules.md](designs/key-shape-rules.md).
+
+## D65. A key with no bitting that follows the shape rules is left null
+
+When the solver cannot find a bitting for a key that follows the file's shape rules (a tight
+rule set, or a thin pinnable set), it does not relax a rule. It leaves the key `null` in the
+written file, prints a `NOT SOLVED` line that says which rules turned the draws down (before
+`Wrote` and again last, as in D59), and skips the full check, which would reject the null.
+Keys built together name the key that broke the rules in most draws, and the others say they
+waited for it. The file's `shape` object, or a known key, is the way out. `check_system` and
+`check_bittings` only advise about existing keys, in `SHAPE` lines that change neither the
+exit status nor the counts.
+
+Detail: [design.md, "The code"](design.md#the-code) and
+[designs/key-shape-rules.md](designs/key-shape-rules.md).
