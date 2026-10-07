@@ -45,6 +45,11 @@ class Config:
                                                               #  covers_units}
     shape: model.ShapeRules = field(default_factory=model.ShapeRules)   # the file's `shape`
 
+    @property
+    def master_keys(self):
+        """The names of the keys that are masters: those in the `masters` of any core."""
+        return {m for core in self.cores for m in core["masters"]}
+
 
 def _no_duplicate_keys(pairs):
     seen = {}

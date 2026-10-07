@@ -264,6 +264,12 @@ class ShapeRules:
         fields.setdefault("master_min_span", span if span >= 1 else None)
         return cls(**fields)
 
+    def is_off(self):
+        """True if every rule is off, so every key passes."""
+        return (self.max_run is None and self.max_same_depth is None
+                and not self.forbid_monotone and self.master_min_span is None
+                and self.min_total_variation is None)
+
     def describe(self, rule, pins):
         """A phrase for a broken rule and its pins (from `violations`), saying where and
         never what the cuts are."""

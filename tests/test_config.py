@@ -495,3 +495,9 @@ def test_any_number_of_retired_cores_covering_units_is_accepted_by_the_loader(pi
     pinned["retired_cores"] = [{**template, "name": f"Old {n}"} for n in range(8)]
     cfg = parse_config(pinned)         # the checker, not the loader, limits what it combines
     assert len(cfg.retired_cores) == 8 and all(c["covers_units"] for c in cfg.retired_cores)
+
+
+def test_master_keys_are_the_keys_in_the_masters_of_any_core(clean_cfg):
+    cfg = parse_config(clean_cfg)
+    assert cfg.master_keys == {"general_master", "unit_master"}
+    assert parse_config({**clean_cfg, "cores": []}).master_keys == set()
