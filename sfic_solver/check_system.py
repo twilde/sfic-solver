@@ -154,9 +154,9 @@ def main(argv=None):
         print("\n== Key shape: advice only (decoded unit keys and retired keys are not "
               "checked) ==")
         masters = cfg.master_keys
+        checked = {**{n: c for n, c in keys.items() if not n.startswith(unit_prefix)}, **control}
         advice = [f"SHAPE     {name}: {cfg.shape.describe(rule, pins)}"
-                  for name, cuts in {**{n: c for n, c in keys.items()
-                                        if not n.startswith(unit_prefix)}, **control}.items()
+                  for name, cuts in checked.items()
                   for rule, pins in cfg.shape.violations(cuts, name in masters)]
         print("\n".join(capped(advice) or ["none"]))
 
