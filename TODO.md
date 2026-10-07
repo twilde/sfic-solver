@@ -2,6 +2,14 @@
 
 ## Ideas for later
 
+- The solver's objective still rewards change keys that hold a master's cut, and keys far from
+  their master, because both shrink the count of valid false keys: after the shape rules a
+  change key shares a cut with a master at 26.8% of positions against 20% by chance
+  (docs/designs/key-shape-rules.md, "What building it showed"). Changing what is scored needs
+  its own measurement and decision (D6).
+- Exact reachability bounds for the shape rules (the parity pattern and how the rules combine),
+  so that a rule set no key can meet is refused when the file is read, not when the search
+  gives up (the bounds look at each rule alone).
 - A solver for pinnable answers among more than three unknown keys that share cores
   (a system with every key blank): joint moves, or splitting the chain of cores
   (docs/designs/pinnable-solving.md, "Building pinnable keys exactly").

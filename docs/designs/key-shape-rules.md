@@ -1,11 +1,13 @@
 # Rules for the shape of a generated key
 
-Status: Accepted
+Status: Implemented
 
-This document proposes a small set of rules about what a key's cuts look like (not
-which keys can be pinned together) and a way to apply them to the keys the tools
-generate: the solver's unknown keys and `gen_bittings`' output. It is written before
-any code, and accepted by the maintainer ([D64 in decisions.md](../decisions.md)). The numbers are measured on fake
+This document describes a small set of rules about what a key's cuts look like (not
+which keys can be pinned together) and the way they are applied to the keys the tools
+generate: the solver's unknown keys and `gen_bittings`' output. It was written before
+any code, accepted by the maintainer and built in the five steps of its plan
+([D64 and D65 in decisions.md](../decisions.md)); "What building it showed" says what the
+build added. The numbers are measured on fake
 systems by throwaway scripts that are not in the repository, and are illustrations
 of scale, not claims about any real system.
 
@@ -206,12 +208,16 @@ Separate commits, each with tests:
    a range test (not exact figures) on the share of keys with equal neighbours, run with and
    without a pattern; and the "no candidate" report.
 5. The advisory lines in `check_system`; README, `docs/design.md` and the file-format notes
-   in the same commit as the behaviour they describe.
+   in the same commit as the behaviour they describe. (The README's `shape` row and the
+   solver's paragraph came with step 4, and the generator's flags with step 3, as the
+   behaviour did.)
 
 A refactor, if one is needed to share the check between the tools, is its own commit and
 shows seeded output unchanged for files that turn every rule off.
 
-## What cannot be known yet
+## What building it showed
+
+These were open questions when the design was accepted.
 
 - Whether the rules can be met together. The reachability bounds look at each rule alone and
   ignore the parity pattern, so a combination can pass them and still have no key: 3 pins
@@ -219,10 +225,19 @@ shows seeded output unchanged for files that turn every rule off.
   cuts has unless it is monotone, which the default rules forbid. The tool then runs to its
   attempt limit and says so, naming the rule that turned down most of the draws, and does
   not relax anything. Three pins is not a real key, so the bounds were left simple.
-- How many pinnable candidates survive the rules in a system with many known keys: a unit
-  master that must also take a decoded unit's neighbours has a thin pinnable set already,
-  and the first run on such a file will say whether `master_min_span` = 6 is too strict.
-- Whether single-position moves still connect the valid keys once `max_run` = 1 applies
-  without a pattern; I expect so (the share kept is 46%) and the search tests will show.
-- Whether holding and spreading, the objective's bias, still produces odd keys once the
-  rules are in. That is the measurement to make after step 4, with the same scripts.
+- **A thin pinnable set can leave no key that follows the rules.** A unit master among seven
+  random decoded units (a fake system) had 24 pinnable masters, and all 24 ended in two equal
+  cuts, so with the defaults the solver reports `NO pinnable bitting follows the shape rules`
+  and leaves the key `null`. It is reported, not repaired: the way out is the `shape` object
+  (for example `max_run: null`) or a known key. How often a real system hits this depends on
+  how many unit keys are decoded, and cannot be known from fake systems. A key built together
+  with the one that has none is left null too, and says whose rules it waited for (D65).
+- **Single-position moves still connect the valid keys.** The hill climb and the draws never
+  got stuck in the 100 seeded solves measured (60 with a parity pattern, 40 with pinning and
+  none) or in the tests; no solve ended in `NOT SOLVED` for want of a shaped key.
+- **Holding and spreading, the objective's bias, is still there.** After the rules, a change
+  key shares a cut with a master at 26.8% of positions (parity pattern, 60 seeds), against
+  24.7% before and 20% by chance, so the solver still likes to hold cuts. The rules removed
+  the shapes it produced (equal neighbours 64% to 0%, a master's mean cut about 1 to 4.2,
+  total variation 12.1 to 14.8 against 15.0 for a uniform draw) and did not touch the cause.
+  Changing what is scored needs its own measurement and decision (D6); it is in TODO.md.
