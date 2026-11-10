@@ -154,6 +154,8 @@ Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependenci
 
 ## D15. Python floor raised to 3.11
 
+Status: Amended by D66.
+
 3.9 was end-of-life and had no 26.04 build, and 3.10 reaches end-of-life in
 October 2026. `requires-python`, the README, the CI matrix (3.11 to 3.14) and a
 test state the same minimum. The runner pins from D14 stay until `ubuntu-latest` has fully
@@ -719,3 +721,13 @@ exit status nor the counts.
 
 Detail: [design.md, "The code"](design.md#the-code) and
 [designs/key-shape-rules.md](designs/key-shape-rules.md).
+
+## D66. CI tests Python 3.15
+
+Python 3.15 is released and `actions/setup-python` installs it on both runner images, and the
+scanner's optional packages have wheels for it. The `test` matrix and the `scanner` matrix
+(D46) now run 3.11 to 3.15 on `ubuntu-24.04`, so the two lists stay the same. The suite
+passed on 3.15 locally before the change. The one job on `ubuntu-26.04` (D14) stays on 3.14,
+and the floor stays 3.11 (D15), whose list of tested versions this amends.
+
+Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).

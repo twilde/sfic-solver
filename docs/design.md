@@ -648,7 +648,7 @@ cancelled: with a shared group GitHub also drops an older queued run when a newe
 arrives, even without cancel-in-progress, and a commit on `main` could go untested.
 
 **CI** runs a guard job (the stray-data checks over tracked files and over
-history) and a test matrix on Python 3.11 to 3.14 on `ubuntu-24.04`, plus one
+history) and a test matrix on Python 3.11 to 3.15 on `ubuntu-24.04`, plus one
 Python 3.14 job on `ubuntu-26.04` so that problems with the new image show up
 early and on our terms. Runners are pinned rather than `ubuntu-latest` because
 `ubuntu-latest` moves to 26.04 from late 2026, and a surprise change of image is
