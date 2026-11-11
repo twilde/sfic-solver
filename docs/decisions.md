@@ -643,6 +643,8 @@ Detail: [design.md, "The code"](design.md#the-code).
 
 ## D60. With pinning set, the solver builds pinnable answers exactly instead of drawing them
 
+Status: Amended by D68.
+
 Amends D56. Drawing random keys and changing one at a time left about half the runs of
 a file with two blank masters sharing cores with known keys stuck on an unpinnable core
 (issue 26). Pinning is decided one chamber at a time, so for each group of unknown keys
@@ -710,6 +712,8 @@ Detail: [designs/key-shape-rules.md](designs/key-shape-rules.md).
 
 ## D65. A key with no bitting that follows the shape rules is left null
 
+Status: Amended by D71.
+
 When the solver cannot find a bitting for a key that follows the file's shape rules (a tight
 rule set, or a thin pinnable set), it does not relax a rule. It leaves the key `null` in the
 written file, prints a `NOT SOLVED` line that says which rules turned the draws down (before
@@ -733,3 +737,75 @@ the pair `ubuntu-latest` will give; 3.14 is still tested on 24.04. The floor sta
 (D15), whose list of tested versions this amends.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D67. Pinnable answers for groups of more than three blank keys are designed before they are built
+
+The exact construction of D60 stops at three blank keys that share cores; beyond that the
+solver draws and hill-climbs as before D60, and on a fake system with four blank keys it ended
+unpinnable in 19 of 20 seeded runs, then told the owner to run it again. The proposal replaces
+the count of keys with a cost limit on the per-position lists, builds larger groups in stages
+(one key from its per-position projections, then the smaller groups that remain, with bounded
+retries), and makes the verdicts exact: no answer exists (naming the position and the known
+keys), none found, or known keys alone conflict. Scoring, the shape rules and the exit status
+do not change. The design is in its own document and has been accepted.
+
+Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
+
+## D68. The exact construction is limited by its work, not by the number of keys
+
+Status: Amended by D69.
+
+Part 1 of D67.
+Amends D60. `allowed_tuples` finds each position's digit tuples by choosing the group's keys
+one after another and testing a chamber as soon as its keys have digits, so it no longer
+forms every combination. `MAX_JOINT_KEYS` is replaced by `MAX_JOINT_PAIRS`: a group is built
+exactly while the pairs of neighbouring positions' tuples stay within a million a step, which
+every group of three keys does, so those are unchanged byte for byte. On a fake system with
+four blank keys sharing cores, 19 of 20 seeded runs used to end unpinnable and none do. A
+group over the limit still falls back, with a printed line giving the limit. Scoring and
+files without `pinning` are unchanged.
+
+Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
+
+## D69. A group too large to build exactly is built in stages
+
+Status: Amended by D71.
+
+Part 2 of D67. Amends D68. A group over the work limit used to fall back to the single-key
+search, which cannot repair a chamber two blank keys must fix together. The solver now
+chooses one key first, the one in the most chambers' constraints, from the cuts the other
+keys could still complete at each position (found by a pruned search, without listing the
+combinations), and builds the smaller groups that remain the same way. A choice that leaves a
+later group no answer is taken back and the next candidate, best score first, is tried, up to
+ten choices in all; then the group falls back, with a printed line. The whole fake fixture
+left blank (a group of seven) now comes out pinnable. Scoring, the shape rules and groups
+within the limit are unchanged, and seeded runs of those are identical.
+
+Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
+
+## D70. The solver's verdict says whether no answer exists, none was found, or known keys conflict
+
+Part 3 of D67. The `NOT SOLVED` line used to say "run it again" for a conflict no run could
+fix. Now, where a position has no digits that can be pinned (exact for a group of any size),
+the line names the position, the core and the known keys that are one apart there, or the
+known cuts that together leave no digit, and says a known key has to change. When a staged
+construction gave up, or the search left a conflict that is not about pinnability, it says no
+answer was found, how hard it looked, and that one may exist and running again can help. A
+core with no key the solver chose that cannot be pinned gets its own `KNOWN KEYS CONFLICT`
+line before `Wrote`. The exit status, scoring and shape rules are unchanged.
+
+Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
+
+## D71. A larger group whose draws all break the shape rules is built a key at a time
+
+Review of the pull request for D67 to D70 found a regression. A group built exactly or in
+stages that has no combination of draws following the shape rules left its keys null and
+said running again would not help, though the old one-key-at-a-time search finds keys that
+follow them: all of a group's keys following the rules at once is much rarer than each doing
+so, and a tight `min_total_variation` on the all-blank fake system showed it. Now a group of
+more than three keys, or one inside a stage, whose draws all break the rules is a failed
+build: inside a stage it ends the stages, and the group falls back to the single-key search
+as before D68, with the reason in the verdict. A group of up to three keys built exactly on
+its own keeps D65. Amends D65, D69.
+
+Detail: [design.md, "Pinning"](design.md#pinning).

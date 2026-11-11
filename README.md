@@ -402,8 +402,14 @@ printed, and the printed pins are the ones the checker's own pinner computed.
    If the best result still has a hard conflict, the solver says so: a line
    starting `NOT SOLVED` names the unknown keys involved, before `Wrote ...` and
    again as the last line after the check. It still exits 0 and writes the file,
-   so look for that line (or `problem(s) flagged`) and do not use the result;
-   run it again, since each run draws different candidates.
+   so look for that line (or `problem(s) flagged`) and do not use the result.
+   What to do depends on what the line says. *No answer exists* (the line says a
+   known key has to change, and names the position, the core and the known keys
+   that are one apart there): running it again will not help. *No answer was found*
+   (the line says one may exist, and how hard it looked): running it again, which
+   draws differently, can help. A third line, `KNOWN KEYS CONFLICT`, is not a failure
+   of the search: some core cannot be pinned with keys that are all known, so no
+   result can fix it, and a known key has to change.
 
    Every key it chooses also follows the [shape rules](#key-shape-rules) of the
    file, and it never relaxes one: if no bitting for a key follows them (a thin
@@ -426,14 +432,26 @@ printed, and the printed pins are the ones the checker's own pinner computed.
    follows.
 
    With `pinning` set the solver does not draw candidates at random: for each
-   group of unknown keys that share cores (up to three keys) it lists, position by
+   group of unknown keys that share cores it lists, position by
    position, the digits that leave every involved core pinnable with the known
    keys, and draws (or, when few, tries all of) the whole bittings that can be
    cut from them. It therefore finds a pinnable answer whenever one exists, and
    says so when none does: `NOT SOLVED: no bitting for ... can be pinned with the
    known keys`, with the positions where nothing works. Running it again will not
-   help then; a known key (usually a decoded unit key) has to change. A group of
-   more than three keys is searched one key at a time and may fail.
+   help then; a known key (usually a decoded unit key) has to change. A group whose
+   lists are short enough to count exactly (in practice four or five keys, about ten
+   seconds a solve) is built that way. A larger group, such as every key left blank,
+   is built in stages: one key first, from the cuts the others could still complete,
+   then the smaller groups that are left; a choice that leaves a later group no
+   pinnable answer is taken back and the next candidate tried
+   ([the design](docs/designs/larger-pinnable-groups.md)). The candidates for the
+   first key are drawn from what can be completed position by position, so a
+   staged answer is a good one but not drawn uniformly from all of them. If ten
+   choices in all fail, or if some group that is left has no combination of draws
+   that follows the shape rules (all of a group's keys following them at once is
+   much rarer than each doing so), the group is searched one key at a time as
+   before, and if that leaves a conflict the line says no pinnable answer was found
+   for the group and why, and that one may exist.
 
 5. **Check after every decode batch.**
 
@@ -575,8 +593,10 @@ digit; never paste or describe the page itself.
   were chosen differently.
 - Searches are heuristic. The solver is not guaranteed to find the best
   possible bitting, or any solution when fixed keys already conflict. With `pinning` set it finds a
-  pinnable answer whenever one exists, except among more than three unknown keys
-  that share cores, which it still searches one at a time.
+  pinnable answer whenever one exists among a group of unknown keys that share cores
+  small enough to count exactly. A larger group is built in stages, which finds an
+  answer in the cases tried but cannot say that none exists unless a position has no
+  cut at all.
 
 ## Privacy
 
