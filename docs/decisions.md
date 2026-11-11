@@ -743,6 +743,6 @@ the count of keys with a cost limit on the per-position lists, builds larger gro
 (one key from its per-position projections, then the smaller groups that remain, with bounded
 retries), and makes the verdicts exact: no answer exists (naming the position and the known
 keys), none found, or known keys alone conflict. Scoring, the shape rules and the exit status
-do not change. The design is in its own document and is a draft until it is agreed.
+do not change. The design is in its own document and has been accepted.
 
 Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).

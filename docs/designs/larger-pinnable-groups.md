@@ -1,6 +1,6 @@
 # Pinnable answers for larger groups of blank keys
 
-Status: Draft
+Status: Accepted
 
 This document describes how the solver should find pinnable answers when more than three
 blank keys share cores, and how it should report the case where none exists. It extends
