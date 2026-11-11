@@ -216,18 +216,19 @@ def workflow_jobs():
     return dict(zip(parts[1::2], parts[2::2]))
 
 
-def matrix_of(block):
+def matrix_of(block, job="the job"):
     """A job's matrix: (the python-version list, the (os, python-version) include entries)."""
-    versions = re.search(r"^        python-version: \[(.*)\]$", block, re.M).group(1)
+    listed = re.search(r"^        python-version: \[(.*)\]$", block, re.M)
+    assert listed, f"{job}: no one-line python-version list found: has the layout changed?"
     includes = re.findall(r'^          - os: (\S+)\n            python-version: "([^"]+)"$',
                           block, re.M)
-    return [v.strip(' "') for v in versions.split(",")], includes
+    return [v.strip(' "') for v in listed.group(1).split(",")], includes
 
 
 def test_the_test_and_scanner_matrices_run_the_same_pythons():
     """D66: one list of versions and one extra job, written twice, kept the same."""
     jobs = workflow_jobs()
-    test, scanner = matrix_of(jobs["test"]), matrix_of(jobs["scanner"])
+    test, scanner = matrix_of(jobs["test"], "test"), matrix_of(jobs["scanner"], "scanner")
     assert test[0] and test[1], "the test matrix was not found: has the layout changed?"
     assert test == scanner
 
@@ -236,6 +237,16 @@ def test_matrix_of_reads_a_matrix_block():
     block = ('        os: [ubuntu-24.04]\n        python-version: ["3.11", "3.12"]\n'
              '        include:\n          - os: ubuntu-26.04\n            python-version: "3.12"\n')
     assert matrix_of(block) == (["3.11", "3.12"], [("ubuntu-26.04", "3.12")])
+
+
+@pytest.mark.parametrize("block", [
+    '        python-version:\n          - "3.11"\n          - "3.12"\n',      # a YAML list
+    '      python-version: ["3.11", "3.12"]\n',                                # re-indented
+    '        os: [ubuntu-24.04]\n',                                            # no list at all
+])
+def test_matrix_of_says_what_to_do_when_the_layout_has_changed(block):
+    with pytest.raises(AssertionError, match="scanner: no one-line python-version list.*layout"):
+        matrix_of(block, "scanner")
 
 
 def test_every_job_has_a_timeout():
