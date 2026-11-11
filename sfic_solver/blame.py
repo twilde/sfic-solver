@@ -2,9 +2,12 @@
 
 When the keys a solver is choosing cannot be pinned at some position whatever they cut
 there (`joint` finds that exactly, as an empty list), the owner needs to know which known
-keys to look at. This names them: a pair of known keys of one core whose cuts are too close,
-or too far, for a pin to sit between them, or, when no single core is at fault, the known
-cuts that together leave the group no digit. See docs/designs/larger-pinnable-groups.md,
+keys to look at. This names them: a pair of known keys of one core whose cuts are too close
+for a pin to sit between them, or, when no single core is at fault, the known cuts that
+together leave the group no digit. Only conflicts that no cut of the group can undo are
+blamed on the known keys: a gap that is too small (a pin of size 1 cannot be split) and, for
+a pinning system whose cuts cannot leave a gap or a bottom or control pin too large, the
+other failures of the known keys alone (see `cuts_cannot_widen`). See docs/designs/larger-pinnable-groups.md,
 part 3. Pure functions; no I/O.
 """
 from .pinning import PinningError, pin_chamber
@@ -15,6 +18,19 @@ MOST_CUTS_SHOWN = 8
 def key_list(names):
     """'a', 'a and b', 'a, b and c'."""
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def cuts_cannot_widen(system):
+    """True if, for this pinning system, a failure of known keys alone other than a gap that is
+    too small is one that the group's cuts cannot undo: the depths are too few to leave a gap,
+    a bottom pin or a control pin larger than the pins that exist, so only a pin too small (or
+    a driver, which the control cut alone decides) can fail. It holds for A2 (digits 0 to 9,
+    pins up to 19). Where it does not, adding a cut between two far cuts could split their
+    gap, or a lower one could shrink the bottom pin, so those failures are not blamed on the
+    known keys."""
+    top = system.depths - 1
+    return (top <= system.other_pins[1] and top <= system.bottom_pins[1]
+            and top + system.control_offset <= system.other_pins[1])
 
 
 def known_conflict(system, core, change, ops, control, group, known, p):
@@ -33,11 +49,11 @@ def known_conflict(system, core, change, ops, control, group, known, p):
     cuts = sorted(by_cut)
     for below, above in zip(cuts, cuts[1:]):
         gap = above - below
-        if not low <= gap <= high:
+        if gap < low:
             return (f"{where}: known keys {key_list(by_cut[below])} (cut {below}) and "
                     f"{key_list(by_cut[above])} (cut {above}) are {gap} apart, so the pin "
                     f"between them would be {gap}, outside {low} to {high}")
-    if control in group:
+    if control in group or not cuts_cannot_widen(system):
         return None
     try:
         pin_chamber(system, cuts, known[control][p])

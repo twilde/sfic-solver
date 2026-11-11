@@ -1,6 +1,6 @@
 """blame: the sentences that say which known keys leave a position no pinnable cut."""
 from sfic_solver.blame import blame_position, key_list
-from sfic_solver.pinning import A2
+from sfic_solver.pinning import A2, PinningSystem
 
 KNOWN = {"a": (3, 5), "b": (4, 5), "c": (1, 8), "ctl": (0, 0)}
 
@@ -53,3 +53,23 @@ def test_when_no_core_conflicts_alone_the_known_cuts_are_listed():
     (sentence,) = blame_position(A2, ["m"], constraints, known, 0)
     assert sentence == ("no cut for m can be pinned beside the known keys' cuts there (u0 0, "
                         "ctl 5, u1 1, u2 2, u3 3, u4 4, u5 5, u6 6, and 3 more)")
+
+
+# A system whose pins cannot span the whole key: a gap of 9 between two known cuts could be
+# split by a cut of the group's between them, so it is not the known keys' conflict.
+NARROW = PinningSystem(name="T", increment=0.0125, depths=10, stack_total=23,
+                       bottom_pins=(0, 9), other_pins=(2, 5), control_offset=10)
+
+
+def test_a_gap_the_groups_cut_could_split_is_not_blamed_on_the_known_keys():
+    known = {"a": (0,), "b": (9,), "ctl": (5,)}
+    constraints = [("X", "a", ["a", "b", "m"], "ctl")]
+    (sentence,) = blame_position(NARROW, ["m"], constraints, known, 0)
+    assert sentence.startswith("no cut for m can be pinned beside the known keys' cuts there")
+
+
+def test_a_gap_too_small_is_still_blamed_whatever_the_pinning_system():
+    known = {"a": (3,), "b": (4,), "ctl": (5,)}
+    constraints = [("X", "a", ["a", "b", "m"], "ctl")]
+    (sentence,) = blame_position(NARROW, ["m"], constraints, known, 0)
+    assert "known keys a (cut 3) and b (cut 4) are 1 apart" in sentence
