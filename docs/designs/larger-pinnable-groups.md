@@ -197,12 +197,20 @@ part 3, all made from invented keys.
 
 These can only be settled by building and measuring, and none waits on a decision.
 
-- The number of retries of part 2, from timings on the fixtures. (Part 1's limit is
-  settled: a million pairs for each step between positions, `MAX_JOINT_PAIRS`, which a
-  group of three keys can never pass. A solve of four or five blank keys then takes six
-  to thirteen seconds at the default 2,000 trials, most of it scoring the candidates;
-  building the lists is the 0.2 and 2.2 seconds above. The whole system left blank, a
-  group of seven on the fixture, is stopped by the limit after about two seconds.)
+- The number of choices of part 2 (settled: `MAX_STAGE_TRIES` is 10 in all, over every stage
+  of one group, with up to `STAGE_CANDIDATES` (100) candidates drawn for each stage's key
+  and tried best score first). No retry was needed in the runs measured, so the number is a
+  bound and not a tuned value: on the fake fixture with the parity pattern removed and every
+  key but the decoded units left blank (a group of seven), 5 of 5 seeded runs came out
+  pinnable, in about 11 seconds each; with 4 and with 8 more random decoded change keys
+  added to the cores of the areas, and the masters, the areas and one control key blank,
+  5 of 5 and 5 of 5 did, in about 55 and 62 seconds (most of it scoring candidates against
+  the extra cores). The retry path itself is tested by making a later group refuse the
+  first choice, not by a system that needs it.
+- Part 1's limit is settled: a million pairs for each step between positions,
+  `MAX_JOINT_PAIRS`, which a group of three keys can never pass. A solve of four or five
+  blank keys then takes six to thirteen seconds at the default 2,000 trials, most of it
+  scoring the candidates; building the lists is the 0.2 and 2.2 seconds above.
 - The order in which stages choose keys, if the count of cores per key is not enough.
 - Whether a group built in stages needs a better figure than "uniform over what is
   extendable" for the share of candidates that were free of other hard conflicts.
