@@ -47,7 +47,7 @@ from functools import lru_cache
 
 from . import check_system, model
 from .config import load_or_exit
-from .joint import JointSet, allowed_tuples, bittings, why_none
+from .joint import JointSet, TooLarge, allowed_tuples, bittings, why_none
 from .model import distance, operates
 from .pinning import pin_chambers
 from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pinnable_fraction,
@@ -55,8 +55,11 @@ from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pi
 
 HARD = 1_000_000.0
 CLOSE_WEIGHT = 1_000.0
-MAX_JOINT_KEYS = 3             # most unknown keys sharing cores that are built together: each
-                               # position lists up to 10 ** this digit combinations
+MAX_JOINT_PAIRS = 1_000_000    # most work, for each step from one position to the next, in
+                               # building the pinnable answers of a group of keys that share
+                               # cores: pairs of a position's digit combination and the next
+                               # position's (a group of three keys is never over it; four or
+                               # five whose constraints are tight take about ten seconds a solve)
 MAX_SHAPE_REJECTS = 20_000     # draws turned down by the shape rules before a key is given up
                                # on (at least 50 for each candidate asked for)
 UNPINNABLE_WEIGHT = 1.0        # one undecoded unit key that cannot take the master counts as
@@ -201,10 +204,11 @@ class Problem:
         return found
 
     def pinnable_set(self, group):
-        """(JointSet of the group's pinnable bittings, the digit tuples it was built from)."""
+        """(JointSet of the group's pinnable bittings, the digit tuples it was built from);
+        TooLarge if there are too many tuples to count them exactly."""
         known = {n: c for n, c in self.assign.items() if n not in group}
         allowed = allowed_tuples(self.space, self.pinning, group, self.pin_constraints(group),
-                                 known)
+                                 known, MAX_JOINT_PAIRS)
         return JointSet(allowed, self.space.max_step), allowed
 
     # -- candidate generation -------------------------------------------------
@@ -429,11 +433,12 @@ def solve(prob, trials, sweeps, rng):
     handled = set()
     if prob.pinning:
         for group in prob.joint_groups():
-            if len(group) > MAX_JOINT_KEYS:
-                print(f"  {', '.join(group)} share cores and are more than the {MAX_JOINT_KEYS} "
-                      f"keys that can be built together: searching one key at a time")
-            elif solve_jointly(prob, group, trials, rng, report):
-                handled.update(group)
+            try:
+                if solve_jointly(prob, group, trials, rng, report):
+                    handled.update(group)
+            except TooLarge as too_large:
+                print(f"  {', '.join(group)} share cores and their pinnable combinations are "
+                      f"too many to build exactly ({too_large}): searching one key at a time")
     for k in prob.unknown:
         if k in handled:
             continue

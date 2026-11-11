@@ -3,7 +3,9 @@
 Status: Implemented
 
 Amended after step 5 was built by the last section, "Building pinnable keys exactly" (D60),
-which changes how the solver generates candidates.
+which changes how the solver generates candidates, and again by
+[larger-pinnable-groups.md](larger-pinnable-groups.md) (D67, D68), which replaces that
+section's limit of three keys with a limit on the work.
 
 This document describes step 5 of [core pinning](core-pinning.md): making the
 solver, the residual-risk estimate and the generator work for a system that sets
@@ -296,7 +298,8 @@ keys' scores, and the best is kept. The sweeps that follow are as before, so a p
 start stays pinnable, since a move is taken only if it lowers the score. Files without
 `pinning` do not touch any of this.
 
-**The limit.** A group of more than three keys (`MAX_JOINT_KEYS`) is searched one key at
+**The limit.** (Replaced by a limit on the work, D68; this is what D60 built.) A group of
+more than three keys (`MAX_JOINT_KEYS`) is searched one key at
 a time as before, with a printed line, because the lists grow as 10 ** u and the counting
 as their square. A system that leaves every key blank is such a case. Joint moves for
 larger groups, or a decomposition of one chain of cores into smaller ones, are possible

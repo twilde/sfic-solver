@@ -4,7 +4,8 @@ import random
 
 import pytest
 
-from sfic_solver.joint import JointSet, allowed_tuples, bittings, chamber_pinnable, why_none
+from sfic_solver.joint import (JointSet, TooLarge, allowed_tuples, bittings, chamber_pinnable,
+                               why_none)
 from sfic_solver.model import KeySpace
 from sfic_solver.pinning import A2, pin_chambers
 
@@ -136,3 +137,24 @@ def test_a_constraint_with_no_key_of_the_group_empties_every_position_it_fails()
     allowed = allowed_tuples(space, A2, ["a"], [(["a", "k1"], "ctl"), (["k1", "k2"], "ctl")],
                              known)
     assert allowed[0] == [] and allowed[1] != []
+
+
+def test_a_limit_on_the_work_stops_the_lists_as_soon_as_it_is_passed():
+    space = KeySpace(pins=3)
+    known = {"control": (0, 0, 0)}
+    constraints = [(["a", "b"], "control")]
+    full = allowed_tuples(space, A2, ["a", "b"], constraints, known)
+    most = max(len(f) for f in full)
+    # The total over the steps and the longest list each stop it; enough work lets it through.
+    with pytest.raises(TooLarge, match="more than 1,000 pairs of neighbouring combinations"):
+        allowed_tuples(space, A2, ["a", "b"], constraints, known, 1_000)
+    assert allowed_tuples(space, A2, ["a", "b"], constraints, known, most * most) == full
+    with pytest.raises(TooLarge):
+        allowed_tuples(space, A2, ["a", "b"], constraints, known, most - 1)
+
+
+def test_a_group_of_three_keys_is_never_over_the_limit_the_solver_uses():
+    from sfic_solver.solve_system import MAX_JOINT_PAIRS
+    space = KeySpace(pins=7)
+    allowed = allowed_tuples(space, A2, ["a", "b", "c"], [], {}, MAX_JOINT_PAIRS)
+    assert [len(a) for a in allowed] == [1000] * 7

@@ -92,11 +92,10 @@ Three parts, each worth having alone, in this order.
 
 Build the per-position digit lists for a group by the depth-first search above, which never
 forms the whole product, and use the exact method of D60 (count, draw, enumerate) whenever
-the lists are small enough. "Small enough" is the work the counting does, the sum over
-positions of the product of two neighbouring lists' lengths, times the number of keys,
-against a named constant next to `MAX_SHAPE_REJECTS`. The constant is set while building,
-from timings, so that a group at the limit takes about as long as the largest the code
-handles today. `MAX_JOINT_KEYS` goes, and the printed line that says a group is too big
+the lists are small enough. "Small enough" is the work the counting does, the pairs of
+a position's tuple and the next position's, summed over the steps between positions,
+against a named constant next to `MAX_SHAPE_REJECTS`. The constant is set from timings
+so that a group at the limit takes about as long as the largest the code handled before. `MAX_JOINT_KEYS` goes, and the printed line that says a group is too big
 names the work and the limit instead.
 
 This covers the measured four- and five-key cases, and any group of a few more keys whose
@@ -198,8 +197,12 @@ part 3, all made from invented keys.
 
 These can only be settled by building and measuring, and none waits on a decision.
 
-- The value of the cost limit and the number of retries, from timings on the fixtures
-  (the document gives 0.2 s for four keys and 2.2 s for five as the scale).
+- The number of retries of part 2, from timings on the fixtures. (Part 1's limit is
+  settled: a million pairs for each step between positions, `MAX_JOINT_PAIRS`, which a
+  group of three keys can never pass. A solve of four or five blank keys then takes six
+  to thirteen seconds at the default 2,000 trials, most of it scoring the candidates;
+  building the lists is the 0.2 and 2.2 seconds above. The whole system left blank, a
+  group of seven on the fixture, is stopped by the limit after about two seconds.)
 - The order in which stages choose keys, if the count of cores per key is not enough.
 - Whether a group built in stages needs a better figure than "uniform over what is
   extendable" for the share of candidates that were free of other hard conflicts.

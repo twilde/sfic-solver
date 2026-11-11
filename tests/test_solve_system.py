@@ -428,17 +428,46 @@ def test_a_system_with_no_pinnable_master_says_so_and_that_running_again_will_no
     assert "hard conflicts involving" not in proc.stdout      # not also reported as a bad draw
 
 
-def test_a_group_larger_than_the_limit_is_searched_a_key_at_a_time_and_says_so(
+def test_a_group_over_the_work_limit_is_searched_a_key_at_a_time_and_says_so(
         two_blank_masters, write_cfg, tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(solve_system, "MAX_JOINT_KEYS", 1)
+    monkeypatch.setattr(solve_system, "MAX_JOINT_PAIRS", 10)
     out = tmp_path / "solved.json"
     rc = call_main(solve_system.main, [write_cfg(two_blank_masters), "--out", out, "--trials", 100,
                                       "--seed", 5], monkeypatch)
     assert rc == 0 and out.exists()
     printed = capsys.readouterr().out
-    assert "master_top, master_sub share cores and are more than the 1 keys that can be " \
-        "built together: searching one key at a time" in printed
+    assert "master_top, master_sub share cores and their pinnable combinations are too many " \
+        "to build exactly (more than 10 pairs of neighbouring combinations a position): " \
+        "searching one key at a time" in printed
     assert "of random candidates were free of hard conflicts" in printed
+
+
+@pytest.fixture
+def four_blank_keys(pinned):
+    """Two masters and two area keys left for the solver, which all share cores (one more
+    key than the old limit of three), with six more decoded change keys, drawn at random, in
+    cores with the same masters and control key. Before the limit was a cost, 19 of 20
+    seeded runs of this ended with an unpinnable core."""
+    rng = random.Random(7)
+    prob = problem(pinned)
+    for i in range(6):
+        pinned["keys"][f"extra_{i}"] = "".join(map(str, prob.random_candidate(rng)))
+        pinned["cores"].append({"name": f"Extra {i} cores", "change": f"extra_{i}",
+                                "masters": ["master_sub", "master_top"], "control": "control_a"})
+    for name in ("master_top", "master_sub", "area_a", "area_b"):
+        pinned["keys"][name] = None
+    return pinned
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_four_blank_keys_sharing_cores_come_out_pinnable(four_blank_keys, write_cfg, tmp_path,
+                                                         seed):
+    proc, out = solve(write_cfg, four_blank_keys, tmp_path, seed=seed)
+    assert proc.returncode == 0, proc.stderr
+    assert "searching one key at a time" not in proc.stdout
+    assert "master_top, master_sub, area_a, area_b" in proc.stdout.split("pinnable combinations")[0]
+    assert "NOT SOLVED" not in proc.stdout and "UNPINNABLE" not in proc.stdout
+    assert_every_core_pins(out)
 
 
 def test_keys_that_share_a_core_are_grouped_and_others_are_not(pinned):

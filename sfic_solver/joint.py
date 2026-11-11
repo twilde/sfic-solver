@@ -17,6 +17,14 @@ from functools import lru_cache
 from .pinning import PinningError, pin_chamber
 
 
+class TooLarge(Exception):
+    """The lists of digit tuples are too long to count exactly within the limit given."""
+
+    def __init__(self, limit):
+        super().__init__(f"more than {limit:,} pairs of neighbouring combinations a position")
+        self.limit = limit
+
+
 @lru_cache(maxsize=None)
 def chamber_pinnable(system, operating, control):
     """True if a chamber with these operating cuts (a sorted tuple of the distinct cuts) and
@@ -28,7 +36,7 @@ def chamber_pinnable(system, operating, control):
     return True
 
 
-def allowed_tuples(space, system, group, constraints, known):
+def allowed_tuples(space, system, group, constraints, known, max_pairs=None):
     """Per position, the digit tuples (one digit for each key of `group`, in order) that leave
     every constraint's chamber pinnable.
 
@@ -41,6 +49,12 @@ def allowed_tuples(space, system, group, constraints, known):
     choice that already breaks a chamber is dropped without being extended to the 10 ** u
     combinations it would start. They come in the order of `itertools.product` over the
     position's digits.
+
+    `max_pairs`, when given, bounds the work `JointSet` will do on the result, which is one
+    comparison for each pair of a position's tuple and the next position's: no list may be
+    longer than `max_pairs`, and the pairs summed over the positions may not be more than
+    `max_pairs` for each step between positions. Past that, TooLarge is raised as soon as it
+    is known, before the lists are finished.
     """
     index = {name: i for i, name in enumerate(group)}
     # tested_after[i]: the constraints to test once key i has its digit (they need no later
@@ -52,6 +66,7 @@ def allowed_tuples(space, system, group, constraints, known):
         (fixed if last is None else tested_after[last]).append((ops, ctl))
 
     allowed = []
+    pairs = 0
     for p in range(space.pins):
         cut = [None] * len(group)
 
@@ -67,6 +82,8 @@ def allowed_tuples(space, system, group, constraints, known):
         def extend(depth):
             if depth == len(group):
                 at_p.append(tuple(cut))
+                if max_pairs is not None and len(at_p) > max_pairs:
+                    raise TooLarge(max_pairs)
                 return
             for digit in space.digits[p]:
                 cut[depth] = digit
@@ -75,6 +92,10 @@ def allowed_tuples(space, system, group, constraints, known):
 
         if pinnable(fixed):
             extend(0)
+        if allowed and max_pairs is not None:
+            pairs += len(allowed[-1]) * len(at_p)
+            if pairs > max_pairs * (space.pins - 1):
+                raise TooLarge(max_pairs)
         allowed.append(at_p)
     return allowed
 

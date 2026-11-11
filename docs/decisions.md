@@ -643,6 +643,8 @@ Detail: [design.md, "The code"](design.md#the-code).
 
 ## D60. With pinning set, the solver builds pinnable answers exactly instead of drawing them
 
+Status: Amended by D68.
+
 Amends D56. Drawing random keys and changing one at a time left about half the runs of
 a file with two blank masters sharing cores with known keys stuck on an unpinnable core
 (issue 26). Pinning is decided one chamber at a time, so for each group of unknown keys
@@ -744,5 +746,19 @@ the count of keys with a cost limit on the per-position lists, builds larger gro
 retries), and makes the verdicts exact: no answer exists (naming the position and the known
 keys), none found, or known keys alone conflict. Scoring, the shape rules and the exit status
 do not change. The design is in its own document and has been accepted.
+
+Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
+
+## D68. The exact construction is limited by its work, not by the number of keys
+
+Part 1 of D67.
+Amends D60. `allowed_tuples` finds each position's digit tuples by choosing the group's keys
+one after another and testing a chamber as soon as its keys have digits, so it no longer
+forms every combination. `MAX_JOINT_KEYS` is replaced by `MAX_JOINT_PAIRS`: a group is built
+exactly while the pairs of neighbouring positions' tuples stay within a million a step, which
+every group of three keys does, so those are unchanged byte for byte. On a fake system with
+four blank keys sharing cores, 19 of 20 seeded runs used to end unpinnable and none do. A
+group over the limit still falls back, with a printed line giving the limit. Scoring and
+files without `pinning` are unchanged.
 
 Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
