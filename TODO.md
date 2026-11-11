@@ -10,10 +10,9 @@
 - Exact reachability bounds for the shape rules (the parity pattern and how the rules combine),
   so that a rule set no key can meet is refused when the file is read, not when the search
   gives up (the bounds look at each rule alone).
-- A solver for pinnable answers among the keys of a group too large to count exactly (a
-  system with every key blank): staged construction, and the exact verdicts
-  (docs/designs/larger-pinnable-groups.md, parts 2 and 3; D67). Part 1, the cost limit, is
-  built (D68).
+- The exact verdicts for the solver's pinnable answers: no answer exists, none found, known
+  keys alone conflict (docs/designs/larger-pinnable-groups.md, part 3; D67). Parts 1 and 2
+  (the cost limit and staged construction) are built (D68, D69).
 - A mode that screens candidate unit masters against decoded unit keys.
 - `--avoid-file` for the generator.
 - Generate the `cores` list from an exported CSV of the key matrix.

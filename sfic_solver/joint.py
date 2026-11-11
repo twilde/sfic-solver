@@ -36,6 +36,20 @@ def chamber_pinnable(system, operating, control):
     return True
 
 
+def constraint_plan(order, constraints):
+    """(index, tested_after, fixed) for choosing the keys of `order` one after another:
+    index maps a key's name to its place; tested_after[i] are the constraints to test once
+    key i has its digit (they need no later key); `fixed` are those with no key of the order,
+    which every choice meets or fails."""
+    index = {name: i for i, name in enumerate(order)}
+    tested_after = [[] for _ in order]
+    fixed = []
+    for ops, ctl in constraints:
+        last = max((index[n] for n in (*ops, ctl) if n in index), default=None)
+        (fixed if last is None else tested_after[last]).append((ops, ctl))
+    return index, tested_after, fixed
+
+
 def allowed_tuples(space, system, group, constraints, known, max_pairs=None):
     """Per position, the digit tuples (one digit for each key of `group`, in order) that leave
     every constraint's chamber pinnable.
@@ -56,14 +70,7 @@ def allowed_tuples(space, system, group, constraints, known, max_pairs=None):
     `max_pairs` for each step between positions. Past that, TooLarge is raised as soon as it
     is known, before the lists are finished.
     """
-    index = {name: i for i, name in enumerate(group)}
-    # tested_after[i]: the constraints to test once key i has its digit (they need no later
-    # key); `fixed` are those with no key of the group, which every tuple meets or fails.
-    tested_after = [[] for _ in group]
-    fixed = []
-    for ops, ctl in constraints:
-        last = max((index[n] for n in (*ops, ctl) if n in index), default=None)
-        (fixed if last is None else tested_after[last]).append((ops, ctl))
+    index, tested_after, fixed = constraint_plan(group, constraints)
 
     allowed = []
     pairs = 0
@@ -98,6 +105,60 @@ def allowed_tuples(space, system, group, constraints, known, max_pairs=None):
                 raise TooLarge(max_pairs)
         allowed.append(at_p)
     return allowed
+
+
+PROJECTION_NODES = 100_000     # most digit choices tried in deciding whether one digit of a
+                               # key can be completed by the other keys at a position
+
+
+def extendable_digits(space, system, group, key, constraints, known):
+    """Per position, the digits of `key` that the other keys of `group` can complete to a
+    choice that leaves every constraint's chamber pinnable, as one-digit tuples in the order
+    of the digits (the shape `JointSet` takes). This is the projection of the tuples
+    `allowed_tuples` would list onto one key, found without listing them: a digit is tried
+    by choosing the other keys one after another, as there, and stopping at the first choice
+    that works.
+
+    A digit whose search passes PROJECTION_NODES choices is kept, not decided: so a position
+    with no digit left has none for certain, and one with some may still fail to complete.
+    """
+    order = [key, *(k for k in group if k != key)]
+    index, tested_after, fixed = constraint_plan(order, constraints)
+    projected = []
+    for p in range(space.pins):
+        cut = [None] * len(order)
+
+        def of(name):
+            return cut[index[name]] if name in index else known[name][p]
+
+        def pinnable(tests):
+            return all(chamber_pinnable(system, tuple(sorted({of(n) for n in ops})), of(ctl))
+                       for ops, ctl in tests)
+
+        nodes = 0
+
+        def completes(depth):
+            nonlocal nodes
+            if depth == len(order):
+                return True
+            for digit in space.digits[p]:
+                nodes += 1
+                if nodes > PROJECTION_NODES:
+                    return True
+                cut[depth] = digit
+                if pinnable(tested_after[depth]) and completes(depth + 1):
+                    return True
+            return False
+
+        at_p = []
+        if pinnable(fixed):
+            for digit in space.digits[p]:
+                cut[0] = digit
+                nodes = 0
+                if pinnable(tested_after[0]) and completes(1):
+                    at_p.append((digit,))
+        projected.append(at_p)
+    return projected
 
 
 class JointSet:

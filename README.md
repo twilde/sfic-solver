@@ -432,11 +432,17 @@ printed, and the printed pins are the ones the checker's own pinner computed.
    cut from them. It therefore finds a pinnable answer whenever one exists, and
    says so when none does: `NOT SOLVED: no bitting for ... can be pinned with the
    known keys`, with the positions where nothing works. Running it again will not
-   help then; a known key (usually a decoded unit key) has to change. This works
-   for any group whose lists are short enough to count exactly, which in practice
-   is four or five keys (about ten seconds a solve); a larger group, such as every
-   key left blank, is searched one key at a time and may fail, and the output says
-   so ([the design](docs/designs/larger-pinnable-groups.md) builds those in stages).
+   help then; a known key (usually a decoded unit key) has to change. A group whose
+   lists are short enough to count exactly (in practice four or five keys, about ten
+   seconds a solve) is built that way. A larger group, such as every key left blank,
+   is built in stages: one key first, from the cuts the others could still complete,
+   then the smaller groups that are left; a choice that leaves a later group no
+   pinnable answer is taken back and the next candidate tried
+   ([the design](docs/designs/larger-pinnable-groups.md)). The candidates for the
+   first key are drawn from what can be completed position by position, so a
+   staged answer is a good one but not drawn uniformly from all of them. If ten
+   choices in all fail, the output says no answer was found (one may exist) and the
+   group is searched one key at a time as before.
 
 5. **Check after every decode batch.**
 
@@ -578,9 +584,10 @@ digit; never paste or describe the page itself.
   were chosen differently.
 - Searches are heuristic. The solver is not guaranteed to find the best
   possible bitting, or any solution when fixed keys already conflict. With `pinning` set it finds a
-  pinnable answer whenever one exists, except among a group of unknown keys that
-  share cores that is too large to count exactly (four or five keys with tight constraints,
-  fewer with loose ones), which it still searches one at a time.
+  pinnable answer whenever one exists among a group of unknown keys that share cores
+  small enough to count exactly. A larger group is built in stages, which finds an
+  answer in the cases tried but cannot say that none exists unless a position has no
+  cut at all.
 
 ## Privacy
 

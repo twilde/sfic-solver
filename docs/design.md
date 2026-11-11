@@ -447,13 +447,18 @@ are no more than `--trials`. A group is the unknown keys that share a core, as c
 key, master or control key, so that all the keys of any one core are chosen together; a
 group is built exactly while the work stays within a limit (`MAX_JOINT_PAIRS`, a million
 pairs of a position's tuple and the next position's, for each step; a group of three keys
-never passes it, four or five with tight constraints do not either, D68), and a larger one
-falls back to the single-key search with a printed line. The tuples are found by a search
+never passes it, four or five with tight constraints do not either, D68). A larger group is
+built in stages (D69): the key in the most chambers' constraints is chosen first, from the
+cuts the others could still complete at each position (`extendable_digits`, found without
+listing the combinations), drawn by the same exact count over one key and scored; the keys
+left form smaller groups, each built the same way, and a choice that leaves a later group no
+answer is taken back and the next candidate tried, up to `MAX_STAGE_TRIES` choices in all,
+after which the group falls back to the single-key search with a printed line. The tuples are found by a search
 that tests each chamber as soon as its keys have digits, not by listing 10 ** u combinations. The candidates are scored
 with the existing score, so weights, closeness and the unpinnable figure are unchanged;
 only where the candidates come from is. When a group has no pinnable bitting the solver
 says which positions have none and ends with `NOT SOLVED`, since only a known key can
-change that (D60, D68). Files without `pinning` are byte-identical.
+change that (D60, D68, D69). Files without `pinning` are byte-identical.
 
 **The chart command** (`pin_system.py`, `sfic-pin-system`) prints the charts of the
 layout in core-pinning.md for every core of a file that sets `pinning`, one chart per core

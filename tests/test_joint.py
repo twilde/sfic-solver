@@ -4,8 +4,9 @@ import random
 
 import pytest
 
+from sfic_solver import joint
 from sfic_solver.joint import (JointSet, TooLarge, allowed_tuples, bittings, chamber_pinnable,
-                               why_none)
+                               extendable_digits, why_none)
 from sfic_solver.model import KeySpace
 from sfic_solver.pinning import A2, pin_chambers
 
@@ -158,3 +159,39 @@ def test_a_group_of_three_keys_is_never_over_the_limit_the_solver_uses():
     space = KeySpace(pins=7)
     allowed = allowed_tuples(space, A2, ["a", "b", "c"], [], {}, MAX_JOINT_PAIRS)
     assert [len(a) for a in allowed] == [1000] * 7
+
+
+# -- extendable_digits (docs/designs/larger-pinnable-groups.md, part 2) -----------------
+
+def test_extendable_digits_are_the_allowed_tuples_projected_onto_the_key():
+    rng = random.Random(5)
+    for _ in range(20):
+        space = KeySpace(pins=3)
+        group = ["a", "b", "c"][:rng.randint(2, 3)]
+        key = rng.choice(group)
+        known = {n: tuple(rng.randrange(10) for _ in range(3)) for n in ("k1", "k2", "ctl")}
+        names = [*group, "k1", "k2"]
+        constraints = [(rng.sample(names, rng.randint(1, len(names))), rng.choice([*group, "ctl"]))
+                       for _ in range(rng.randint(1, 3))]
+        allowed = allowed_tuples(space, A2, group, constraints, known)
+        got = extendable_digits(space, A2, group, key, constraints, known)
+        for p in range(3):
+            seen = {t[group.index(key)] for t in allowed[p]}
+            assert got[p] == [(d,) for d in space.digits[p] if d in seen]
+
+
+def test_extendable_digits_are_empty_where_known_keys_leave_no_cut():
+    space = KeySpace(pins=2)
+    known = {"k1": (3, 3), "k2": (4, 6), "ctl": (0, 0)}          # one apart at position 1
+    got = extendable_digits(space, A2, ["a", "b"], "a", [(["a", "b", "k1", "k2"], "ctl")], known)
+    assert got[0] == [] and got[1] != []
+
+
+def test_a_digit_whose_search_runs_out_is_kept_not_decided(monkeypatch):
+    space = KeySpace(pins=1)
+    known = {"ctl": (0,)}
+    constraints = [(["a", "b", "c"], "ctl")]
+    exact = extendable_digits(space, A2, ["a", "b", "c"], "a", constraints, known)[0]
+    monkeypatch.setattr(joint, "PROJECTION_NODES", 1)
+    rough = extendable_digits(space, A2, ["a", "b", "c"], "a", constraints, known)[0]
+    assert set(exact) <= set(rough) and rough == [(d,) for d in space.digits[0]]

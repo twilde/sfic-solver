@@ -428,20 +428,6 @@ def test_a_system_with_no_pinnable_master_says_so_and_that_running_again_will_no
     assert "hard conflicts involving" not in proc.stdout      # not also reported as a bad draw
 
 
-def test_a_group_over_the_work_limit_is_searched_a_key_at_a_time_and_says_so(
-        two_blank_masters, write_cfg, tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(solve_system, "MAX_JOINT_PAIRS", 10)
-    out = tmp_path / "solved.json"
-    rc = call_main(solve_system.main, [write_cfg(two_blank_masters), "--out", out, "--trials", 100,
-                                      "--seed", 5], monkeypatch)
-    assert rc == 0 and out.exists()
-    printed = capsys.readouterr().out
-    assert "master_top, master_sub share cores and their pinnable combinations are too many " \
-        "to build exactly (more than 10 pairs of neighbouring combinations a position): " \
-        "searching one key at a time" in printed
-    assert "of random candidates were free of hard conflicts" in printed
-
-
 @pytest.fixture
 def four_blank_keys(pinned):
     """Two masters and two area keys left for the solver, which all share cores (one more
@@ -468,6 +454,95 @@ def test_four_blank_keys_sharing_cores_come_out_pinnable(four_blank_keys, write_
     assert "master_top, master_sub, area_a, area_b" in proc.stdout.split("pinnable combinations")[0]
     assert "NOT SOLVED" not in proc.stdout and "UNPINNABLE" not in proc.stdout
     assert_every_core_pins(out)
+
+
+# -- groups too large to build exactly are built in stages (larger-pinnable-groups.md, part 2) --
+
+def solve_here(cfg, write_cfg, tmp_path, monkeypatch, capsys, seed=1, trials=100, **limits):
+    """Run the solver in-process with module constants changed (e.g. a small work limit, so
+    that a small group is built in stages); return (printed output, the solved file's JSON)."""
+    for name, value in limits.items():
+        monkeypatch.setattr(solve_system, name, value)
+    out = tmp_path / "solved.json"
+    rc = call_main(solve_system.main, [write_cfg(cfg), "--out", out, "--trials", trials,
+                                      "--seed", seed], monkeypatch)
+    assert rc == 0 and out.exists()
+    return capsys.readouterr().out, out
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_a_group_over_the_work_limit_is_built_in_stages_and_comes_out_pinnable(
+        four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys, seed):
+    printed, out = solve_here(four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys, seed,
+                              MAX_JOINT_PAIRS=3_000)
+    assert "too many to build exactly" in printed and "building them in stages" in printed
+    assert ", chosen first of master_top, master_sub, area_a, area_b" in printed
+    assert "searching one key at a time" not in printed
+    assert "NOT SOLVED" not in printed and "UNPINNABLE" not in printed
+    assert_every_core_pins(out)
+
+
+def test_the_keys_of_a_staged_group_follow_the_shape_rules(
+        four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys):
+    printed, out = solve_here(four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys,
+                              MAX_JOINT_PAIRS=3_000)
+    assert "that follow the shape rules" in printed
+    solved = json.loads(out.read_text())
+    for name in ("area_a", "area_b", "master_sub", "master_top"):
+        assert shape_breaks(solved["keys"][name], name.startswith("master")) == [], name
+
+
+def test_a_stage_that_leaves_a_later_group_no_answer_is_taken_back_and_the_next_tried(
+        four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys):
+    real = solve_system.solve_group
+    calls = []
+
+    def refuse_the_first_choice(prob, group, *args, **kwargs):
+        calls.append((group, dict(prob.assign)))
+        if len(calls) == 2:                  # the first stage's first choice: pretend it failed
+            prob.assign.update({k: (0,) * 7 for k in group})          # state to be undone
+            prob.no_shape["area_a"] = "left over"
+            return False
+        return real(prob, group, *args, **kwargs)
+
+    monkeypatch.setattr(solve_system, "solve_group", refuse_the_first_choice)
+    printed, out = solve_here(four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys,
+                              MAX_JOINT_PAIRS=3_000)
+    assert "1 earlier choice(s) were taken back" in printed
+    assert "left over" not in printed and "NOT SOLVED" not in printed
+    assert_every_core_pins(out)
+
+
+def test_a_group_with_no_answer_after_the_tries_allowed_falls_back_and_says_so(
+        four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys):
+    printed, out = solve_here(four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys,
+                              MAX_JOINT_PAIRS=3_000, MAX_STAGE_TRIES=0)
+    assert "no pinnable answer found after 0 choice(s) of " in printed
+    assert "it may exist" in printed and "master_top, master_sub, area_a, area_b: searching " \
+        "one key at a time" in printed
+    assert "of random candidates were free of hard conflicts" in printed
+
+
+def test_a_staged_group_with_no_cut_at_a_position_says_none_exists(
+        no_pinnable_master, write_cfg, tmp_path, monkeypatch, capsys):
+    printed, _ = solve_here(no_pinnable_master, write_cfg, tmp_path, monkeypatch, capsys,
+                            MAX_JOINT_PAIRS=1)
+    assert "building them in stages" in printed
+    assert "unit_master: NO bitting can be pinned with the known keys: no cut at position 1 " \
+        "leaves every core there pinnable" in printed
+    assert "running it again will not help" in printed
+    assert "searching one key at a time" not in printed
+
+
+def test_a_staged_key_with_no_bitting_that_follows_the_shape_rules_is_reported_not_relaxed(
+        four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys):
+    four_blank_keys["shape"] = {"min_total_variation": 30}
+    printed, out = solve_here(four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys,
+                              MAX_JOINT_PAIRS=3_000)
+    assert "NO bitting of " in printed and "that follows the shape rules (draws broke" in printed
+    assert "built together with" in printed
+    solved = json.loads(out.read_text())["keys"]
+    assert all(solved[n] is None for n in ("master_top", "master_sub", "area_a", "area_b"))
 
 
 def test_keys_that_share_a_core_are_grouped_and_others_are_not(pinned):

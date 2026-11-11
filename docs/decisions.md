@@ -751,6 +751,8 @@ Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
 
 ## D68. The exact construction is limited by its work, not by the number of keys
 
+Status: Amended by D69.
+
 Part 1 of D67.
 Amends D60. `allowed_tuples` finds each position's digit tuples by choosing the group's keys
 one after another and testing a chamber as soon as its keys have digits, so it no longer
@@ -760,5 +762,19 @@ every group of three keys does, so those are unchanged byte for byte. On a fake 
 four blank keys sharing cores, 19 of 20 seeded runs used to end unpinnable and none do. A
 group over the limit still falls back, with a printed line giving the limit. Scoring and
 files without `pinning` are unchanged.
+
+Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
+
+## D69. A group too large to build exactly is built in stages
+
+Part 2 of D67. Amends D68. A group over the work limit used to fall back to the single-key
+search, which cannot repair a chamber two blank keys must fix together. The solver now
+chooses one key first, the one in the most chambers' constraints, from the cuts the other
+keys could still complete at each position (found by a pruned search, without listing the
+combinations), and builds the smaller groups that remain the same way. A choice that leaves a
+later group no answer is taken back and the next candidate, best score first, is tried, up to
+ten choices in all; then the group falls back, with a printed line. The whole fake fixture
+left blank (a group of seven) now comes out pinnable. Scoring, the shape rules and groups
+within the limit are unchanged, and seeded runs of those are identical.
 
 Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).

@@ -47,7 +47,7 @@ from functools import lru_cache
 
 from . import check_system, model
 from .config import load_or_exit
-from .joint import JointSet, TooLarge, allowed_tuples, bittings, why_none
+from .joint import JointSet, TooLarge, allowed_tuples, bittings, extendable_digits, why_none
 from .model import distance, operates
 from .pinning import pin_chambers
 from .population import (MAX_COVERING_CORES, covering_cores, false_key_share, pinnable_fraction,
@@ -62,6 +62,10 @@ MAX_JOINT_PAIRS = 1_000_000    # most work, for each step from one position to t
                                # five whose constraints are tight take about ten seconds a solve)
 MAX_SHAPE_REJECTS = 20_000     # draws turned down by the shape rules before a key is given up
                                # on (at least 50 for each candidate asked for)
+MAX_STAGE_TRIES = 10           # keys drawn, in all, for the stages of one group too large to build
+                               # exactly: each draw that leaves a later group with no pinnable
+                               # answer is taken back and the next candidate is tried
+STAGE_CANDIDATES = 100         # candidates drawn for the key a stage chooses, tried best first
 UNPINNABLE_WEIGHT = 1.0        # one undecoded unit key that cannot take the master counts as
                                # one expected cross-operation; with the scale of the two terms
                                # it makes avoiding rekeyed unit cores the primary goal
@@ -171,10 +175,12 @@ class Problem:
                     self.population_note = "no valid bitting could have been pinned in them"
 
     # -- joint construction (pinning only) ---------------------------------------
-    def joint_groups(self):
-        """The unknown keys, grouped so that keys sharing a core (as change key, master or
-        control key) are in the same group: a core's pinning couples exactly those."""
-        parent = {k: k for k in self.unknown}
+    def joint_groups(self, keys=None):
+        """The unknown keys (or `keys`, if given), grouped so that keys sharing a core (as
+        change key, master or control key) are in the same group: a core's pinning couples
+        exactly those."""
+        keys = self.unknown if keys is None else keys
+        parent = {k: k for k in keys}
 
         def find(k):
             while parent[k] != k:
@@ -188,7 +194,7 @@ class Problem:
             for n in names[1:]:
                 parent[find(n)] = find(names[0])
         groups = {}
-        for k in self.unknown:
+        for k in keys:
             groups.setdefault(find(k), []).append(k)
         return list(groups.values())
 
@@ -374,17 +380,11 @@ class Problem:
                 self.assign[k] = previous
 
 
-def solve_jointly(prob, group, trials, rng, report):
-    """Pick the bittings of a group of unknown keys that share cores, drawing them only from
-    those that leave every involved chamber pinnable (all of them when there are few enough).
-    Returns False, with the reason noted on the problem, if there are none."""
-    names = ", ".join(group)
-    pinnable, allowed = prob.pinnable_set(group)
-    if not pinnable.count:
-        reason = why_none(allowed)
-        prob.impossible.append((group, reason))
-        print(f"  {names}: NO bitting can be pinned with the known keys: {reason}")
-        return False
+def joint_candidates(prob, pinnable, group, trials, rng):
+    """(candidates, the count of what the shape rules turned down, draws made, how they were
+    found in words) for a group drawn from a JointSet: every set of bittings when there are no
+    more than `trials`, else that many drawn from it, and in both only those whose keys follow
+    the shape rules."""
     rejected = collections.Counter()
     if pinnable.count <= trials:
         every = list(pinnable.enumerate())
@@ -404,13 +404,28 @@ def solve_jointly(prob, group, trials, rng, report):
         how = f"scored {len(chosen)} drawn from them"
         if prob.shape_on:
             how += " that follow the shape rules"
+    return chosen, rejected, draws, how
+
+
+def solve_jointly(prob, group, trials, rng, report, say=print):
+    """Pick the bittings of a group of unknown keys that share cores, drawing them only from
+    those that leave every involved chamber pinnable (all of them when there are few enough).
+    Returns False, with the reason noted on the problem, if there are none."""
+    names = ", ".join(group)
+    pinnable, allowed = prob.pinnable_set(group)
+    if not pinnable.count:
+        reason = why_none(allowed)
+        prob.impossible.append((group, reason))
+        say(f"  {names}: NO bitting can be pinned with the known keys: {reason}")
+        return False
+    chosen, rejected, draws, how = joint_candidates(prob, pinnable, group, trials, rng)
     noun = "bitting" if len(group) == 1 else "combination"
-    print(f"  {names}: {pinnable.count:,} pinnable {noun}{'' if pinnable.count == 1 else 's'} "
+    say(f"  {names}: {pinnable.count:,} pinnable {noun}{'' if pinnable.count == 1 else 's'} "
           f"with the known keys; {how}")
     if not chosen:
         summary, reasons = group_reasons(group, rejected, draws)
         prob.no_shape.update(reasons)
-        print(f"  {names}: NO pinnable {noun} follows the shape rules ({summary})")
+        say(f"  {names}: NO pinnable {noun} follows the shape rules ({summary})")
         return True
     scored = []
     for i, cand in enumerate(chosen):
@@ -423,9 +438,96 @@ def solve_jointly(prob, group, trials, rng, report):
     for k, cuts in zip(group, bittings(chosen[best])):
         prob.assign[k] = cuts
         report[k] = (clean, prob.score_key(k, cuts))
-        print(f"  {k}: picked {''.join(map(str, cuts))} "
+        say(f"  {k}: picked {''.join(map(str, cuts))} "
               f"({clean * 100:.0f}% of the pinnable candidates were free of other hard conflicts)")
     return True
+
+
+def stage_key(prob, group):
+    """The key of the group that is in the most chambers' constraints (the first of them
+    on a tie): choosing it first loosens the others most, and often splits the group."""
+    constraints = prob.pin_constraints(group)
+    return max(group, key=lambda k: sum(1 for ops, ctl in constraints if k in ops or k == ctl))
+
+
+def solve_group(prob, group, trials, rng, report, say=print, budget=None):
+    """Pick the bittings of a group of unknown keys that share cores: exactly (solve_jointly)
+    while the work is within MAX_JOINT_PAIRS, else in stages (solve_in_stages). False if they
+    were not picked: because no pinnable answer exists (noted on the problem), or because none
+    was found in the tries allowed (the keys are left unassigned)."""
+    try:
+        return solve_jointly(prob, group, trials, rng, report, say)
+    except TooLarge as too_large:
+        say(f"  {', '.join(group)}: the pinnable combinations are too many to build exactly "
+            f"({too_large}): building them in stages")
+    if budget is None:
+        budget = [MAX_STAGE_TRIES]
+    return solve_in_stages(prob, group, trials, rng, report, say, budget)
+
+
+def solve_in_stages(prob, group, trials, rng, report, say, budget):
+    """Pick a group's keys one stage at a time (docs/designs/larger-pinnable-groups.md, part 2).
+
+    One key is chosen first, from the cuts the other keys could still complete at each
+    position (extendable_digits), keeping to its own adjacent-cut limit and the shape rules.
+    The keys left then form smaller groups, now that this key is known, and each is solved by
+    solve_group. A choice after which a later group has no pinnable answer is taken back and
+    the next candidate for the key is tried, best score first, until `budget` (a one-item list
+    shared by every stage of the group) is used up. Candidates for the key are uniform over the
+    bittings that can be completed position by position, not over the complete answers.
+    """
+    key = stage_key(prob, group)
+    rest = [k for k in group if k != key]
+    names = ", ".join(group)
+    known = {n: c for n, c in prob.assign.items() if n not in group}
+    projected = extendable_digits(prob.space, prob.pinning, group, key,
+                                  prob.pin_constraints(group), known)
+    extendable = JointSet(projected, prob.space.max_step)
+    if not extendable.count:
+        reason = why_none(projected)
+        prob.impossible.append((group, reason))
+        say(f"  {names}: NO bitting can be pinned with the known keys: {reason}")
+        return False
+    chosen, rejected, draws, how = joint_candidates(prob, extendable, [key],
+                                                    min(trials, STAGE_CANDIDATES), rng)
+    say(f"  {key}, chosen first of {names}: {extendable.count:,} bittings that the other keys "
+        f"can complete at every position; {how}")
+    if not chosen:
+        summary, reasons = group_reasons([key], rejected, draws)
+        prob.no_shape.update(reasons)
+        prob.no_shape.update({k: f"built together with {key}, which has none: {summary}"
+                              for k in rest})
+        say(f"  {names}: NO bitting of {key} that follows the shape rules ({summary})")
+        return True
+    candidates = sorted((prob.score_key(key, bittings(c)[0]), i) for i, c in enumerate(chosen))
+    clean = sum(1 for score, _ in candidates if score < HARD) / len(candidates)
+    tries = 0
+    for _, i in candidates:
+        if budget[0] <= 0:
+            break
+        budget[0] -= 1
+        tries += 1
+        cuts = bittings(chosen[i])[0]
+        marks = (len(prob.impossible), dict(prob.no_shape))
+        lines = []
+        prob.assign[key] = cuts
+        if all(solve_group(prob, sub, trials, rng, report, lines.append, budget)
+               for sub in prob.joint_groups(rest)):
+            report[key] = (clean, prob.score_key(key, cuts))
+            tried = "" if tries == 1 else f"; {tries - 1} earlier choice(s) were taken back"
+            say(f"  {key}: picked {''.join(map(str, cuts))} ({clean * 100:.0f}% of the "
+                f"completable candidates were free of other hard conflicts{tried})")
+            for line in lines:
+                say(line)
+            return True
+        for k in group:                                    # take the choice back
+            prob.assign.pop(k, None)
+            report.pop(k, None)
+        del prob.impossible[marks[0]:]
+        prob.no_shape.clear()
+        prob.no_shape.update(marks[1])
+    say(f"  {names}: no pinnable answer found after {tries} choice(s) of {key}; it may exist")
+    return False
 
 
 def solve(prob, trials, sweeps, rng):
@@ -433,12 +535,10 @@ def solve(prob, trials, sweeps, rng):
     handled = set()
     if prob.pinning:
         for group in prob.joint_groups():
-            try:
-                if solve_jointly(prob, group, trials, rng, report):
-                    handled.update(group)
-            except TooLarge as too_large:
-                print(f"  {', '.join(group)} share cores and their pinnable combinations are "
-                      f"too many to build exactly ({too_large}): searching one key at a time")
+            if solve_group(prob, group, trials, rng, report):
+                handled.update(group)
+            elif not any(group == g for g, _ in prob.impossible):
+                print(f"  {', '.join(group)}: searching one key at a time")
     for k in prob.unknown:
         if k in handled:
             continue
