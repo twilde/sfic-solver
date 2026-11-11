@@ -712,6 +712,8 @@ Detail: [designs/key-shape-rules.md](designs/key-shape-rules.md).
 
 ## D65. A key with no bitting that follows the shape rules is left null
 
+Status: Amended by D71.
+
 When the solver cannot find a bitting for a key that follows the file's shape rules (a tight
 rule set, or a thin pinnable set), it does not relax a rule. It leaves the key `null` in the
 written file, prints a `NOT SOLVED` line that says which rules turned the draws down (before
@@ -767,6 +769,8 @@ Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
 
 ## D69. A group too large to build exactly is built in stages
 
+Status: Amended by D71.
+
 Part 2 of D67. Amends D68. A group over the work limit used to fall back to the single-key
 search, which cannot repair a chamber two blank keys must fix together. The solver now
 chooses one key first, the one in the most chambers' constraints, from the cuts the other
@@ -791,3 +795,17 @@ core with no key the solver chose that cannot be pinned gets its own `KNOWN KEYS
 line before `Wrote`. The exit status, scoring and shape rules are unchanged.
 
 Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
+
+## D71. A larger group whose draws all break the shape rules is built a key at a time
+
+Review of the pull request for D67 to D70 found a regression. A group built exactly or in
+stages that has no combination of draws following the shape rules left its keys null and
+said running again would not help, though the old one-key-at-a-time search finds keys that
+follow them: all of a group's keys following the rules at once is much rarer than each doing
+so, and a tight `min_total_variation` on the all-blank fake system showed it. Now a group of
+more than three keys, or one inside a stage, whose draws all break the rules is a failed
+build: inside a stage it ends the stages, and the group falls back to the single-key search
+as before D68, with the reason in the verdict. A group of up to three keys built exactly on
+its own keeps D65. Amends D65, D69.
+
+Detail: [design.md, "Pinning"](design.md#pinning).

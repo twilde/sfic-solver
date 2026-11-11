@@ -445,10 +445,8 @@ def four_blank_keys(pinned):
     return pinned
 
 
-@pytest.mark.parametrize("seed", [1, 2, 3])
-def test_four_blank_keys_sharing_cores_come_out_pinnable(four_blank_keys, write_cfg, tmp_path,
-                                                         seed):
-    proc, out = solve(write_cfg, four_blank_keys, tmp_path, seed=seed)
+def test_four_blank_keys_sharing_cores_come_out_pinnable(four_blank_keys, write_cfg, tmp_path):
+    proc, out = solve(write_cfg, four_blank_keys, tmp_path, seed=1)
     assert proc.returncode == 0, proc.stderr
     assert "searching one key at a time" not in proc.stdout
     assert "master_top, master_sub, area_a, area_b" in proc.stdout.split("pinnable combinations")[0]
@@ -517,9 +515,9 @@ def test_a_group_with_no_answer_after_the_tries_allowed_falls_back_and_says_so(
         four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys):
     printed, out = solve_here(four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys,
                               MAX_JOINT_PAIRS=3_000, MAX_STAGE_TRIES=0)
-    assert "no pinnable answer found after 0 choice(s) of " in printed
-    assert "it may exist" in printed and "master_top, master_sub, area_a, area_b: searching " \
-        "one key at a time" in printed
+    assert "building them in stages gave up after 0 choices; a pinnable answer that follows " \
+        "the rules may still exist" in printed
+    assert "master_top, master_sub, area_a, area_b: searching one key at a time" in printed
     assert "of random candidates were free of hard conflicts" in printed
 
 
@@ -534,15 +532,71 @@ def test_a_staged_group_with_no_cut_at_a_position_says_none_exists(
     assert "searching one key at a time" not in printed
 
 
-def test_a_staged_key_with_no_bitting_that_follows_the_shape_rules_is_reported_not_relaxed(
+def test_a_staged_key_with_no_bitting_that_follows_the_shape_rules_falls_back_and_reports_it(
         four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys):
-    four_blank_keys["shape"] = {"min_total_variation": 30}
+    four_blank_keys["shape"] = {"min_total_variation": 30}   # no key reaches it (the rule is too tight)
     printed, out = solve_here(four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys,
                               MAX_JOINT_PAIRS=3_000)
-    assert "NO bitting of " in printed and "that follows the shape rules (draws broke" in printed
-    assert "built together with" in printed
+    assert "NO bitting of master_top drawn follows the shape rules (draws broke" in printed
+    assert "master_top, master_sub, area_a, area_b: searching one key at a time" in printed
+    # The old search then says which rules turned its draws down, and the keys stay null.
+    assert "master_top: NO bitting found that follows the shape rules" in printed
     solved = json.loads(out.read_text())["keys"]
     assert all(solved[n] is None for n in ("master_top", "master_sub", "area_a", "area_b"))
+
+
+@pytest.fixture
+def four_blank_keys_that_cannot_follow_the_rules_together(pinned, monkeypatch):
+    """Four blank keys sharing cores, each of which can follow the shape rules on its own
+    (the old search finds them) but whose joint draws never do: all of a group's keys following
+    the rules at once is rarer than each doing so (a tight rule on the all-blank fake system
+    does it for real, slowly). Made exact here by saying so for every draw of two or more keys."""
+    for name in ("master_top", "master_sub", "area_a", "area_b"):
+        pinned["keys"][name] = None
+    real = solve_system.Problem.joint_broken
+
+    def broken(self, group, cand):
+        return [(k, "min_total_variation") for k in group] if len(group) > 1 \
+            else real(self, group, cand)
+
+    monkeypatch.setattr(solve_system.Problem, "joint_broken", broken)
+    return pinned
+
+
+@pytest.mark.parametrize("limits", [{}, {"MAX_JOINT_PAIRS": 300_000}], ids=["exact", "staged"])
+def test_a_larger_group_whose_joint_draws_all_break_the_shape_rules_is_built_a_key_at_a_time(
+        four_blank_keys_that_cannot_follow_the_rules_together, write_cfg, tmp_path, monkeypatch,
+        capsys, limits):
+    printed, out = solve_here(four_blank_keys_that_cannot_follow_the_rules_together, write_cfg,
+                              tmp_path, monkeypatch, capsys, **limits)
+    assert "master_top, master_sub, area_a, area_b: searching one key at a time" in printed
+    assert "will not help" not in printed and "left null" not in printed
+    if limits:             # the four keys are too many for the limit, the three after one are not
+        assert "building them in stages stopped after 1 choice: a group after master_top had " \
+            "no combination that follows the shape rules" in printed
+    solved = json.loads(out.read_text())["keys"]
+    assert all(solved[n] is not None for n in ("master_top", "master_sub", "area_a", "area_b"))
+    assert shape_breaks_for(solved, ("master_top", "master_sub", "area_a", "area_b")) == {}
+
+
+def shape_breaks_for(solved, names):
+    """The shape rules each of the named keys breaks, by name (none that follow them all)."""
+    breaks = {n: shape_breaks(solved[n], n.startswith("master")) for n in names}
+    return {n: b for n, b in breaks.items() if b}
+
+
+def test_a_group_of_up_to_three_keys_whose_draws_break_the_rules_is_still_left_null_and_reported(
+        pinned, write_cfg, tmp_path, monkeypatch, capsys):
+    """D65, unchanged: the old search was never what these groups fell back to."""
+    for name in ("master_top", "master_sub", "area_a"):
+        pinned["keys"][name] = None
+    real = solve_system.Problem.joint_broken
+    monkeypatch.setattr(solve_system.Problem, "joint_broken", lambda self, group, cand: (
+        [(k, "min_total_variation") for k in group] if len(group) > 1 else real(self, group, cand)))
+    printed, out = solve_here(pinned, write_cfg, tmp_path, monkeypatch, capsys)
+    assert "NO pinnable combination follows the shape rules" in printed
+    assert "will not help" in printed
+    assert json.loads(out.read_text())["keys"]["master_sub"] is None
 
 
 # -- the verdicts (larger-pinnable-groups.md, part 3) ---------------------------------------

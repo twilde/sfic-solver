@@ -202,7 +202,20 @@ the highest operating cut), and, when no core does alone, the known cuts of the 
 group's cores at that position, as many as eight. The second is a list, not a diagnosis: it
 does not say which of them to change. The conflicts among known keys alone are found
 for cores with no key the solver chose, and appear once, before `Wrote`, not again after the
-check, which reports them as `UNPINNABLE` anyway. The details below were left to the build.
+check, which reports them as `UNPINNABLE` anyway.
+
+Review found one thing the design had not said. "The shape rules are never relaxed" holds
+for the keys, but a group's *joint* draws are a poorer test of whether keys that follow the
+rules exist than each key's own: all of a group's keys following a tight rule at once is
+rarer than each doing so. A group built exactly (four or five keys) or inside a stage that
+had no draw following the rules left its keys null and said running again would not help,
+where the old search found keys that follow them (D71). Such a group is now a failed build,
+and falls back to the single-key search, which reports a key null only if it finds none
+either; inside a stage it ends the stages at once, since another first key does not change
+how rarely the rest follow the rules together. A group of up to three keys built exactly
+on its own is as D65 left it.
+
+The details below were left to the build.
 
 - The number of choices of part 2 (settled: `MAX_STAGE_TRIES` is 10 in all, over every stage
   of one group, with up to `STAGE_CANDIDATES` (100) candidates drawn for each stage's key

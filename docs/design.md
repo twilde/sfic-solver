@@ -453,23 +453,35 @@ failing chambers unchanged, and random draws hit a pinnable pair only by luck. S
 pinning is decided one chamber at a time, `joint.py` lists, for each position, the digit
 tuples of a group of unknown keys that leave every core involved pinnable with the known
 keys, then counts the whole bittings exactly with the adjacent-cut limit (a dynamic
-programme over positions) and draws uniformly from them, or lists them all when there
-are no more than `--trials`. A group is the unknown keys that share a core, as change
-key, master or control key, so that all the keys of any one core are chosen together; a
-group is built exactly while the work stays within a limit (`MAX_JOINT_PAIRS`, a million
-pairs of a position's tuple and the next position's, for each step; a group of three keys
-never passes it, four or five with tight constraints do not either, D68). A larger group is
-built in stages (D69): the key in the most chambers' constraints is chosen first, from the
-cuts the others could still complete at each position (`extendable_digits`, found without
-listing the combinations), drawn by the same exact count over one key and scored; the keys
-left form smaller groups, each built the same way, and a choice that leaves a later group no
-answer is taken back and the next candidate tried, up to `MAX_STAGE_TRIES` choices in all,
-after which the group falls back to the single-key search with a printed line. The tuples are found by a search
-that tests each chamber as soon as its keys have digits, not by listing 10 ** u combinations. The candidates are scored
-with the existing score, so weights, closeness and the unpinnable figure are unchanged;
-only where the candidates come from is. When a group has no pinnable bitting the solver
-says which positions have none and ends with `NOT SOLVED`, since only a known key can
-change that (D60, D68, D69, D70). Files without `pinning` are byte-identical.
+programme over positions) and draws uniformly from them, or lists them all when there are
+no more than `--trials`. A group is the unknown keys that share a core, as change key,
+master or control key, so that all the keys of any one core are chosen together. The
+tuples are found by a search that tests each chamber as soon as its keys have digits, not
+by listing 10 ** u combinations, and a group is built exactly while the work stays within
+a limit (`MAX_JOINT_PAIRS`, a million pairs of a position's tuple and the next position's,
+for each step; a group of three keys never passes it, four or five with tight constraints
+do not either, D68).
+
+A larger group is built in stages (D69). The key in the most chambers' constraints is
+chosen first, from the cuts the others could still complete at each position
+(`extendable_digits`, found without listing the combinations), drawn by the same exact
+count over one key and scored. The keys left form smaller groups, each built the same way,
+and a choice that leaves a later group no pinnable answer is taken back and the next
+candidate tried, up to `MAX_STAGE_TRIES` choices in all. Then the group falls back to the
+single-key search, with a printed line, as it does when a group has no draw that follows
+the shape rules (D71). Drawing all of a group's keys to follow the rules at once is much
+rarer than each doing so (a tight rule on the all-blank fake system makes it rare enough
+that no draw does), so for a group that was not built exactly before D68, or that is built
+inside a stage, an empty result is a failure of the draw and not proof that no answer
+exists. Such a group is built a key at a time and its keys are left null only if that
+search finds none either. A group of up to three keys built exactly on its own keeps what
+D65 says: its keys are left null and reported.
+
+The candidates are scored with the existing score, so weights, closeness and the
+unpinnable figure are unchanged; only where the candidates come from is. When a group has
+no pinnable bitting the solver says which positions have none and ends with `NOT SOLVED`,
+since only a known key can change that (D60, D68, D69, D70). Files without `pinning` are
+byte-identical.
 
 **The chart command** (`pin_system.py`, `sfic-pin-system`) prints the charts of the
 layout in core-pinning.md for every core of a file that sets `pinning`, one chart per core

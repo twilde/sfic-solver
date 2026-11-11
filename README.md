@@ -447,9 +447,11 @@ printed, and the printed pins are the ones the checker's own pinner computed.
    ([the design](docs/designs/larger-pinnable-groups.md)). The candidates for the
    first key are drawn from what can be completed position by position, so a
    staged answer is a good one but not drawn uniformly from all of them. If ten
-   choices in all fail, the group is searched one key at a time as before, and if
-   that leaves a conflict the line says no pinnable answer was found for the group
-   after that many choices, and that one may exist.
+   choices in all fail, or if some group that is left has no combination of draws
+   that follows the shape rules (all of a group's keys following them at once is
+   much rarer than each doing so), the group is searched one key at a time as
+   before, and if that leaves a conflict the line says no pinnable answer was found
+   for the group and why, and that one may exist.
 
 5. **Check after every decode batch.**
 
