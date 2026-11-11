@@ -12,7 +12,8 @@
   gives up (the bounds look at each rule alone).
 - A solver for pinnable answers among more than three unknown keys that share cores
   (a system with every key blank): joint moves, or splitting the chain of cores
-  (docs/designs/pinnable-solving.md, "Building pinnable keys exactly").
+  (docs/designs/pinnable-solving.md, "Building pinnable keys exactly"). Designed, not built:
+  docs/designs/larger-pinnable-groups.md (D67).
 - A mode that screens candidate unit masters against decoded unit keys.
 - `--avoid-file` for the generator.
 - Generate the `cores` list from an exported CSV of the key matrix.

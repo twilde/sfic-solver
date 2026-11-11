@@ -733,3 +733,16 @@ the pair `ubuntu-latest` will give; 3.14 is still tested on 24.04. The floor sta
 (D15), whose list of tested versions this amends.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
+
+## D67. Pinnable answers for groups of more than three blank keys are designed before they are built
+
+The exact construction of D60 stops at three blank keys that share cores; beyond that the
+solver draws and hill-climbs as before D60, and on a fake system with four blank keys it ended
+unpinnable in 19 of 20 seeded runs, then told the owner to run it again. The proposal replaces
+the count of keys with a cost limit on the per-position lists, builds larger groups in stages
+(one key from its per-position projections, then the smaller groups that remain, with bounded
+retries), and makes the verdicts exact: no answer exists (naming the position and the known
+keys), none found, or known keys alone conflict. Scoring, the shape rules and the exit status
+do not change. The design is in its own document and is a draft until it is agreed.
+
+Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
