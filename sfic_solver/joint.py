@@ -35,19 +35,46 @@ def allowed_tuples(space, system, group, constraints, known):
     constraints  (operating key names, control key name) for each core and change key that
                  involves a key of the group
     known        name -> bitting for every key of those constraints that is not in the group
+
+    The tuples are found by choosing the group's keys one after another and testing each
+    constraint as soon as all of its keys that are in the group have a digit, so a partial
+    choice that already breaks a chamber is dropped without being extended to the 10 ** u
+    combinations it would start. They come in the order of `itertools.product` over the
+    position's digits.
     """
+    index = {name: i for i, name in enumerate(group)}
+    # tested_after[i]: the constraints to test once key i has its digit (they need no later
+    # key); `fixed` are those with no key of the group, which every tuple meets or fails.
+    tested_after = [[] for _ in group]
+    fixed = []
+    for ops, ctl in constraints:
+        last = max((index[n] for n in (*ops, ctl) if n in index), default=None)
+        (fixed if last is None else tested_after[last]).append((ops, ctl))
+
     allowed = []
     for p in range(space.pins):
+        cut = [None] * len(group)
+
+        def of(name):
+            return cut[index[name]] if name in index else known[name][p]
+
+        def pinnable(tests):
+            return all(chamber_pinnable(system, tuple(sorted({of(n) for n in ops})), of(ctl))
+                       for ops, ctl in tests)
+
         at_p = []
-        for digits in itertools.product(space.digits[p], repeat=len(group)):
-            cut = dict(zip(group, digits))
 
-            def of(name):
-                return cut[name] if name in cut else known[name][p]
+        def extend(depth):
+            if depth == len(group):
+                at_p.append(tuple(cut))
+                return
+            for digit in space.digits[p]:
+                cut[depth] = digit
+                if pinnable(tested_after[depth]):
+                    extend(depth + 1)
 
-            if all(chamber_pinnable(system, tuple(sorted({of(n) for n in ops})), of(ctl))
-                   for ops, ctl in constraints):
-                at_p.append(digits)
+        if pinnable(fixed):
+            extend(0)
         allowed.append(at_p)
     return allowed
 

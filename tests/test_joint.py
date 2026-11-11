@@ -98,3 +98,41 @@ def test_two_unknown_keys_are_tested_together():
     allowed = allowed_tuples(space, A2, ["a", "b"], constraints, known)[0]
     for a, b in itertools.product(range(10), repeat=2):
         assert ((a, b) in allowed) == (not pin_chambers(A2, [(a,), (b,)], (0,))[1])
+
+
+def every_tuple_tested(space, group, constraints, known, p):
+    """The definition of the allowed tuples at position p: all digit combinations, each tested
+    against every constraint (what allowed_tuples did before it pruned)."""
+    found = []
+    for digits in itertools.product(space.digits[p], repeat=len(group)):
+        cut = dict(zip(group, digits))
+
+        def of(name):
+            return cut[name] if name in cut else known[name][p]
+
+        if all(chamber_pinnable(A2, tuple(sorted({of(n) for n in ops})), of(ctl))
+               for ops, ctl in constraints):
+            found.append(digits)
+    return found
+
+
+def test_pruned_search_gives_the_same_tuples_in_the_same_order_as_testing_every_combination():
+    rng = random.Random(3)
+    for _ in range(25):
+        space = KeySpace(pins=3)
+        group = ["a", "b", "c"][:rng.randint(1, 3)]
+        known = {n: tuple(rng.randrange(10) for _ in range(3)) for n in ("k1", "k2", "ctl")}
+        names = [*group, "k1", "k2"]
+        constraints = [(rng.sample(names, rng.randint(1, len(names))), rng.choice([*group, "ctl"]))
+                       for _ in range(rng.randint(1, 3))]
+        got = allowed_tuples(space, A2, group, constraints, known)
+        for p in range(3):
+            assert got[p] == every_tuple_tested(space, group, constraints, known, p)
+
+
+def test_a_constraint_with_no_key_of_the_group_empties_every_position_it_fails():
+    space = KeySpace(pins=2)
+    known = {"k1": (3, 3), "k2": (4, 6), "ctl": (0, 0)}      # k1 and k2 are one apart at 1
+    allowed = allowed_tuples(space, A2, ["a"], [(["a", "k1"], "ctl"), (["k1", "k2"], "ctl")],
+                             known)
+    assert allowed[0] == [] and allowed[1] != []
