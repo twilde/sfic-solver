@@ -726,8 +726,10 @@ Detail: [design.md, "The code"](design.md#the-code) and
 
 Python 3.15 is released and `actions/setup-python` installs it on both runner images, and the
 scanner's optional packages have wheels for it. The `test` matrix and the `scanner` matrix
-(D46) now run 3.11 to 3.15 on `ubuntu-24.04`, so the two lists stay the same. The suite
-passed on 3.15 locally before the change. The one job on `ubuntu-26.04` (D14) stays on 3.14,
-and the floor stays 3.11 (D15), whose list of tested versions this amends.
+(D46) now run 3.11 to 3.15 on `ubuntu-24.04`, so the two lists stay the same, and a test
+keeps them so. The suite passed on 3.15 locally before the change. The one job on
+`ubuntu-26.04` (D14) moves to 3.15, so that the newest image runs with the newest Python,
+the pair `ubuntu-latest` will give; 3.14 is still tested on 24.04. The floor stays 3.11
+(D15), whose list of tested versions this amends.
 
 Detail: [design.md, "Dependencies, Python versions and CI"](design.md#dependencies-python-versions-and-ci).
