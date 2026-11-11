@@ -216,6 +216,28 @@ def workflow_jobs():
     return dict(zip(parts[1::2], parts[2::2]))
 
 
+def matrix_of(block):
+    """A job's matrix: (the python-version list, the (os, python-version) include entries)."""
+    versions = re.search(r"^        python-version: \[(.*)\]$", block, re.M).group(1)
+    includes = re.findall(r'^          - os: (\S+)\n            python-version: "([^"]+)"$',
+                          block, re.M)
+    return [v.strip(' "') for v in versions.split(",")], includes
+
+
+def test_the_test_and_scanner_matrices_run_the_same_pythons():
+    """D66: one list of versions and one extra job, written twice, kept the same."""
+    jobs = workflow_jobs()
+    test, scanner = matrix_of(jobs["test"]), matrix_of(jobs["scanner"])
+    assert test[0] and test[1], "the test matrix was not found: has the layout changed?"
+    assert test == scanner
+
+
+def test_matrix_of_reads_a_matrix_block():
+    block = ('        os: [ubuntu-24.04]\n        python-version: ["3.11", "3.12"]\n'
+             '        include:\n          - os: ubuntu-26.04\n            python-version: "3.12"\n')
+    assert matrix_of(block) == (["3.11", "3.12"], [("ubuntu-26.04", "3.12")])
+
+
 def test_every_job_has_a_timeout():
     """The default is six hours; a hung Tesseract should not run that long."""
     for name, block in workflow_jobs().items():
