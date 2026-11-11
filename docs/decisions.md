@@ -778,3 +778,16 @@ left blank (a group of seven) now comes out pinnable. Scoring, the shape rules a
 within the limit are unchanged, and seeded runs of those are identical.
 
 Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).
+
+## D70. The solver's verdict says whether no answer exists, none was found, or known keys conflict
+
+Part 3 of D67. The `NOT SOLVED` line used to say "run it again" for a conflict no run could
+fix. Now, where a position has no digits that can be pinned (exact for a group of any size),
+the line names the position, the core and the known keys that are one apart there, or the
+known cuts that together leave no digit, and says a known key has to change. When a staged
+construction gave up, or the search left a conflict that is not about pinnability, it says no
+answer was found, how hard it looked, and that one may exist and running again can help. A
+core with no key the solver chose that cannot be pinned gets its own `KNOWN KEYS CONFLICT`
+line before `Wrote`. The exit status, scoring and shape rules are unchanged.
+
+Detail: [designs/larger-pinnable-groups.md](designs/larger-pinnable-groups.md).

@@ -402,8 +402,14 @@ printed, and the printed pins are the ones the checker's own pinner computed.
    If the best result still has a hard conflict, the solver says so: a line
    starting `NOT SOLVED` names the unknown keys involved, before `Wrote ...` and
    again as the last line after the check. It still exits 0 and writes the file,
-   so look for that line (or `problem(s) flagged`) and do not use the result;
-   run it again, since each run draws different candidates.
+   so look for that line (or `problem(s) flagged`) and do not use the result.
+   What to do depends on what the line says. *No answer exists* (the line says a
+   known key has to change, and names the position, the core and the known keys
+   that are one apart there): running it again will not help. *No answer was found*
+   (the line says one may exist, and how hard it looked): running it again, which
+   draws differently, can help. A third line, `KNOWN KEYS CONFLICT`, is not a failure
+   of the search: some core cannot be pinned with keys that are all known, so no
+   result can fix it, and a known key has to change.
 
    Every key it chooses also follows the [shape rules](#key-shape-rules) of the
    file, and it never relaxes one: if no bitting for a key follows them (a thin
@@ -441,8 +447,9 @@ printed, and the printed pins are the ones the checker's own pinner computed.
    ([the design](docs/designs/larger-pinnable-groups.md)). The candidates for the
    first key are drawn from what can be completed position by position, so a
    staged answer is a good one but not drawn uniformly from all of them. If ten
-   choices in all fail, the output says no answer was found (one may exist) and the
-   group is searched one key at a time as before.
+   choices in all fail, the group is searched one key at a time as before, and if
+   that leaves a conflict the line says no pinnable answer was found for the group
+   after that many choices, and that one may exist.
 
 5. **Check after every decode batch.**
 

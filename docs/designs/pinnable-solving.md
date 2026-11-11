@@ -4,8 +4,9 @@ Status: Implemented
 
 Amended after step 5 was built by the last section, "Building pinnable keys exactly" (D60),
 which changes how the solver generates candidates, and again by
-[larger-pinnable-groups.md](larger-pinnable-groups.md) (D67, D68), which replaces that
-section's limit of three keys with a limit on the work.
+[larger-pinnable-groups.md](larger-pinnable-groups.md) (D67 to D70), which replaces that
+section's limit of three keys with a limit on the work, builds larger groups in stages and
+makes the verdicts exact.
 
 This document describes step 5 of [core pinning](core-pinning.md): making the
 solver, the residual-risk estimate and the generator work for a system that sets

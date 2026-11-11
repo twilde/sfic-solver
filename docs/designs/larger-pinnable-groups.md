@@ -1,6 +1,6 @@
 # Pinnable answers for larger groups of blank keys
 
-Status: Accepted
+Status: Implemented
 
 This document describes how the solver should find pinnable answers when more than three
 blank keys share cores, and how it should report the case where none exists. It extends
@@ -193,9 +193,16 @@ described, and a regression test for the failure it fixes: a fixture whose pinna
 set is small but not empty for part 1 and 2, and one with two known keys one apart for
 part 3, all made from invented keys.
 
-## Details left to the build
+## What building it showed
 
-These can only be settled by building and measuring, and none waits on a decision.
+Built as D68 (part 1), D69 (part 2) and D70 (part 3). Part 3 names the known keys in two
+ways: a sentence for each core whose known keys conflict among themselves, found by the
+reasons that cannot be undone by adding cuts (two cuts one apart, or a control cut too near
+the highest operating cut), and, when no core does alone, the known cuts of the keys in the
+group's cores at that position, as many as eight. The second is a list, not a diagnosis: it
+does not say which of them to change. The conflicts among known keys alone are found
+for cores with no key the solver chose, and appear once, before `Wrote`, not again after the
+check, which reports them as `UNPINNABLE` anyway. The details below were left to the build.
 
 - The number of choices of part 2 (settled: `MAX_STAGE_TRIES` is 10 in all, over every stage
   of one group, with up to `STAGE_CANDIDATES` (100) candidates drawn for each stage's key

@@ -330,8 +330,8 @@ def test_failed_keys_names_the_unknown_keys_with_a_hard_penalty(pinned):
     assert name == "unit_master" and count >= 1
     line, = solve_system.not_solved_lines(prob)
     assert line.startswith("NOT SOLVED") and f"unit_master ({count})" in line
-    assert "see the check below" in line
-    assert "see the check above" in solve_system.not_solved_lines(prob, "above")[0]
+    assert "See the check below" in line and "running it again" in line
+    assert "See the check above" in solve_system.not_solved_lines(prob, "above")[0]
     prob.assign["unit_master"] = unit_clear_master(prob)
     assert solve_system.failed_keys(prob) == []
     assert solve_system.not_solved_lines(prob) == []
@@ -543,6 +543,87 @@ def test_a_staged_key_with_no_bitting_that_follows_the_shape_rules_is_reported_n
     assert "built together with" in printed
     solved = json.loads(out.read_text())["keys"]
     assert all(solved[n] is None for n in ("master_top", "master_sub", "area_a", "area_b"))
+
+
+# -- the verdicts (larger-pinnable-groups.md, part 3) ---------------------------------------
+
+@pytest.fixture
+def known_keys_one_apart(pinned):
+    """The top master left blank while two known keys of the area cores cut 5 and 6 at
+    position 1: whatever the master cuts there, a pin of size 1 would sit between them."""
+    pinned["keys"]["master_top"] = None
+    pinned["keys"]["master_sub"] = "6305496"          # area_a is 5721276
+    return pinned
+
+
+AREA_PAIR = ("core 'Area A cores' (change key area_a): known keys area_a (cut 5) and "
+             "master_sub (cut 6) are 1 apart, so the pin between them would be 1, outside 2 to 19")
+
+
+@pytest.mark.parametrize("limits", [{}, {"MAX_JOINT_PAIRS": 1}], ids=["exact", "staged"])
+def test_no_answer_names_the_position_the_core_and_the_known_keys_to_change(
+        known_keys_one_apart, write_cfg, tmp_path, monkeypatch, capsys, limits):
+    printed, _ = solve_here(known_keys_one_apart, write_cfg, tmp_path, monkeypatch, capsys,
+                            **limits)
+    assert "master_top: NO bitting can be pinned with the known keys: no cut at position 1 " \
+        "leaves every core there pinnable" in printed
+    assert f"    position 1, {AREA_PAIR}" in printed                       # said as it happens
+    verdict = [ln for ln in printed.splitlines() if ln.startswith("NOT SOLVED")]
+    assert len(verdict) == 2 and AREA_PAIR in verdict[0]                  # and in the verdict
+    assert "running it again will not help" in verdict[0] and verdict[-1] == printed.splitlines()[-1]
+    assert "no answer was found" not in printed
+
+
+def test_a_position_that_no_core_blames_alone_lists_the_known_cuts(
+        no_pinnable_master, write_cfg, tmp_path, monkeypatch, capsys):
+    printed, _ = solve_here(no_pinnable_master, write_cfg, tmp_path, monkeypatch, capsys)
+    assert "position 1, no cut for unit_master can be pinned beside the known keys' cuts there " \
+        "(unit:101 3, control_b 3, unit:102 5, unit:103 7, unit:200 0, unit:201 1" in printed
+
+
+def test_conflicts_among_known_keys_alone_are_named_as_not_the_solvers_to_fix(
+        pinned, write_cfg, tmp_path, monkeypatch, capsys):
+    pinned["keys"].update({"known_a": "5555555", "known_b": "6555555"})
+    pinned["cores"].append({"name": "Known pair cores", "change": "known_a",
+                            "masters": ["known_b"], "control": "control_a"})
+    printed, _ = solve_here(pinned, write_cfg, tmp_path, monkeypatch, capsys)
+    line, = [ln for ln in printed.splitlines() if ln.startswith("KNOWN KEYS CONFLICT")]
+    assert "1 chamber cannot be pinned with keys that are all known (Known pair cores " \
+        "[known_a], chamber 1: operating cuts 5 and 6 are 1 apart" in line
+    assert "no result of it can fix them; a known key has to change" in line
+    assert "NOT SOLVED" not in printed                    # the solver's own keys are fine
+    assert printed.index(line) < printed.index("Wrote")
+
+
+def test_a_system_with_no_conflict_among_known_keys_prints_no_such_line(
+        pinned, write_cfg, tmp_path, monkeypatch, capsys):
+    printed, _ = solve_here(pinned, write_cfg, tmp_path, monkeypatch, capsys)
+    assert "KNOWN KEYS CONFLICT" not in printed
+
+
+def test_a_group_the_stages_gave_up_on_is_not_found_not_impossible(
+        four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys):
+    printed, _ = solve_here(four_blank_keys, write_cfg, tmp_path, monkeypatch, capsys,
+                            MAX_JOINT_PAIRS=3_000, MAX_STAGE_TRIES=0)
+    (verdict,) = [ln for ln in printed.splitlines() if ln.startswith("NOT SOLVED")][:1]
+    assert verdict.startswith("NOT SOLVED: no pinnable answer was found for master_top, "
+                              "master_sub, area_a, area_b: building them in stages gave up "
+                              "after 0 choices")
+    assert "One may exist, so running it again" in verdict and "can find it" in verdict
+    assert "will not help" not in printed and "a known key has to change" not in printed
+    assert printed.splitlines()[-1].startswith("NOT SOLVED")
+
+
+def test_a_hard_conflict_left_by_the_search_says_none_was_found_and_how_hard_it_looked(pinned):
+    prob = problem(pinned)
+    unit = json.loads((FIXTURES / "pinning.json").read_text())["keys"]["unit:101"]
+    prob.assign["unit_master"] = (int(unit[0]) + 1, *map(int, unit[1:]))
+    prob.searched = (2000, 3)
+    line, = solve_system.not_solved_lines(prob)
+    assert line.startswith("NOT SOLVED: no answer was found after 2,000 candidates for each key "
+                           "and up to 3 improvement passes: the result still has hard conflicts "
+                           "involving unit_master")
+    assert "One may exist, so running it again" in line
 
 
 def test_keys_that_share_a_core_are_grouped_and_others_are_not(pinned):
