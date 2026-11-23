@@ -671,6 +671,8 @@ Detail: [designs/ascii-stack-drawing.md](designs/ascii-stack-drawing.md).
 
 ## D62. Step 7b is a PDF of all the charts, written by hand, designed before it is built
 
+Status: Amended by D72.
+
 The second half of step 7 of core pinning is `pin_system.py --pdf FILE`: every chart of a
 system file as one PDF, one chart to a page (with its drawing under it when `--draw` is
 given), in Courier at one size for the whole document, Letter by default and `--paper a4`.
@@ -807,5 +809,17 @@ more than three keys, or one inside a stage, whose draws all break the rules is 
 build: inside a stage it ends the stages, and the group falls back to the single-key search
 as before D68, with the reason in the verdict. A group of up to three keys built exactly on
 its own keeps D65. Amends D65, D69.
+
+Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D72. In the PDF the chart is set larger than its drawing, and the drawing gives way
+
+The PDF set a whole page, chart and drawing, at one size, at most 10 points, and the
+85-column drawing sets that size (9.5) on every page, so the chart read smaller than the
+room allowed. Now the chart is set at up to 12 points (two more), and the drawing under it
+has its own size, up to 10 points and never above the chart's. The chart is sized first,
+assuming the drawing at 6 points, and the drawing takes what height is left, so a page
+short of room shrinks the drawing before the chart. One pair of sizes serves the whole
+document, as one size did. The fixture's pages come out at 12 and 9.5. Amends D62.
 
 Detail: [design.md, "Pinning"](design.md#pinning).

@@ -350,8 +350,9 @@ the output is exactly as above, and `check_charts` reads a drawn chart the same 
 one. A sample is in [docs/designs/ascii-stack-drawing.md](docs/designs/ascii-stack-drawing.md).
 
 To print them, `--pdf charts.pdf` writes every chart as one PDF instead, a page to a chart
-(with its drawing under it if you also give `--draw`), in a fixed monospaced font and size
-so the columns line up on paper. It is Letter-sized unless you give `--paper a4`, it
+(with its drawing under it if you also give `--draw`), in a fixed monospaced font, the chart
+in a larger size than its drawing if the page is short of room, so the columns line up on
+paper. It is Letter-sized unless you give `--paper a4`, it
 records no date or name beyond what the charts hold, and, like `--out`, it will not replace
 a file without `--force`. `--pdf` and `--out` are alternatives. The PDF is made by a small
 writer in this repository, with no extra package.

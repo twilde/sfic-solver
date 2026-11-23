@@ -504,8 +504,10 @@ the simulated lock's geometry, so the drawing is checked, not only looked at.
 With `--pdf` the same text goes to one PDF instead, a page to a chart (D62,
 [designs/pdf-output.md](designs/pdf-output.md)). `pdfwriter.pages_to_pdf` writes a PDF 1.4
 file by hand with the standard library: Courier, a standard font, so nothing is embedded; one
-size for the whole document, the largest up to 10 points in half points at which the widest
-line and the longest page fit the margins (below 6 points it refuses); a `Page n of N` footer;
+size for the charts of the whole document, the largest up to 12 points in half points at which
+the widest line and the longest page fit the margins, and one smaller size for the drawings
+(up to 10 points and no more than the chart's), which gives way to the chart when the page is
+short of room (D72); below 6 points for either it refuses; a `Page n of N` footer;
 and no date, author or file name, so equal runs give equal bytes. `pin_system` shares one
 file-writing helper between `--out` and `--pdf`, which are alternatives. The tests read the
 PDF back with a small reader of their own that checks every offset, length and count, so the

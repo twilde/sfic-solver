@@ -4,7 +4,7 @@ import pytest
 
 from pdfread import read_pdf
 from sfic_solver import pdfwriter
-from sfic_solver.pdfwriter import PdfError, pages_to_pdf
+from sfic_solver.pdfwriter import Page, PdfError, pages_to_pdf
 
 CHART = ["Key System = Example building", "Core = Unit cores (unit:101)", "",
          "T/D      4  6  9", "Bottom   5  3  0"]
@@ -65,7 +65,81 @@ def test_every_page_fits_between_the_margins_at_the_largest_size_that_does(paper
 
 def test_short_pages_are_set_at_the_largest_size_and_no_larger():
     page, = read_pdf(pages_to_pdf([CHART])).pages
-    assert page.size == pdfwriter.MAX_SIZE == 10
+    assert page.size == pdfwriter.MAX_SIZE == 12
+    assert (page.drawing, page.drawing_size) == (0, None)
+
+
+DRAWING = [f"{n:2} " + "|" * 82 for n in range(31)]          # 85 columns, like a real drawing
+
+
+def drawn(chart=CHART, drawing=DRAWING):
+    return Page(chart + [""], drawing)
+
+
+def assert_drawn_page_fits(page, chart, drawing, width, height):
+    """The chart, then the drawing under it, both inside the margins, the last line above
+    the footer; the chart's lines at its leading and the drawing's at its own."""
+    margin = pdfwriter.MARGIN
+    assert page.lines == chart + [""] + drawing and page.drawing == len(drawing)
+    assert max(map(len, chart)) * pdfwriter.CHAR_WIDTH * page.size <= width - 2 * margin
+    assert max(map(len, drawing)) * pdfwriter.CHAR_WIDTH * page.drawing_size <= width - 2 * margin
+    assert page.leading == pytest.approx(page.size * pdfwriter.LEADING, abs=0.01)
+    assert page.drawing_leading == pytest.approx(page.drawing_size * pdfwriter.LEADING, abs=0.01)
+    # The blank line that ends the chart is set at the chart's leading, then the drawing.
+    last = page.y - (len(chart) + 1) * page.leading - (len(drawing) - 1) * page.drawing_leading
+    assert page.y <= height - margin and last >= margin - 1e-6
+
+
+@pytest.mark.parametrize("paper", sorted(pdfwriter.PAPER))
+def test_a_chart_with_room_for_its_drawing_is_set_two_points_larger_than_before(paper):
+    """The drawing is the wide part: 85 columns sets its size, as it did when one size
+    served the page (9.5 points), and the chart above it is larger (it was 9.5 too)."""
+    width, height = pdfwriter.PAPER[paper]
+    page, = read_pdf(pages_to_pdf([drawn()], paper)).pages
+    assert (page.size, page.drawing_size) == (12, 9.5)
+    assert_drawn_page_fits(page, CHART, DRAWING, width, height)
+
+
+@pytest.mark.parametrize("paper", sorted(pdfwriter.PAPER))
+def test_a_tall_drawing_shrinks_before_the_chart_does(paper):
+    width, height = pdfwriter.PAPER[paper]
+    tall = [f"{n:2} " + "|" * 82 for n in range(60)]
+    page, = read_pdf(pages_to_pdf([drawn(drawing=tall)], paper)).pages
+    assert page.size == pdfwriter.MAX_SIZE
+    assert pdfwriter.MIN_SIZE <= page.drawing_size < 9.5
+    assert_drawn_page_fits(page, CHART, tall, width, height)
+    # the largest size that fits: half a point more would not
+    bigger = (page.drawing_size + pdfwriter.STEP) * pdfwriter.LEADING
+    last = page.y - (len(CHART) + 1) * page.leading - (len(tall) - 1) * bigger
+    assert last < pdfwriter.MARGIN
+
+
+def test_the_chart_gives_way_only_when_the_drawing_is_already_as_small_as_allowed():
+    page, = read_pdf(pages_to_pdf([drawn(drawing=["|" * 20] * 90)])).pages
+    assert page.drawing_size == pdfwriter.MIN_SIZE and pdfwriter.MIN_SIZE < page.size < 12
+    with pytest.raises(PdfError, match="page 1 would need a font smaller than 6 points"):
+        pages_to_pdf([drawn(drawing=["|" * 20] * 200)])
+
+
+def test_one_size_for_the_chart_and_one_for_the_drawing_serve_every_page():
+    short, tall = drawn(), drawn(drawing=["|" * 80] * 55)
+    doc = read_pdf(pages_to_pdf([short, tall, short]))
+    assert len({page.size for page in doc.pages}) == 1
+    assert len({page.drawing_size for page in doc.pages}) == 1
+    assert doc.pages[0].drawing_size < 9.5                   # the tall one sets it for all
+
+
+def test_a_drawing_too_wide_for_the_page_is_refused_without_quoting_it():
+    with pytest.raises(PdfError, match="page 2 would need a font smaller than 6 points") as caught:
+        pages_to_pdf([drawn(), drawn(drawing=["|" * 150])])
+    assert "|" not in str(caught.value)
+
+
+def test_the_drawing_is_never_larger_than_the_chart():
+    page, = read_pdf(pages_to_pdf([drawn(["x" * 75] * 5, ["|" * 30] * 10)])).pages
+    assert (page.size, page.drawing_size) == (11, 10)         # the drawing's own limit
+    page, = read_pdf(pages_to_pdf([drawn(["x" * 100] * 5, ["|" * 30] * 10)])).pages
+    assert (page.size, page.drawing_size) == (8, 8)           # the chart's size
 
 
 def test_the_footer_is_centred_in_the_bottom_margin():
@@ -107,11 +181,13 @@ def test_an_unknown_paper_is_refused():
 
 def test_pdfium_reads_the_file_the_way_the_writer_meant(tmp_path):
     pdfium = pytest.importorskip("pypdfium2")
-    pages = [CHART, ["Core = Area A cores", "", "T/D  1  2", "Stacks (to scale)"]]
+    pages = [CHART, Page(["Core = Area A cores", "", "T/D  1  2", ""],
+                         ["Stacks (to scale)", "+---+"])]
     path = tmp_path / "charts.pdf"
     path.write_bytes(pages_to_pdf(pages))
     document = pdfium.PdfDocument(str(path))
     assert len(document) == 2
-    for number, (lines, page) in enumerate(zip(pages, document), 1):
-        text = page.get_textpage().get_text_range()
+    for number, (page, rendered) in enumerate(zip(pages, document), 1):
+        lines = page if isinstance(page, list) else page.chart + page.drawing
+        text = rendered.get_textpage().get_text_range()
         assert text.split() == (" ".join(lines) + f" Page {number} of 2").split()

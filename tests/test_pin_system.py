@@ -9,7 +9,7 @@ import pytest
 
 from conftest import FIXTURES, ROOT, call_main, run_script
 from pdfread import read_pdf
-from sfic_solver import charts, pin_system
+from sfic_solver import charts, pdfwriter, pin_system
 from sfic_solver.check_charts import check_chart
 
 _spec = importlib.util.spec_from_file_location(
@@ -190,6 +190,25 @@ def test_pdf_writes_a_page_to_each_chart_with_the_charts_own_lines(tmp_path, fla
     assert pdf_lines(target) == charts_as_lines(chart_text(*flags))
     assert len(pdf_lines(target)) == 8
     assert guard.is_stray(target.name)       # the file the command writes is one the guard refuses
+
+
+@pytest.mark.parametrize("paper", ["letter", "a4"])
+def test_pdf_sets_the_chart_larger_than_its_drawing_and_both_fit_the_page(tmp_path, paper):
+    plain, drawn = tmp_path / "plain.pdf", tmp_path / "drawn.pdf"
+    assert run_script("pin_system", PINNING, "--date", DATE, "--pdf", plain,
+                      "--paper", paper).returncode == 0
+    assert run_script("pin_system", PINNING, "--date", DATE, "--pdf", drawn, "--draw",
+                      "--paper", paper).returncode == 0
+    width, height = pdfwriter.PAPER[paper]
+    for page in read_pdf(plain.read_bytes()).pages:
+        assert (page.size, page.drawing) == (12, 0)
+    for page in read_pdf(drawn.read_bytes()).pages:
+        assert (page.size, page.drawing_size) == (12, 9.5)      # the fixture's drawings fit
+        assert page.drawing == 31
+        last = page.y - (len(page.lines) - page.drawing) * page.leading \
+            - (page.drawing - 1) * page.drawing_leading
+        assert page.y <= height - pdfwriter.MARGIN and last >= pdfwriter.MARGIN - 1e-6
+        assert 85 * pdfwriter.CHAR_WIDTH * page.drawing_size <= width - 2 * pdfwriter.MARGIN
 
 
 def test_pdf_defaults_to_letter_and_takes_a4(tmp_path):

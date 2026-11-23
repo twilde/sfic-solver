@@ -28,7 +28,7 @@ from pathlib import Path
 
 from .chartwriter import core_label, draw_stacks, format_chart, join_charts
 from .config import load_or_exit
-from .pdfwriter import PAPER, PdfError, pages_to_pdf
+from .pdfwriter import PAPER, Page, PdfError, pages_to_pdf
 from .pinning import pin_chambers
 
 MAX_LISTED = 30        # lines of unpinnable chambers before "... and N more"
@@ -50,10 +50,10 @@ def iso_date(text):
 
 
 def build(cfg, date, draw=False):
-    """(charts, problems): one chart text per core and change key, and an UNPINNABLE line
-    for every chamber that cannot be pinned (then there are no charts). With `draw`, each
-    chart is followed by a blank line and a drawing of its pin stacks."""
-    texts, problems = [], []
+    """(charts, problems): one (chart text, drawing text) pair per core and change key, and
+    an UNPINNABLE line for every chamber that cannot be pinned (then there are no charts).
+    The drawing of its pin stacks is "" unless `draw`."""
+    charts, problems = [], []
     for core in cfg.cores:
         control = cfg.control_keys[core["control"]]
         for change in core["changes"]:
@@ -64,10 +64,22 @@ def build(cfg, date, draw=False):
             if not errors:
                 text = format_chart(cfg.name, cfg.pinning.name, core_label(core, change),
                                     date, control, keys, chambers)
-                if draw:
-                    text += "\n" + draw_stacks(cfg.pinning, chambers)
-                texts.append(text)
-    return texts, problems
+                drawing = draw_stacks(cfg.pinning, chambers) if draw else ""
+                charts.append((text, drawing))
+    return charts, problems
+
+
+def chart_text(chart, drawing):
+    """A chart as printed: with its drawing, if any, after a blank line."""
+    return chart + "\n" + drawing if drawing else chart
+
+
+def chart_page(chart, drawing):
+    """A chart as a PDF page: the chart's lines, ending in the blank line, and the drawing's."""
+    lines = chart.rstrip("\n").split("\n")
+    if not drawing:
+        return Page(lines)
+    return Page(lines + [""], drawing.rstrip("\n").split("\n"))
 
 
 def write_new_file(path, data, force):
@@ -116,7 +128,7 @@ def main(argv=None):
         sys.exit(f"error: {args.config}: the system file does not set pinning, which the pin "
                  f"sizes need (for example \"pinning\": \"A2\")")
 
-    texts, problems = build(cfg, args.date or today(), args.draw)
+    charts, problems = build(cfg, args.date or today(), args.draw)
     if problems:
         for line in problems[:MAX_LISTED]:
             print(line, file=sys.stderr)
@@ -125,18 +137,18 @@ def main(argv=None):
         print("no charts printed: some cores cannot be pinned (check_system.py says why)",
               file=sys.stderr)
         return 1
+    texts = [chart_text(*chart) for chart in charts]
     if args.pdf:
         try:
-            data = pages_to_pdf([text.rstrip("\n").split("\n") for text in texts],
-                                args.paper or "letter")
+            data = pages_to_pdf([chart_page(*chart) for chart in charts], args.paper or "letter")
         except PdfError as e:
             sys.exit(f"error: cannot make the PDF: {e}")
         write_new_file(Path(args.pdf), data, args.force)
-        print(f"wrote {len(texts)} chart(s) to {args.pdf}; they are key data, so keep the "
+        print(f"wrote {len(charts)} chart(s) to {args.pdf}; they are key data, so keep the "
               f"file and any printed pages outside the repository", file=sys.stderr)
     elif args.out:
         write_new_file(Path(args.out), join_charts(texts), args.force)
-        print(f"wrote {len(texts)} chart(s) to {args.out}; they are key data, so keep the file "
+        print(f"wrote {len(charts)} chart(s) to {args.out}; they are key data, so keep the file "
               f"outside the repository", file=sys.stderr)
     else:
         sys.stdout.write(join_charts(texts))
