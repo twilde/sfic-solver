@@ -66,17 +66,17 @@ def font_sizes(pages, width, height):
     that is left. One pair serves every page, so no page looks different from the next."""
     across, down = width - 2 * MARGIN, height - 2 * MARGIN
     chart_size = MAX_SIZE
-    for number, page in enumerate(pages, 1):
+    for page_no, page in enumerate(pages, 1):
         n, m = len(page.chart), len(page.drawing)
         limit = across / (CHAR_WIDTH * max(map(len, page.chart)))
         reserved = m and MIN_SIZE * (m - 1) * LEADING
         limit = min(limit, (down - reserved) / (1 + (n if m else n - 1) * LEADING))
         chart_size = min(chart_size, floor_to_step(limit))
         if chart_size < MIN_SIZE:
-            raise PdfError(f"page {number} would need a font smaller than {MIN_SIZE:g} points "
+            raise PdfError(f"page {page_no} would need a font smaller than {MIN_SIZE:g} points "
                            f"to fit the page")
     drawing_size = None
-    for number, page in enumerate(pages, 1):
+    for page_no, page in enumerate(pages, 1):
         n, m = len(page.chart), len(page.drawing)
         if not m:
             continue
@@ -87,7 +87,7 @@ def font_sizes(pages, width, height):
             limit = min(limit, left / ((m - 1) * LEADING))
         size = floor_to_step(limit)
         if size < MIN_SIZE:
-            raise PdfError(f"page {number} would need a font smaller than {MIN_SIZE:g} points "
+            raise PdfError(f"page {page_no} would need a font smaller than {MIN_SIZE:g} points "
                            f"to fit the page")
         drawing_size = size if drawing_size is None else min(drawing_size, size)
     return chart_size, drawing_size
@@ -126,9 +126,9 @@ def pages_to_pdf(pages, paper="letter"):
     if not pages or any(not page.chart for page in pages):
         raise PdfError("there is nothing to write")
     width, height = PAPER[paper]
-    encoded = [Page([encode(number, line) for line in page.chart],
-                    [encode(number, line) for line in page.drawing])
-               for number, page in enumerate(pages, 1)]
+    encoded = [Page([encode(page_no, line) for line in page.chart],
+                    [encode(page_no, line) for line in page.drawing])
+               for page_no, page in enumerate(pages, 1)]
     sizes = font_sizes(pages, width, height)
 
     # Objects 1 to 4 are the catalogue, the page tree, the font and the document info;
@@ -137,8 +137,8 @@ def pages_to_pdf(pages, paper="letter"):
                b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>",
                f"<< /Title ({TITLE}) /Producer ({PRODUCER}) >>".encode("ascii")]
     kids = []
-    for number, page in enumerate(encoded, 1):
-        stream = page_content(page, sizes, f"Page {number} of {len(pages)}".encode("ascii"),
+    for page_no, page in enumerate(encoded, 1):
+        stream = page_content(page, sizes, f"Page {page_no} of {len(pages)}".encode("ascii"),
                               width, height)
         objects.append(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
         objects.append((f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {width} {height}] "

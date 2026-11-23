@@ -7,10 +7,11 @@ real reader would refuse fails here.
 import re
 from collections import namedtuple
 
+# What was read back from a page (not pdfwriter.Page, which is what is written):
 # `size` and `leading` are the chart's; `drawing` is the number of the page's last lines that
 # are a drawing, set at `drawing_size` and `drawing_leading` (None without one).
-Page = namedtuple("Page", "lines footer size leading x y footer_x footer_y media "
-                          "drawing drawing_size drawing_leading")
+ReadPage = namedtuple("ReadPage", "lines footer size leading x y footer_x footer_y media "
+                                  "drawing drawing_size drawing_leading")
 Document = namedtuple("Document", "pages title producer")
 
 
@@ -83,7 +84,7 @@ def read_pdf(data):
         drawing = len(strings(text.split(b"\n/F1 ", 2)[-1])) if len(sizes) == 2 else 0
         x, y = map(float, re.search(rb"\n([\d.]+) ([\d.]+) Td", text).groups())
         footer_x, footer_y = map(float, re.search(rb"\n([\d.]+) ([\d.]+) Td", footer).groups())
-        pages.append(Page(lines, strings(footer)[0], sizes[0], leadings[0], x, y, footer_x,
+        pages.append(ReadPage(lines, strings(footer)[0], sizes[0], leadings[0], x, y, footer_x,
                           footer_y, (int(page.group(1)), int(page.group(2))), drawing,
                           sizes[1] if drawing else None, leadings[1] if drawing else None))
     return Document(pages, title, producer)
