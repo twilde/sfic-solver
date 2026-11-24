@@ -59,28 +59,37 @@ def floor_to_step(size):
     return int(size / STEP + 1e-9) * STEP
 
 
+def visible_width(line):
+    """The columns a line takes: spaces at its end print nothing."""
+    return len(line.rstrip(" "))
+
+
 def wrap_line(line, columns=WRAP_COLUMNS):
     """A chart line as the lines it is set in: itself, or, if it is `Name = value`, longer
     than `columns` and can be, broken at spaces into lines of at most `columns`, each
     after the first indented to the start of the value (as far in as `Name = ` is long).
 
-    Each line is filled as far as it will go. A line that cannot be broken to fit (no
-    `Name = `, or a word that is longer than the room left after the indent, the first
-    included) is returned whole, never cut: it then sets the font size down to fit, or is
-    refused, as it was before lines were wrapped. Cut at the indent and joined with a
-    space, the lines are the original again."""
+    Each line is filled as far as it will go. A line is broken only at a space that has a
+    word after it, so an empty word (from a doubled space, or a space at the end) stays on
+    the line it follows, and spaces at the end of a line print nothing and are not counted.
+    A line that cannot be broken to fit (no `Name = `, or a word that is longer than the
+    room left after the indent, the first included) is returned whole, never cut: it then
+    sets the font size down to fit, or is refused, as it was before lines were wrapped. Cut
+    at the indent and joined with a space, the lines are the original again."""
     at = line.find(NAME_VALUE)
-    if len(line) <= columns or at < 0:
+    if visible_width(line) <= columns or at < 0:
         return [line]
     indent = at + len(NAME_VALUE)
     words = line[indent:].split(" ")
     lines = [line[:indent] + words[0]]
     for word in words[1:]:
-        if len(lines[-1]) + 1 + len(word) <= columns:
+        if not word:
+            lines[-1] += " "
+        elif len(lines[-1]) + 1 + len(word) <= columns:
             lines[-1] += " " + word
         else:
             lines.append(" " * indent + word)
-    return lines if all(len(part) <= columns for part in lines) else [line]
+    return lines if all(visible_width(part) <= columns for part in lines) else [line]
 
 
 def font_sizes(pages, width, height):
@@ -96,7 +105,7 @@ def font_sizes(pages, width, height):
     chart_size = MAX_SIZE
     for page_no, page in enumerate(pages, 1):
         n, m = len(page.chart), len(page.drawing)
-        limit = across / (CHAR_WIDTH * max(map(len, page.chart)))
+        limit = across / (CHAR_WIDTH * max(map(visible_width, page.chart)))
         reserved = m and MIN_SIZE * (m - 1) * LEADING
         limit = min(limit, (down - reserved) / (1 + (n if m else n - 1) * LEADING))
         chart_size = min(chart_size, floor_to_step(limit))

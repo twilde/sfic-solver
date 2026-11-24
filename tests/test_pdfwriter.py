@@ -1,5 +1,7 @@
 """pdfwriter: a hand-written PDF that a reader of our own, and where installed pdfium and
 poppler, take as one page to a chart, with exactly the chart's lines."""
+import random
+
 import pytest
 
 from pdfread import read_pdf, unwrap
@@ -257,11 +259,66 @@ def test_a_line_that_cannot_be_wrapped_within_the_limit_is_left_whole(line):
     assert pdfwriter.wrap_line(line) == [line]
 
 
+def visible(part):
+    """The columns a line takes: spaces at its end print nothing."""
+    return len(part.rstrip(" "))
+
+
+def check_wrapped(line, parts, indent=7):
+    """What wrapping a `Name = value` line promises: it rejoins to the line, each part is at
+    most 70 columns, and each continuation begins at the value's column and not further in
+    (a continuation is never only the indent, and a space of the line is not lost)."""
+    assert " ".join([parts[0]] + [part[indent:] for part in parts[1:]]) == line
+    assert all(part[:indent] == " " * indent and part[indent:indent + 1] not in ("", " ")
+               for part in parts[1:])
+    assert all(visible(part) <= pdfwriter.WRAP_COLUMNS for part in parts)
+
+
 def test_wrapping_a_line_with_repeated_spaces_still_rejoins_to_the_original():
     line = "Core = " + "ab  cd " * 20 + "end"
     parts = pdfwriter.wrap_line(line)
-    assert len(parts) > 1 and all(len(part) <= 70 for part in parts)
-    assert " ".join([parts[0]] + [part[7:] for part in parts[1:]]) == line
+    assert len(parts) > 1
+    check_wrapped(line, parts)
+
+
+@pytest.mark.parametrize("tail", [" ", "   ", "  yy", "   yy", " yy ", "  yy  zz"])
+def test_an_empty_word_never_starts_a_continuation_line(tail):
+    """A trailing space or a doubled space at the break stays on the line it follows."""
+    line = "Core = " + "x" * 63 + tail
+    parts = pdfwriter.wrap_line(line)
+    check_wrapped(line, parts)
+    assert [part.strip() for part in parts][-1] != ""
+
+
+def test_a_trailing_space_after_a_full_line_does_not_make_a_second_line():
+    line = "Core = " + "x" * 63 + " "                        # 70 columns and a space
+    assert pdfwriter.wrap_line(line) == [line]
+
+
+def test_a_doubled_space_at_the_break_goes_to_the_line_before_it():
+    parts = pdfwriter.wrap_line("Core = " + "x" * 63 + "  yy")
+    assert parts == ["Core = " + "x" * 63 + " ", " " * 7 + "yy"]
+
+
+def test_a_trailing_space_does_not_count_as_a_column_in_the_size():
+    chart = ["Core = " + "x" * 63 + " "]                      # 71 characters, 70 columns
+    page, = read_pdf(pages_to_pdf([chart])).pages
+    assert page.size == 12 and page.lines == chart
+
+
+def test_wrapping_holds_its_promises_for_awkward_lines():
+    """Random names, words and runs of spaces (invented, seeded): every result rejoins to its
+    line and keeps the indent exactly, and is all within 70 columns or the line whole."""
+    rng = random.Random(7)
+    for _ in range(3000):
+        name = "".join(rng.choice("abc_(\\") for _ in range(rng.randint(1, 20)))
+        words = ["".join(rng.choice("xyz)") for _ in range(rng.randint(0, 25)))
+                 for _ in range(rng.randint(1, 18))]
+        line = f"{name} = " + " ".join(words)
+        parts = pdfwriter.wrap_line(line)
+        if parts == [line]:
+            continue
+        check_wrapped(line, parts, indent=len(name) + 3)
 
 
 def test_one_long_name_does_not_shrink_the_document():

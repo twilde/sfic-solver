@@ -67,8 +67,11 @@ PDF has no layout of its own to disagree with the chart.
   are chosen from the lines as they are set, so the height rule counts the continuation
   lines. A line that cannot be wrapped to 70 columns, because a word is longer than the room
   the indent leaves, is left whole, not cut: it sets the size down to fit, or the command
-  refuses, exactly as before, saying which page and never quoting the line. Wrapping is
-  done in the PDF writer alone, so the text output and what `check_charts` reads are
+  refuses, exactly as before, saying which page and never quoting the line. A line is
+  broken only at a space that has a word after it, so a doubled space, or a space at the
+  end of a line, stays on the line it follows (no line of the chart is made of the indent
+  alone), and spaces at the end of a line print nothing and are not counted in its width.
+  Wrapping is done in the PDF writer alone, so the text output and what `check_charts` reads are
   unchanged. The limit is the same on A4, which holds 67 columns at 12 points, so a document
   with a wrapped line is set at 11.5 there.
 - **Letter by default, `--paper a4` for A4.** SFIC is a US standard, so Letter is the
