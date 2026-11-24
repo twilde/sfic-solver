@@ -26,9 +26,9 @@ for a page.
 ## What it does
 
 `pin_system.py system.json --pdf charts.pdf` writes one PDF with one page per chart, in the
-order the charts are printed, and prints nothing else on standard output. With `--draw`
-each page carries the chart's drawing under it, exactly as the text output does. The text
-is the chart text, line for line, except that a long header line is wrapped (below): the
+order the charts are printed, and prints nothing else on standard output. With `--draw` each
+page carries the chart's drawing under it, exactly as the text output does. The text is the
+chart text, line for line, except that a long `Name = value` line is wrapped (below): the
 PDF has no layout of its own to disagree with the chart.
 
 - **One chart to a page.** A chart with its drawing is up to 46 lines and 85 columns, which

@@ -1,12 +1,11 @@
 """Writing the pinning charts as one PDF (docs/designs/pdf-output.md).
 
 One page for each chart, with its drawing under it if it has one, set in Courier, which
-every PDF reader and printer has, so nothing is embedded. A long line of a chart is wrapped
-at a space. The file is written by hand with
-the standard library, and does nothing but pages of plain lines of text: no images, no
-fonts of its own, no links. It records no date, author or file name, so equal input gives
-equal bytes. A chart is key data, so an error says which page and what kind of problem and
-never what was written.
+every PDF reader and printer has, so nothing is embedded. A long line of a chart is
+wrapped at a space. The file is written by hand with the standard library, and does
+nothing but pages of plain lines of text: no images, no fonts of its own, no links. It
+records no date, author or file name, so equal input gives equal bytes. A chart is key
+data, so an error says which page and what kind of problem and never what was written.
 """
 from collections import namedtuple
 
@@ -16,8 +15,8 @@ CHAR_WIDTH = 0.6           # Courier is 0.6 em wide, a character at a time
 LEADING = 1.15             # line pitch, in em
 MAX_SIZE, DRAWING_MAX_SIZE, MIN_SIZE, STEP = 12.0, 10.0, 6.0, 0.5     # points
 FOOTER_SIZE = 8
-WRAP_COLUMNS = 70          # the width at which a chart is set at MAX_SIZE on Letter: 504 / (0.6 * 12)
-NAME_VALUE = " = "         # between the name and the value of a header line
+WRAP_COLUMNS = 70          # where a chart is set at MAX_SIZE on Letter: 504 / (0.6 * 12)
+NAME_VALUE = " = "         # between the name and the value of a `Name = value` line
 TITLE, PRODUCER = "Pinning charts", "sfic-solver"
 ENCODING = "cp1252"        # the PDF's WinAnsiEncoding
 

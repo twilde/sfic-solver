@@ -507,15 +507,16 @@ file by hand with the standard library: Courier, a standard font, so nothing is 
 size for the charts of the whole document, the largest up to 12 points in half points at which
 the widest line and the longest page fit the margins, and one smaller size for the drawings
 (up to 10 points and no more than the chart's), which gives way to the chart when the page is
-short of room (D72); below 6 points for either it refuses; a chart line `Name = value` of over 70 columns (the width
-at which a chart is set at 12 points on Letter) is wrapped at spaces, in the writer alone, with
-its continuation lines indented under the value, and the sizes are chosen from the lines as
-wrapped, so one long core name does not set every page small (D73); a line that cannot be
-wrapped within 70 columns is left whole and sets the size down as before; a `Page n of N` footer;
-and no date, author or file name, so equal runs give equal bytes. `pin_system` shares one
-file-writing helper between `--out` and `--pdf`, which are alternatives. The tests read the
-PDF back with a small reader of their own that checks every offset, length and count, so the
-core suite needs no PDF package, and with pdfium where the scan extra is installed.
+short of room (D72); below 6 points for either it refuses; a chart line `Name = value` of over
+70 columns (the width at which a chart is set at 12 points on Letter) is wrapped at spaces, in
+the writer alone, with its continuation lines indented under the value, and the sizes are
+chosen from the lines as wrapped, so one long core name does not set every page small (D73); a
+line that cannot be wrapped within 70 columns is left whole and sets the size down as before; a
+`Page n of N` footer; and no date, author or file name, so equal runs give equal bytes.
+`pin_system` shares one file-writing helper between `--out` and `--pdf`, which are
+alternatives. The tests read the PDF back with a small reader of their own that checks every
+offset, length and count, so the core suite needs no PDF package, and with pdfium where the
+scan extra is installed.
 
 **What is built.** All seven steps of the plan in core-pinning.md: the key-space object
 (step 1), the pinning library and simulated lock (step 2), the guard and the conformance
