@@ -38,11 +38,21 @@ chart.
   `Page 3 of 8`, so a loose sheet can be put back in order and a missing one noticed.
 - **A fixed font.** The text is set in Courier, which every PDF reader and printer has
   (one of the 14 standard fonts), so nothing is embedded and the characters of the drawing
-  line up. One font size serves the whole document, so that no page looks different from
-  the next: the largest, up to 10 points, at which the widest line fits the page width and
-  the longest chart fits its height, in half-point steps. For the fixture with drawings
-  that is 9.5 points on a Letter page with three-quarter-inch margins. If a chart would
-  need less than 6 points the command stops and says which chart and why, rather than
+  line up. The chart is the sheet the technician reads, so it comes first (D72, which
+  amends this paragraph; the first version set the whole page at one size, up to 10
+  points). One chart size serves the whole document, so that no page looks different
+  from the next: the largest, up to 12 points and in half-point steps, at which the
+  widest line fits the page width and the longest page fits its height with its drawing,
+  if it has one, set as small as 6 points. The drawing under it has one size for the
+  whole document too: the largest, up to 10 points and never above the chart's, at which
+  its widest line fits the width and the page fits the height that is left. On the fixture
+  with drawings that is 12 points for the chart and 9.5 for the drawing on Letter or A4
+  with three-quarter-inch margins, which leave room to spare; the 85-column drawing's
+  width is what sets its 9.5. A system with taller stacks takes the room from the
+  drawing first (on Letter, 60 lines of drawing under a 15-line chart leave the chart at 12
+  and the drawing at 6.5), and
+  only a drawing that cannot fit even at 6 points makes the chart smaller. If either would
+  need less than 6 points the command stops and says which page and why, rather than
   printing something nobody can read.
 - **Letter by default, `--paper a4` for A4.** SFIC is a US standard, so Letter is the
   default; A4 is a one-word change.
@@ -106,8 +116,10 @@ writes with a small reader of their own, which is itself the check that the file
 - The text round-trips: the strings in each page's content stream, unescaped and decoded,
   are the chart's lines, one for one, including the parentheses and backslashes, and the
   footer says `Page n of N`.
-- Every line fits the page: with the chosen font size and the 0.6-em width of Courier, the
-  widest line is inside the margins on every page, and the last line is above the footer.
+- Every line fits the page: with the chosen font sizes and the 0.6-em width of Courier, the
+  widest line of the chart and of the drawing is inside the margins on every page, and the
+  last line is above the footer. A tall drawing shrinks before the chart does, and the
+  chart is never set smaller than it has to be.
 - Two runs give the same bytes, and the file has no date, no author and no file name in it.
 - A chart that does not fit even at 6 points, and a character outside WinAnsi, stop the
   command with a one-line error that does not quote the chart. A bad path, an existing

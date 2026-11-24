@@ -7,7 +7,11 @@ real reader would refuse fails here.
 import re
 from collections import namedtuple
 
-Page = namedtuple("Page", "lines footer size leading x y footer_x footer_y media")
+# What was read back from a page (not pdfwriter.Page, which is what is written):
+# `size` and `leading` are the chart's; `drawing` is the number of the page's last lines that
+# are a drawing, set at `drawing_size` and `drawing_leading` (None without one).
+ReadPage = namedtuple("ReadPage", "lines footer size leading x y footer_x footer_y media "
+                                  "drawing drawing_size drawing_leading")
 Document = namedtuple("Document", "pages title producer")
 
 
@@ -73,10 +77,14 @@ def read_pdf(data):
         stream = body[length.end():-len(b"\nendstream")]
         assert body.endswith(b"\nendstream") and len(stream) == int(length.group(1))
         text, footer = stream.split(b"\nET\nBT\n")
-        size = float(re.search(rb"/F1 ([\d.]+) Tf", text).group(1))
-        leading = float(re.search(rb"([\d.]+) TL", text).group(1))
+        sizes = [float(size) for size in re.findall(rb"^/F1 ([\d.]+) Tf$", text, re.M)]
+        leadings = [float(lead) for lead in re.findall(rb"^([\d.]+) TL$", text, re.M)]
+        assert len(sizes) == len(leadings) <= 2
+        lines = strings(text)
+        drawing = len(strings(text.split(b"\n/F1 ", 2)[-1])) if len(sizes) == 2 else 0
         x, y = map(float, re.search(rb"\n([\d.]+) ([\d.]+) Td", text).groups())
         footer_x, footer_y = map(float, re.search(rb"\n([\d.]+) ([\d.]+) Td", footer).groups())
-        pages.append(Page(strings(text), strings(footer)[0], size, leading, x, y,
-                          footer_x, footer_y, (int(page.group(1)), int(page.group(2)))))
+        pages.append(ReadPage(lines, strings(footer)[0], sizes[0], leadings[0], x, y, footer_x,
+                          footer_y, (int(page.group(1)), int(page.group(2))), drawing,
+                          sizes[1] if drawing else None, leadings[1] if drawing else None))
     return Document(pages, title, producer)
