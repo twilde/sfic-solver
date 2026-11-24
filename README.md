@@ -352,7 +352,10 @@ one. A sample is in [docs/designs/ascii-stack-drawing.md](docs/designs/ascii-sta
 To print them, `--pdf charts.pdf` writes every chart as one PDF instead, a page to a chart
 (with its drawing under it if you also give `--draw`), in a fixed monospaced font so the
 columns line up on paper, the chart a little larger than its drawing (the drawing is set
-smaller if it needs the room). It is Letter-sized unless you give `--paper a4`, it records
+smaller if it needs the room). A chart line longer than 70 columns, such as a core with a
+long name, is wrapped at a space in the PDF, the continuation lines indented under the
+value, so that one long line does not make every page small; the text output is not
+wrapped. It is Letter-sized unless you give `--paper a4`, it records
 no date or name beyond what the charts hold, and, like `--out`, it will not replace a file
 without `--force`. `--pdf` and `--out` are alternatives. The PDF is made by a small
 writer in this repository, with no extra package.

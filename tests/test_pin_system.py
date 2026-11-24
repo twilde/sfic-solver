@@ -8,7 +8,7 @@ import sys
 import pytest
 
 from conftest import FIXTURES, ROOT, call_main, run_script
-from pdfread import read_pdf
+from pdfread import read_pdf, unwrap
 from sfic_solver import charts, pdfwriter, pin_system
 from sfic_solver.check_charts import check_chart
 
@@ -209,6 +209,43 @@ def test_pdf_sets_the_chart_larger_than_its_drawing_and_both_fit_the_page(tmp_pa
             - (page.drawing - 1) * page.drawing_leading
         assert page.y <= height - pdfwriter.MARGIN and last >= pdfwriter.MARGIN - 1e-6
         assert 85 * pdfwriter.CHAR_WIDTH * page.drawing_size <= width - 2 * pdfwriter.MARGIN
+
+
+LONG_NAME = ("Sample annex north wing utility room cores for the example building "
+             "maintenance storage area and loading dock level two")
+
+
+@pytest.mark.parametrize("flags", [(), ("--draw",)])
+def test_a_long_core_name_is_wrapped_in_the_pdf_only(pinned, tmp_path, flags):
+    """A system with a long core name: the text has the line whole, as before, and the PDF
+    wraps it, so that the chart is still set at 12 points (D73)."""
+    pinned["cores"][0]["name"] = LONG_NAME
+    path = write(tmp_path, pinned)
+    text = chart_text(*flags, path=path)
+    assert f"Core = {LONG_NAME}\n" in text and len(f"Core = {LONG_NAME}") > 110
+    target = tmp_path / "charts.pdf"
+    proc = run_script("pin_system", path, "--date", DATE, "--pdf", target, *flags)
+    assert proc.returncode == 0, proc.stderr
+    doc = read_pdf(target.read_bytes())
+    wrapped = doc.pages[0]
+    chart_lines = wrapped.lines[:len(wrapped.lines) - wrapped.drawing]
+    assert all(len(line) <= pdfwriter.WRAP_COLUMNS for line in chart_lines)
+    assert len(wrapped.lines) > len(charts_as_lines(text)[0])      # it took more lines
+    assert {page.size for page in doc.pages} == {12}
+    if flags:
+        assert {page.drawing_size for page in doc.pages} == {9.5}
+    expected = charts_as_lines(text)
+    assert [unwrap(page.lines[:len(page.lines) - page.drawing]) + page.lines[len(page.lines)
+            - page.drawing:] for page in doc.pages] == expected
+
+
+def test_the_text_of_a_long_core_name_is_what_check_charts_reads_as_before(pinned, tmp_path):
+    pinned["cores"][0]["name"] = LONG_NAME
+    out = tmp_path / "charts.txt"
+    assert run_script("pin_system", write(tmp_path, pinned), "--date", DATE,
+                      "--out", out).returncode == 0
+    parsed = charts.parse_charts(out.read_text())
+    assert dict(parsed[0].metadata)[charts.CORE] == LONG_NAME
 
 
 def test_pdf_defaults_to_letter_and_takes_a4(tmp_path):
