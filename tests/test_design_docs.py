@@ -196,10 +196,20 @@ def d73_entry():
     return text[text.index("## D73."):].split("\n## D", 1)[0]
 
 
+def paragraph(path, start):
+    """The paragraph of a document that begins with `start`: its text up to the next blank
+    line. Missing, it is an error, so that a reworded paragraph is not silently not checked."""
+    text = path.read_text()
+    assert start in text, f"{path.name} no longer has a paragraph that begins {start!r}"
+    return text[text.index(start):].split("\n\n", 1)[0]
+
+
+# Only the paragraphs about the PDF are read in the README and design.md, so that a width
+# given there for something else is not taken for the wrap width.
 WRAP_SOURCES = {
-    "README.md": lambda: (ROOT / "README.md").read_text(),
+    "README.md": lambda: paragraph(ROOT / "README.md", "To print them, `--pdf"),
     "decisions.md, D73": d73_entry,
-    "design.md": lambda: (ROOT / "docs" / "design.md").read_text(),
+    "design.md": lambda: paragraph(ROOT / "docs" / "design.md", "With `--pdf` the same text"),
     "designs/pdf-output.md": lambda: (ROOT / "docs" / "designs" / "pdf-output.md").read_text(),
 }
 
@@ -214,3 +224,12 @@ def test_the_wrap_width_check_reads_the_ways_the_documents_say_it():
     text = ("a line longer than 70 columns, of\nover 71 columns, at most 72 columns, wrapped to "
             "73 columns, wrapped within 74\ncolumns; the 85 columns of a drawing")
     assert wrap_widths(text) == {"70", "71", "72", "73", "74"}
+
+
+def test_a_paragraph_is_the_text_from_its_start_to_the_next_blank_line(tmp_path):
+    doc = tmp_path / "doc.md"
+    doc.write_text("before at most 5 columns\n\nStart here, at most 70\ncolumns.\n\nafter 9 columns\n")
+    assert paragraph(doc, "Start here") == "Start here, at most 70\ncolumns."
+    assert wrap_widths(paragraph(doc, "Start here")) == {"70"}
+    with pytest.raises(AssertionError, match="no longer has a paragraph"):
+        paragraph(doc, "Not there")
