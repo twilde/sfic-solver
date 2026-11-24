@@ -38,6 +38,23 @@ def strings(stream):
     return found
 
 
+def unwrap(lines):
+    """Chart lines with the continuation lines of a wrapped line joined back to it.
+
+    A line `Name = value` that was wrapped goes on as lines that begin with as many spaces
+    as `Name = ` is long (nothing else in a chart begins with a space), so the text is the
+    original again when each is cut at that indent and joined to the line before it with
+    the space it was broken at."""
+    joined, indent = [], None
+    for line in lines:
+        if indent and line.startswith(" " * indent):
+            joined[-1] += " " + line[indent:]
+        else:
+            joined.append(line)
+            indent = line.find(" = ") + 3 if " = " in line else None
+    return joined
+
+
 def read_pdf(data):
     assert data.startswith(b"%PDF-1.4\n") and data.endswith(b"%%EOF\n")
     table = int(re.search(rb"startxref\n(\d+)\n%%EOF\n$", data).group(1))
