@@ -5,6 +5,7 @@ import pytest
 
 from conftest import ROOT
 from helpers import example_charts, parse_rows
+from sfic_solver import pdfwriter
 
 DESIGNS = sorted((ROOT / "docs" / "designs").glob("*.md"))
 STATUSES = {"Draft", "Accepted", "Implemented", "Superseded"}
@@ -177,3 +178,39 @@ def test_design_document_cites_only_logged_decisions():
     numbers = {n for n, _, _ in log_entries()}
     cited = {int(n) for n in re.findall(r"\bD(\d+)\b", DESIGN.read_text())}
     assert cited <= numbers
+
+
+# The width at which the PDF wraps a long chart line is written in the code and in four
+# documents; a test keeps them in step (CLAUDE.md, "Keep docs current").
+
+WRAP_PHRASE = re.compile(r"(?:longer than|of over|at most|wrapped (?:to|within)) (\d+) columns")
+
+
+def wrap_widths(text):
+    """The widths the text gives for where a chart line is wrapped (line breaks ignored)."""
+    return set(WRAP_PHRASE.findall(" ".join(text.split())))
+
+
+def d73_entry():
+    text = (ROOT / "docs" / "decisions.md").read_text()
+    return text[text.index("## D73."):].split("\n## D", 1)[0]
+
+
+WRAP_SOURCES = {
+    "README.md": lambda: (ROOT / "README.md").read_text(),
+    "decisions.md, D73": d73_entry,
+    "design.md": lambda: (ROOT / "docs" / "design.md").read_text(),
+    "designs/pdf-output.md": lambda: (ROOT / "docs" / "designs" / "pdf-output.md").read_text(),
+}
+
+
+@pytest.mark.parametrize("name", WRAP_SOURCES)
+def test_the_documents_give_the_pdfs_wrap_width_the_code_uses(name):
+    assert wrap_widths(WRAP_SOURCES[name]()) == {str(pdfwriter.WRAP_COLUMNS)}, \
+        f"{name} must give the width of pdfwriter.WRAP_COLUMNS wherever it says where lines wrap"
+
+
+def test_the_wrap_width_check_reads_the_ways_the_documents_say_it():
+    text = ("a line longer than 70 columns, of\nover 71 columns, at most 72 columns, wrapped to "
+            "73 columns, wrapped within 74\ncolumns; the 85 columns of a drawing")
+    assert wrap_widths(text) == {"70", "71", "72", "73", "74"}
