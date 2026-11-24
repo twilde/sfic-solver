@@ -511,7 +511,8 @@ short of room (D72); below 6 points for either it refuses; a chart line `Name = 
 70 columns (the width at which a chart is set at 12 points on Letter) is wrapped at spaces, in
 the writer alone, with its continuation lines indented under the value, and the sizes are
 chosen from the lines as wrapped, so one long core name does not set every page small (D73); a
-line that cannot be wrapped within 70 columns is left whole and sets the size down as before; a
+line that cannot be wrapped within 70 columns is left whole and sets the size down as before;
+spaces at the end of a chart line print nothing and are not counted in its width; a
 `Page n of N` footer; and no date, author or file name, so equal runs give equal bytes.
 `pin_system` shares one file-writing helper between `--out` and `--pdf`, which are
 alternatives. The tests read the PDF back with a small reader of their own that checks every
