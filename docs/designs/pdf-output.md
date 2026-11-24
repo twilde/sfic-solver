@@ -26,10 +26,10 @@ for a page.
 ## What it does
 
 `pin_system.py system.json --pdf charts.pdf` writes one PDF with one page per chart, in the
-order the charts are printed, and prints nothing else on standard output. With `--draw`
-each page carries the chart's drawing under it, exactly as the text output does. The text
-is the chart text, line for line: the PDF has no layout of its own to disagree with the
-chart.
+order the charts are printed, and prints nothing else on standard output. With `--draw` each
+page carries the chart's drawing under it, exactly as the text output does. The text is the
+chart text, line for line, except that a long `Name = value` line is wrapped (below): the
+PDF has no layout of its own to disagree with the chart.
 
 - **One chart to a page.** A chart with its drawing is up to 46 lines and 85 columns, which
   fills a page, and a chart without one is about 14 lines. Packing several short charts to
@@ -54,6 +54,26 @@ chart.
   only a drawing that cannot fit even at 6 points makes the chart smaller. If either would
   need less than 6 points the command stops and says which page and why, rather than
   printing something nobody can read.
+- **Long lines are wrapped (D73, which amends D72).** One chart size serves the whole
+  document and the widest line caps it, so a system with long core names (a `Core` line of
+  over a hundred columns) would set every page at about 7 points, though every other line is
+  short, and the 12 points above would never be seen. So a chart line of the form
+  `Name = value` that is longer than 70 columns is broken at spaces, as late as it can be,
+  into lines of at most 70 columns, and each continuation line is indented to the start of
+  the value (`Core = ` is 7 characters, so seven spaces). Seventy columns is the width at
+  which a chart is set at 12 points on Letter, 504 / (0.6 x 12). Only chart lines are
+  wrapped: the drawing keeps its own width and size rules, and a line with no `Name = `,
+  such as a row of pins, is never wrapped, since its columns must stay lined up. The sizes
+  are chosen from the lines as they are set, so the height rule counts the continuation
+  lines. A line that cannot be wrapped to 70 columns, because a word is longer than the room
+  the indent leaves, is left whole, not cut: it sets the size down to fit, or the command
+  refuses, exactly as before, saying which page and never quoting the line. A line is
+  broken only at a space that has a word after it, so a doubled space, or a space at the
+  end of a line, stays on the line it follows (no line of the chart is made of the indent
+  alone), and spaces at the end of a line print nothing and are not counted in its width.
+  Wrapping is done in the PDF writer alone, so the text output and what `check_charts` reads are
+  unchanged. The limit is the same on A4, which holds 67 columns at 12 points, so a document
+  with a wrapped line is set at 11.5 there.
 - **Letter by default, `--paper a4` for A4.** SFIC is a US standard, so Letter is the
   default; A4 is a one-word change.
 - **No dates or identifiers in the file.** A PDF normally records when it was made and by
@@ -115,7 +135,8 @@ writes with a small reader of their own, which is itself the check that the file
   to the number of pages, and each stream's `/Length` equal to its bytes.
 - The text round-trips: the strings in each page's content stream, unescaped and decoded,
   are the chart's lines, one for one, including the parentheses and backslashes, and the
-  footer says `Page n of N`.
+  footer says `Page n of N`. For a chart with a long line, the continuation lines joined to
+  the line they continue are the chart's line again, and none is longer than 70 columns.
 - Every line fits the page: with the chosen font sizes and the 0.6-em width of Courier, the
   widest line of the chart and of the drawing is inside the margins on every page, and the
   last line is above the footer. A tall drawing shrinks before the chart does, and the
@@ -145,6 +166,10 @@ with the charts in `<pre>` blocks and a print stylesheet, and the owner would pr
 PDF. It is the cheapest, and it leaves the font, size and page breaks to the browser, which
 is the problem this document starts with. It also writes a second kind of key-data file
 that the guard does not know.
+
+**A smaller font for the whole document** (what D62 and D72 did when a line was too wide).
+It keeps every line whole, and costs every page its legibility for the sake of one long
+name; wrapping costs the long line a second line.
 
 **Several charts to a page.** Without drawings three or four charts fit a sheet, so a system
 with many cores would need a quarter of the pages. A technician then holds a sheet with

@@ -1,11 +1,11 @@
 """Writing the pinning charts as one PDF (docs/designs/pdf-output.md).
 
 One page for each chart, with its drawing under it if it has one, set in Courier, which
-every PDF reader and printer has, so nothing is embedded. The file is written by hand with
-the standard library, and does nothing but pages of plain lines of text: no images, no
-fonts of its own, no links. It records no date, author or file name, so equal input gives
-equal bytes. A chart is key data, so an error says which page and what kind of problem and
-never what was written.
+every PDF reader and printer has, so nothing is embedded. A long line of a chart is
+wrapped at a space. The file is written by hand with the standard library, and does
+nothing but pages of plain lines of text: no images, no fonts of its own, no links. It
+records no date, author or file name, so equal input gives equal bytes. A chart is key
+data, so an error says which page and what kind of problem and never what was written.
 """
 from collections import namedtuple
 
@@ -15,6 +15,8 @@ CHAR_WIDTH = 0.6           # Courier is 0.6 em wide, a character at a time
 LEADING = 1.15             # line pitch, in em
 MAX_SIZE, DRAWING_MAX_SIZE, MIN_SIZE, STEP = 12.0, 10.0, 6.0, 0.5     # points
 FOOTER_SIZE = 8
+WRAP_COLUMNS = 70          # where a chart is set at MAX_SIZE on Letter: 504 / (0.6 * 12)
+NAME_VALUE = " = "         # between the name and the value of a `Name = value` line
 TITLE, PRODUCER = "Pinning charts", "sfic-solver"
 ENCODING = "cp1252"        # the PDF's WinAnsiEncoding
 
@@ -56,6 +58,39 @@ def floor_to_step(size):
     return int(size / STEP + 1e-9) * STEP
 
 
+def visible_width(line):
+    """The columns a line takes: spaces at its end print nothing."""
+    return len(line.rstrip(" "))
+
+
+def wrap_line(line, columns=WRAP_COLUMNS):
+    """A chart line as the lines it is set in: itself, or, if it is `Name = value`, longer
+    than `columns` and can be, broken at spaces into lines of at most `columns`, each
+    after the first indented to the start of the value (as far in as `Name = ` is long).
+
+    Each line is filled as far as it will go. A line is broken only at a space that has a
+    word after it, so an empty word (from a doubled space, or a space at the end) stays on
+    the line it follows, and spaces at the end of a line print nothing and are not counted.
+    A line that cannot be broken to fit (no `Name = `, or a word that is longer than the
+    room left after the indent, the first included) is returned whole, never cut: it then
+    sets the font size down to fit, or is refused, as it was before lines were wrapped. Cut
+    at the indent and joined with a space, the lines are the original again."""
+    at = line.find(NAME_VALUE)
+    if visible_width(line) <= columns or at < 0:
+        return [line]
+    indent = at + len(NAME_VALUE)
+    words = line[indent:].split(" ")
+    lines = [line[:indent] + words[0]]
+    for word in words[1:]:
+        if not word:
+            lines[-1] += " "
+        elif len(lines[-1]) + 1 + len(word) <= columns:
+            lines[-1] += " " + word
+        else:
+            lines.append(" " * indent + word)
+    return lines if all(visible_width(part) <= columns for part in lines) else [line]
+
+
 def font_sizes(pages, width, height):
     """(chart size, drawing size or None) for the whole document, in STEP steps.
 
@@ -63,12 +98,13 @@ def font_sizes(pages, width, height):
     line fits between the margins and the page still fits its height with the drawing
     (if it has one) set as small as MIN_SIZE. The drawing then gets the largest size, up
     to DRAWING_MAX_SIZE and no larger than the chart, that fits the width and the height
-    that is left. One pair serves every page, so no page looks different from the next."""
+    that is left. One pair serves every page, so no page looks different from the next.
+    The pages are as they are set, a long chart line already wrapped."""
     across, down = width - 2 * MARGIN, height - 2 * MARGIN
     chart_size = MAX_SIZE
     for page_no, page in enumerate(pages, 1):
         n, m = len(page.chart), len(page.drawing)
-        limit = across / (CHAR_WIDTH * max(map(len, page.chart)))
+        limit = across / (CHAR_WIDTH * max(map(visible_width, page.chart)))
         reserved = m and MIN_SIZE * (m - 1) * LEADING
         limit = min(limit, (down - reserved) / (1 + (n if m else n - 1) * LEADING))
         chart_size = min(chart_size, floor_to_step(limit))
@@ -117,7 +153,8 @@ def pages_to_pdf(pages, paper="letter"):
     """The bytes of a PDF with one page for each of `pages`.
 
     pages  a list of pages, each a Page (a chart's lines and, optionally, a drawing's) or a
-           plain non-empty list of text lines (no newlines)
+           plain non-empty list of text lines (no newlines). A long chart line is wrapped
+           (wrap_line); a drawing's lines are set as they are.
     paper  "letter" or "a4"
     """
     if paper not in PAPER:
@@ -125,6 +162,8 @@ def pages_to_pdf(pages, paper="letter"):
     pages = [page if isinstance(page, Page) else Page(page) for page in pages]
     if not pages or any(not page.chart for page in pages):
         raise PdfError("there is nothing to write")
+    pages = [Page([part for line in page.chart for part in wrap_line(line)], page.drawing)
+             for page in pages]
     width, height = PAPER[paper]
     encoded = [Page([encode(page_no, line) for line in page.chart],
                     [encode(page_no, line) for line in page.drawing])
