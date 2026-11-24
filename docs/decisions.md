@@ -814,6 +814,8 @@ Detail: [design.md, "Pinning"](design.md#pinning).
 
 ## D72. In the PDF the chart is set larger than its drawing, and the drawing gives way
 
+Status: Amended by D73.
+
 The PDF set a whole page, chart and drawing, at one size, at most 10 points, and the
 85-column drawing sets that size (9.5) on every page, so the chart read smaller than the
 room allowed. Now the chart is set at up to 12 points (two more), and the drawing under it
@@ -821,5 +823,19 @@ has its own size, up to 10 points and never above the chart's. The chart is size
 assuming the drawing at 6 points, and the drawing takes what height is left, so a page
 short of room shrinks the drawing before the chart. One pair of sizes serves the whole
 document, as one size did. The fixture's pages come out at 12 and 9.5. Amends D62.
+
+Detail: [design.md, "Pinning"](design.md#pinning).
+
+## D73. In the PDF a long chart line is wrapped, so one long name does not shrink every page
+
+The PDF sets the whole document at one pair of sizes, and the chart size was capped by the
+widest chart line, so a system with long core names (a `Core` line of over a hundred
+columns) set every page small and D72's 12 points were never seen. Now a chart line of the
+form `Name = value` that is longer than 70 columns, the width at which a chart is set at
+12 points on Letter, is wrapped at spaces in the PDF only, the continuation lines indented
+under the value, and the sizes are chosen from the wrapped lines. A line that cannot be
+wrapped within 70 columns, such as a word longer than that, is left whole and sets the size
+down, or is refused, as before. The text output and `check_charts` do not change, and
+D62's one pair of sizes per document stands. Amends D72.
 
 Detail: [design.md, "Pinning"](design.md#pinning).
